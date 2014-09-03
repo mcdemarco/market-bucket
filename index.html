@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Shopping lists powered by app.net">
+  <meta name="author" content="@mcdemarco">
+  <link rel="icon" href="images/favicon.ico">
+
+  <title>Market Bucket</title>
+    
+  <!-- Bootstrap core CSS -->
+  <link href="/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- Custom styles for this template -->
+  <link href="/css/sectionalize.css" rel="stylesheet">
+  <link href="//netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+  <!--link rel="stylesheet" href="/css/bucket.css"-->
+  <link href='http://fonts.googleapis.com/css?family=Rock+Salt|Open+Sans' rel='stylesheet' type='text/css'>
+  
+  <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+  <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+  <![endif]-->
+  
+
+  <!-- Favicons & Apple Icons -->
+  <link rel="shortcut icon" href="images/favicon.ico">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png"><!-- 57x57 -->
+  <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="images/apple-touch-icon-76x76.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="images/apple-touch-icon-120x120.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="images/apple-touch-icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="images/apple-touch-icon-152x152.png">
+</head>
+<body>
+  
+<nav class="navbar navbar-trans navbar-fixed-top" role="navigation">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar-collapsible">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand font-brand" href="#">Market Bucket</a>
+    </div>
+    <div class="navbar-collapse collapse" id="navbar-collapsible">
+      <ul class="nav navbar-nav navbar-left">
+        <li><a href="#section2"><i class="fa fa-lightbulb-o"></i></a></li>
+        <li><a href="#section5"><i class="fa fa-list-ul"></i></a></li>
+        <li><a href="#section-add"><i class="fa fa-plus"></i></a></li>
+        <li><a href="#section-tags"><i class="fa fa-tags"></i></a></li>
+        <li><a href="#section3"><i class="fa fa-info"></i></a></li>
+        <li>&nbsp;</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+	<li><a href="#" class="loggedIn" id="logOutButton" style="display:none;" onclick="logout();">Log Out</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+
+<section class="container-fluid" id="section-brand">
+  <h1 class="text-center v-center font-brand">Market Bucket</h1>
+  <p class="lead text-center">Shopping lists powered by App.net</p>
+    <div class="row">
+      <!--fontawesome icons-->
+      <div class="text-center">
+       <i class="fa fa-shopping-cart fa-4x"></i>
+       <i class="fa fa-fw fa-4x"></i>
+       <i class="fa fa-list fa-4x"></i>
+       <i class="fa fa-fw fa-4x"></i>
+       <i class="fa fa-tags fa-4x"></i>
+      </div>
+    </div>
+
+</section>
+
+<section class="container-fluid" id="section2">
+  <h1 class="text-center v-center">Make A List</h1>
+  <div class="row">
+    <div class="col-sm-4">
+      <div class="row">
+        <div class="col-sm-10 col-sm-offset-2 text-center"><h3>Now</h3><p>Make a list of urgent items.</p><i class="fa fa-clock-o fa-5x"></i></div>
+      </div>
+    </div>
+    <div class="col-sm-4 text-center">
+      <div class="row">
+        <div class="col-sm-10 col-sm-offset-1 text-center"><h3>Later</h3><p>Keep a record of less pressing matters.</p><i class="fa fa-calendar-o fa-5x"></i></div>
+      </div>
+    </div>
+    <div class="col-sm-4 text-center">
+      <div class="row">
+        <div class="col-sm-10 text-center"><h3>Archive</h3><p>Reuse your old items.</p><i class="fa fa-archive fa-5x"></i></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="container-fluid" id="section5">
+  <h1 class="text-center">Your Lists</h1>
+
+ <div class="col-sm-10 col-sm-offset-1">
+    <div class="row">
+      <div class="col-sm-4 col-xs-12" id="col1">
+            <div class="list-group">
+              <a href="#" class="list-group-item active">
+                <h2 class="list-group-item-heading">now</h2>
+                <h6>urgent items</h6>
+              </a>
+              <a href="#" class="list-group-item">
+                <p class="list-group-item-text">bread</p>
+              </a>
+              <a href="#" class="list-group-item">
+                <p class="list-group-item-text">circuses</p>
+              </a>
+              <a href="#" class="list-group-item">
+                <p class="list-group-item-text">eggs</p>
+              </a>
+              <a href="#" class="list-group-item">
+                <p class="list-group-item-text">milk</p>
+              </a>
+              <a href="#" class="list-group-item">
+                <p class="list-group-item-text">panko</p>
+              </a>
+              <a href="#" class="list-group-item">
+                <p class="list-group-item-text">twinkies</p>
+              </a>
+            </div>
+      </div><!--/left-->
+      
+      <div class="col-sm-4 col-xs-12" id="col2">
+            <div class="list-group text-center">
+              <a href="#" class="list-group-item active">
+                <h2 class="list-group-item-heading">later</h2>
+                <h6>dinner will go on without them</h6>
+              </a>
+              <a href="#" class="list-group-item">
+                <p class="list-group-item-text">kitrone</p>
+              </a>
+              <a href="#" class="list-group-item">
+                <p class="list-group-item-text">creamer</p>
+              </a>
+              <a href="#" class="list-group-item">
+                <p class="list-group-item-text">batteries</p>
+              </a>
+            </div>
+      </div><!--/middle-->
+      
+      <div class="col-sm-4 col-xs-12" id="col3">
+            <div class="list-group text-right">
+              <a href="#" class="list-group-item active">
+                <h2 class="list-group-item-heading">archive</h2>
+                <h6>the food is dead long live the food</h6>
+              </a>
+              <a href="#" class="list-group-item">
+                <p class="list-group-item-text">chicken thighs</p>
+              </a>
+              <a href="#" class="list-group-item">
+                <p class="list-group-item-text">coconut oil</p>
+              </a>
+              <a href="#" class="list-group-item">
+                <p class="list-group-item-text">olive oil</p>
+              </a>
+              <a href="#" class="list-group-item">
+                <p class="list-group-item-text">sesame oil</p>
+              </a>
+            </div>
+      </div><!--/right-->
+      
+    </div><!--/row-->
+  </div>
+</section>
+
+<section class="container-fluid" id="section3">
+  <h1 class="text-center v-center">About</h1>
+  <div class="row">
+    <div class="col-sm-4">
+      <div class="row">
+        <div class="col-sm-10 col-sm-offset-2 text-center"><h3>Lists</h3><p>Market Bucket classifies your groceries into three lists: now, later, and archived.<br />  (You can rename these lists.)<br />  Checked-off items are automatically archived, or you can rearrange your lists manually.</p><i class="fa fa-list fa-5x"></i></div>
+      </div>
+    </div>
+    <div class="col-sm-4 text-center">
+      <div class="row">
+        <div class="col-sm-10 col-sm-offset-1 text-center"><h3>Social</h3><p>List sharing powered by the social networking platform <a href="http://app.net/">app.net</a>.<br/> To create or access grocery lists, you will need a (free) app.net account.</p><i class="fa fa-adn fa-5x"></i></div>
+      </div>
+    </div>
+    <div class="col-sm-4 text-center">
+      <div class="row">
+        <div class="col-sm-10 text-center"><h3>Tags</h3><p>Market Bucket uses hashtags to further sort your lists--by store, item type, or anything else you choose.<br />  Market Bucket stores your hashtags for easy reference; you can edit your hashtag list as well.</p><i class="fa fa-tags fa-5x"></i></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+	<!---->
+
+
+		<div id="overview">
+			<div id="errorDiv"></div>
+			<div><p class="loggedOut" style="display:none;">To begin:</p></div>
+			<div id="loginRequest" class="loggedOut" style="display:none;">
+			  <a href='' class='adn-button' data-type='authorize_v2' data-width="145" data-height="22" >Authorize with App.net</a><script>(function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src='//d2zh9g63fcvyrq.cloudfront.net/adn.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'adn-button-js'));</script>
+			 <p>An App.net account is required to use Market Bucket. You can create an account and sign in by clicking this button.</p>
+			</div>
+		</div>
+
+		<!--div class="sixteen columns loggedIn" style="text-align:center;">
+			<h3>Add List Item(s)</h3>
+		</div>
+			<div class="one-third column loggedIn" id="bucketItemEntry">
+				<label for="item">Item: <textarea type="text" size="10" rows="2" id="item"></textarea></label><br />
+				<label for="now"><input type="checkbox" name="bucketBUcket" id="now" checked="checked"/> Now</label>
+				<label for="later"><input type="checkbox" name="bucketBUcket" id="later" /> Later</label>
+				<label for="archive"><input type="checkbox" name="bucketBucket" id="archive"/> Archive</label>
+			</div>
+			<div class="one-third column loggedIn" id="tagBucket">
+				<button type="button" onclick="tagButton(this);" value="perishable">perishable</button> 
+				<button type="button" onclick="tagButton(this);" value="portable">portable</button> 
+				<button type="button" onclick="tagButton(this);" value="MarketBasket">MarketBasket</button> 
+				<button type="button" onclick="tagButton(this);" value="StarMarket">StarMarket</button> 
+			</div>
+			<div class="one-third column loggedIn" id="buckBucket">
+				<button id="addButton" onclick="add();">Add Item(s)</button>
+			</div-->
+
+		
+<footer>
+  <div class="container-fluid">
+    <div class="row text-center">
+	  <p><i class="fa fa-gavel"></i> &nbsp; By using Market Bucket you agree to our <a href="/tos.html">Terms of Service</a> and <a href="/privacy.html">Privacy Policy</a>.<br />  Market Bucket (like <a href="http://paste-app.net">Paste</a>) is maintained and hosted by <a href="https://alpha.app.net/mcdemarco">@mcdemarco</a>. &nbsp; <i class="fa fa-adn"></i></p>
+    </div><!--/row-->
+  </div>
+</footer>
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <!--script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script-->
+    <script src="/js/libs/jquery-1.11.1.min.js"></script>
+    <script src="/js/libs/bootstrap.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="/js/libs/ie10-viewport-bug-workaround.js"></script>
+    <script src="/js/libs/appnet.5.js"></script>
+    <script src="/js/config.js"></script>
+    <script src="/js/main.js"></script>
+    <script>
+      $(document).ready(initialize);
+    </script>
+  </body>
+</html>
