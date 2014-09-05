@@ -24,8 +24,10 @@ html,body {
     color:#fff;
 }
 
-.navbar-trans li>a:hover,.navbar-trans li>a:focus,.navbar-trans li.active {
-    background-color:#D3D4B6;
+.navbar-trans li>a:hover,
+.navbar-trans li>a:focus,
+.navbar-trans li.active {
+    background-color:#A9F420;
 }
 
 .navbar-trans a{
@@ -54,12 +56,13 @@ section {
     border-color:transparent;
 }
 
-a.list-group-item.active,[class*='-info'] {
+a.list-group-item.active {
     background-color: #7E8250;
     color:#fff;
+    border-color: #526036;
 }
 
-#section-brand {
+#sectionBrand {
     color: white;
     text-shadow: 2px 2px 4px #112200;
 }
@@ -94,19 +97,21 @@ a.list-group-item.active,[class*='-info'] {
 }
 
 footer {
-    background-color:#494949;
+    background-color:#363822;
     color:#fff;
-    min-height:100px;
+    min-height:40px;
     padding-top:20px;
-    padding-bottom:40px;
+    padding-bottom:20px;
 }
 
-footer .nav>li>a {
-    padding:3px;
-    color:#bca;
+footer .nav>li>a,
+footer p>a {
+    padding:1px;
+    color: #B3C293;
 }
 
-footer .nav>li>a:hover {
+footer .nav>li>a:hover,
+footer p>a:hover  {
     background-color:transparent;
     color:#fff;
 }
@@ -118,3 +123,21 @@ h1, .font-brand {
 .font-sub {
     font-family: 'Open Sans', sans-serif;
 }
+
+/* main bootstrap restyles
+
+a {
+    color: #32B95D;
+}
+
+a:hover, a:focus {
+    color: #248646;
+}
+ */
+
+.list-group-item.active:hover, 
+.list-group-item.active:focus {
+    background-color: #91C133;
+    border-color: #91C133;
+}
+
