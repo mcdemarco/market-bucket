@@ -1,143 +1,104 @@
-/*
-A custom Bootstrap 3.1 template
-from http://bootply.com
-
-This CSS code should follow the 'bootstrap.css'
-in your HTML file.
-
-license: MIT
-author: bootply.com
-*/
-
-html,body {
-    height:100%;
-    background:center no-repeat fixed url('/images/good-food-1024-background.jpg');
-    background-size: cover;
-}
+/* Sass code to generate css based on the Sectionalize Bootstrap 3.1 template from http://bootply.com.  MIT license
+   Regenerate with: sass sectionalize.scss sectionalize.css
+ */
+html, body {
+  height: 100%;
+  background: center no-repeat fixed url("/images/good-food-1024-background.jpg");
+  background-size: cover; }
 
 .icon-bar {
-    background-color:#fff;
-}
+  background-color: #fff; }
 
 .navbar-trans {
-    background-color:#363822;
-    color:#fff;
-}
+  background-color: #363822;
+  color: #fff; }
 
-.navbar-trans li>a:hover,
-.navbar-trans li>a:focus,
+.navbar-trans li > a:hover,
+.navbar-trans li > a:focus,
 .navbar-trans li.active {
-    background-color:#A9F420;
-}
+  background-color: #A9F420; }
 
-.navbar-trans a{
-    color:#fefefe;
-}
+.navbar-trans a {
+  color: #fefefe; }
 
 .navbar-trans .form-control:focus {
-    border-color: #eee;
-    outline: 0;
-    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,0.075),0 0 8px rgba(100,100,100,0.6);
-    box-shadow: inset 0 1px 1px rgba(0,0,0,0.075),0 0 8px rgba(100,100,100,0.6);
-}
+  border-color: #eee;
+  outline: 0;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(100, 100, 100, 0.6);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(100, 100, 100, 0.6); }
 
 section {
-    padding-top:70px;  
-    padding-bottom:50px; 
-    min-height:calc(100% - 1px);
-}
+  padding-top: 70px;
+  padding-bottom: 50px;
+  min-height: calc(100% - 1px); }
 
 .v-center {
-    padding-top:10%;
-    font-size:70px;
-}
-  
-.well {
-    border-color:transparent;
-}
+  padding-top: 10%;
+  font-size: 70px; }
 
-a.list-group-item.active {
-    background-color: #7E8250;
-    color:#fff;
-    border-color: #526036;
-}
+.well {
+  border-color: transparent; }
 
 #sectionBrand {
-    color: white;
-    text-shadow: 2px 2px 4px #112200;
-}
-  
-#section1 {
-    background-color: #7E8250;
-    color:#deefcc;
-}
-  
-#section2 {
-    background-color: #e5f5de;
-    color:#687858;
-}
-  
-#section3 {
-    background-color: #7E8250;
-    color:#dec;
-}
+  color: white;
+  text-shadow: 2px 2px 4px #112200; }
 
+#section1 {
+  background-color: #7E8250;
+  color: #deefcc; }
+
+#section2 {
+  background-color: #e5f5de;
+  color: #687858; }
+
+#section3 {
+  background-color: #7E8250;
+  color: #deefcc; }
+
+/* not used
 #section4 {
     background-color: #fff;
     color:#444;
 }
-
-#section5,#section7 {
-    color:#fff;
-}
+*/
+#section5, #section7 {
+  color: #fff; }
 
 #section6 {
-    background-color: #7E8250;
-    color:#dec;
-}
+  background-color: #7E8250;
+  color: #deefcc; }
 
 footer {
-    background-color:#363822;
-    color:#fff;
-    min-height:40px;
-    padding-top:20px;
-    padding-bottom:20px;
-}
+  background-color: #363822;
+  color: #fff;
+  min-height: 40px;
+  padding-top: 20px;
+  padding-bottom: 20px; }
 
-footer .nav>li>a,
-footer p>a {
-    padding:1px;
-    color: #B3C293;
-}
+footer .nav > li > a,
+footer p > a {
+  padding: 1px;
+  color: #B3C293; }
 
-footer .nav>li>a:hover,
-footer p>a:hover  {
-    background-color:transparent;
-    color:#fff;
-}
+footer .nav > li > a:hover,
+footer p > a:hover {
+  background-color: transparent;
+  color: #fff; }
 
 h1, .font-brand {
-    font-family: 'Rock Salt', cursive; 
-}
+  font-family: "Rock Salt", cursive; }
 
 .font-sub {
-    font-family: 'Open Sans', sans-serif;
-}
+  font-family: "Open Sans", sans-serif; }
 
-/* main bootstrap restyles
+a.list-group-item.active {
+  background-color: #7E8250;
+  color: #fff;
+  border-color: #526036; }
 
-a {
-    color: #32B95D;
-}
-
-a:hover, a:focus {
-    color: #248646;
-}
- */
-
-.list-group-item.active:hover, 
+.list-group-item.active:hover,
 .list-group-item.active:focus {
-    background-color: #91C133;
-    border-color: #91C133;
-}
+  background-color: #91C133;
+  border-color: #91C133; }
 
+/*# sourceMappingURL=sectionalize.css.map */
