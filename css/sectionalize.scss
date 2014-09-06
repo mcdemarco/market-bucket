@@ -5,9 +5,12 @@
 $headline-stack: 'Rock Salt', cursive;
 $sub-stack: 'Open Sans', sans-serif;
 
-$nav-bgcolor: #363822;
+$opaque-bgcolor: #363822;
+$opacity: 0.7;
+
 $nav-color: #fff;
 $nav-link-color: #B3C293;
+$nav-bg-highlight: #5D8E16;
 
 $primary-bgcolor: #7E8250;
 $primary-bg-darker: #526036;
@@ -16,6 +19,9 @@ $primary-highlight: #91C133;
 
 $secondary-bgcolor: #e5f5de;
 $secondary-color: #687858;
+
+$transparent-color: #fff;
+$transparent-shadow: 2px 2px 4px #112200;
 
 html,body {
     height:100%;
@@ -28,14 +34,16 @@ html,body {
 }
 
 .navbar-trans {
-    background-color: $nav-bgcolor;
+    background-color: $opaque-bgcolor;
     color: $nav-color;
+    opacity: $opacity;
+    font-family: $sub-stack;
 }
 
 .navbar-trans li>a:hover,
 .navbar-trans li>a:focus,
 .navbar-trans li.active {
-    background-color:#A9F420;
+    background-color: $nav-bg-highlight;
 }
 
 .navbar-trans a{
@@ -57,51 +65,42 @@ section {
 
 .v-center {
     padding-top:10%;
-    font-size:70px;
+    //font-size:70px;
 }
   
 .well {
     border-color:transparent;
 }
 
-#sectionBrand {
-    color: white;
-    text-shadow: 2px 2px 4px #112200;
+#sectionBrand h1 {
+    font-size:70px;
 }
-  
-#section1 {
-    background-color: $primary-bgcolor;
-    color: $primary-color;
-}
-  
-#section2 {
+
+#sectionBlurb {
     background-color: $secondary-bgcolor;
     color: $secondary-color;
 }
-  
-#section3 {
+
+#sectionAbout {
     background-color: $primary-bgcolor;
     color: $primary-color;
 }
 
-/* not used
-#section4 {
-    background-color: #fff;
-    color:#444;
-}
-*/
+section.transparentSection {
+    color: $transparent-color;
 
-#section5,#section7 {
-    color: $nav-color;
+    h1, h2, h3, h4, h5, h6, .shadow {
+    text-shadow: $transparent-shadow;
+    }
 }
 
-#section6 {
+#sectionTags {
     background-color: $primary-bgcolor;
     color: $primary-color;
 }
 
 footer {
-    background-color: $nav-bgcolor;
+    background-color: $opaque-bgcolor;
     color: $nav-color;
     min-height:40px;
     padding-top:20px;

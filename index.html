@@ -50,24 +50,24 @@
     </div>
     <div class="navbar-collapse collapse" id="navbar-collapsible">
       <ul class="nav navbar-nav navbar-left">
-        <li><a href="#section2"><i class="fa fa-lightbulb-o"></i></a></li>
-        <li><a href="#section5"><i class="fa fa-list-ul"></i></a></li>
-        <li><a href="#sectionAdd"><i class="fa fa-plus"></i></a></li>
-        <li><a href="#sectionTags"><i class="fa fa-tags"></i></a></li>
-        <li><a href="#section3"><i class="fa fa-info"></i></a></li>
+        <li class="loggedOut"><a href="#sectionBlurb"><i class="fa fa-lightbulb-o"></i></a></li>
+        <li class="loggedOut"><a href="#sectionFakeLists">Lists</a></li>
+        <li class="loggedIn"><a href="#sectionLists">Lists</a></li>
+        <li class="loggedIn"><a href="#sectionTags">Tags</a></li>
+        <li><a href="#sectionAbout">About</a></li>
         <!--li>&nbsp;</li-->
       </ul>
       <ul class="nav navbar-nav navbar-right">
+	<li><a href="#sectionLogin" class="loggedOut" id="logInPreButton">Log In</a></li>
 	<li><a href="#" class="loggedIn" id="logOutButton" style="display:none;" onclick="logout();">Log Out</a></li>
       </ul>
     </div>
   </div>
 </nav>
 
-
-<section class="container-fluid" id="sectionBrand">
+<section class="container-fluid loggedOut transparentSection" id="sectionBrand">
   <h1 class="text-center v-center font-brand">Market Bucket</h1>
-  <p class="lead text-center">Shopping lists powered by App.net</p>
+  <p class="lead text-center shadow">Shopping lists powered by App.net</p>
     <div class="row">
       <!--fontawesome icons-->
       <div class="text-center">
@@ -81,7 +81,7 @@
 
 </section>
 
-<section class="container-fluid" id="section2">
+<section class="container-fluid loggedOut" id="sectionBlurb">
   <h1 class="text-center v-center">Make A List</h1>
   <div class="row">
     <div class="col-sm-4">
@@ -102,12 +102,14 @@
   </div>
 </section>
 
-<section class="container-fluid" id="section5">
-  <h1 class="text-center">Your Lists</h1>
 
- <div class="col-sm-10 col-sm-offset-1">
+
+<section class="container-fluid loggedOut transparentSection" id="sectionFakeLists">
+  <h1 class="text-center" style="padding-bottom: 25px;">Check it Twice</h1>
+
+  <div class="col-sm-10 col-sm-offset-1">
     <div class="row">
-      <div class="col-sm-4 col-xs-12" id="col1">
+      <div class="col-sm-4 col-xs-12">
             <div class="list-group">
               <a href="#" class="list-group-item active">
                 <h2 class="list-group-item-heading">now</h2>
@@ -134,7 +136,7 @@
             </div>
       </div><!--/left-->
       
-      <div class="col-sm-4 col-xs-12" id="col2">
+      <div class="col-sm-4 col-xs-12">
             <div class="list-group text-center">
               <a href="#" class="list-group-item active">
                 <h2 class="list-group-item-heading">later</h2>
@@ -152,7 +154,7 @@
             </div>
       </div><!--/middle-->
       
-      <div class="col-sm-4 col-xs-12" id="col3">
+      <div class="col-sm-4 col-xs-12">
             <div class="list-group text-right">
               <a href="#" class="list-group-item active">
                 <h2 class="list-group-item-heading">archive</h2>
@@ -177,7 +179,43 @@
   </div>
 </section>
 
-<section class="container-fluid" id="section3">
+<section class="container-fluid loggedIn transparentSection" id="sectionLists">
+  <h1 class="text-center" style="padding-bottom: 25px;">Your Lists</h1>
+
+ <div class="col-sm-10 col-sm-offset-1">
+    <div class="row">
+      <div class="col-sm-4 col-xs-12" id="col1">
+            <div class="list-group">
+              <a href="#" class="list-group-item active">
+                <h2 class="list-group-item-heading">now</h2>
+                <h6>urgent items</h6>
+              </a>
+            </div>
+      </div><!--/left-->
+      
+      <div class="col-sm-4 col-xs-12" id="col2">
+            <div class="list-group text-center">
+              <a href="#" class="list-group-item active">
+                <h2 class="list-group-item-heading">later</h2>
+                <h6>dinner will go on without them</h6>
+              </a>
+            </div>
+      </div><!--/middle-->
+      
+      <div class="col-sm-4 col-xs-12" id="col3">
+            <div class="list-group text-right">
+              <a href="#" class="list-group-item active">
+                <h2 class="list-group-item-heading">archive</h2>
+                <h6>the food is dead long live the food</h6>
+              </a>
+            </div>
+      </div><!--/right-->
+      
+    </div><!--/row-->
+  </div>
+</section>
+
+<section class="container-fluid" id="sectionAbout">
   <h1 class="text-center v-center">About</h1>
   <div class="row">
     <div class="col-sm-4">
@@ -198,17 +236,22 @@
   </div>
 </section>
 
+<section class="container-fluid loggedOut transparentSection" id="sectionLogin">
+  <h1 class="text-center font-brand v-center">Log in with App.net</h1>
+  <div class="row">
+    <div class="col-sm-6 col-sm-offset-3">
+      <p class="text-center lead shadow">An App.net account is required to use Market Bucket. You can create an account and sign in by clicking this button.</p>
+      <p class="text-center"><a href='' class='adn-button' data-type='authorize_v2' data-width="145" data-height="22" >Authorize with App.net</a><script>(function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src='//d2zh9g63fcvyrq.cloudfront.net/adn.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'adn-button-js'));</script>
+      </p>
+    </div>
+  </div>
+</section>
 
 	<!---->
 
 
 		<div id="overview">
 			<div id="errorDiv"></div>
-			<div><p class="loggedOut" style="display:none;">To begin:</p></div>
-			<div id="loginRequest" class="loggedOut" style="display:none;">
-			  <a href='' class='adn-button' data-type='authorize_v2' data-width="145" data-height="22" >Authorize with App.net</a><script>(function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src='//d2zh9g63fcvyrq.cloudfront.net/adn.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'adn-button-js'));</script>
-			 <p>An App.net account is required to use Market Bucket. You can create an account and sign in by clicking this button.</p>
-			</div>
 		</div>
 
 		<!--div class="sixteen columns loggedIn" style="text-align:center;">
@@ -248,6 +291,7 @@
     <script src="/js/libs/bootstrap.js"></script>
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
     <script src="/js/libs/ie10-viewport-bug-workaround.js"></script>
+    <script src="/js/libs/sectionalize.js"></script>
     <script src="/js/libs/appnet.5.js"></script>
     <script src="/js/config.js"></script>
     <script src="/js/main.js"></script>

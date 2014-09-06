@@ -11,12 +11,14 @@ html, body {
 
 .navbar-trans {
   background-color: #363822;
-  color: #fff; }
+  color: #fff;
+  opacity: 0.7;
+  font-family: "Open Sans", sans-serif; }
 
 .navbar-trans li > a:hover,
 .navbar-trans li > a:focus,
 .navbar-trans li.active {
-  background-color: #A9F420; }
+  background-color: #5D8E16; }
 
 .navbar-trans a {
   color: #fefefe; }
@@ -33,38 +35,28 @@ section {
   min-height: calc(100% - 1px); }
 
 .v-center {
-  padding-top: 10%;
-  font-size: 70px; }
+  padding-top: 10%; }
 
 .well {
   border-color: transparent; }
 
-#sectionBrand {
-  color: white;
-  text-shadow: 2px 2px 4px #112200; }
+#sectionBrand h1 {
+  font-size: 70px; }
 
-#section1 {
-  background-color: #7E8250;
-  color: #deefcc; }
-
-#section2 {
+#sectionBlurb {
   background-color: #e5f5de;
   color: #687858; }
 
-#section3 {
+#sectionAbout {
   background-color: #7E8250;
   color: #deefcc; }
 
-/* not used
-#section4 {
-    background-color: #fff;
-    color:#444;
-}
-*/
-#section5, #section7 {
+section.transparentSection {
   color: #fff; }
+  section.transparentSection h1, section.transparentSection h2, section.transparentSection h3, section.transparentSection h4, section.transparentSection h5, section.transparentSection h6, section.transparentSection .shadow {
+    text-shadow: 2px 2px 4px #112200; }
 
-#section6 {
+#sectionTags {
   background-color: #7E8250;
   color: #deefcc; }
 
