@@ -11,6 +11,7 @@
     
   <!-- Bootstrap core CSS -->
   <link href="/css/bootstrap.min.css" rel="stylesheet">
+  <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css" rel="stylesheet">
   
   <!-- Custom styles for this template -->
   <link href="/css/sectionalize.css" rel="stylesheet">
@@ -184,29 +185,44 @@
 
  <div class="col-sm-10 col-sm-offset-1">
     <div class="row">
-      <div class="col-sm-4 col-xs-12" id="col1">
+      <div class="col-sm-4 col-xs-12 bucketListDiv" id="col1">
             <div class="list-group">
               <a href="#" class="list-group-item active">
-                <h2 class="list-group-item-heading">now</h2>
-                <h6>urgent items</h6>
+                <h2 class="list-group-item-heading"><span class="mainTitle">now</span>
+		  <div class="pull-right btn-group">
+		    <button type="button" class="btn btn-default btn-xs"><span class="glyphicon glyphicon-plus"></span></button>
+		    <button type="button" class="btn btn-default btn-xs"><span class="glyphicon glyphicon-cog"></span></button>
+		  </div>
+		</h2>
+                <h6><span class="subTitle">urgent items</h6>
               </a>
             </div>
       </div><!--/left-->
       
-      <div class="col-sm-4 col-xs-12" id="col2">
-            <div class="list-group text-center">
+      <div class="col-sm-4 col-xs-12 bucketListDiv" id="col2">
+            <div class="list-group">
               <a href="#" class="list-group-item active">
-                <h2 class="list-group-item-heading">later</h2>
-                <h6>dinner will go on without them</h6>
+                <h2 class="list-group-item-heading"><span class="mainTitle">later</span>
+		  <div class="pull-right btn-group">
+		    <button type="button" class="btn btn-default btn-xs"><span class="glyphicon glyphicon-plus"></span></button>
+		    <button type="button" class="btn btn-default btn-xs"><span class="glyphicon glyphicon-cog"></span></button>
+		  </div>
+		</h2>
+                <h6><span class="subTitle">non-urgent items</h6>
               </a>
             </div>
       </div><!--/middle-->
       
-      <div class="col-sm-4 col-xs-12" id="col3">
-            <div class="list-group text-right">
+      <div class="col-sm-4 col-xs-12 bucketListDiv" id="col3">
+            <div class="list-group">
               <a href="#" class="list-group-item active">
-                <h2 class="list-group-item-heading">archive</h2>
-                <h6>the food is dead long live the food</h6>
+                <h2 class="list-group-item-heading"><span class="mainTitle">archive</span>
+		  <div class="pull-right btn-group">
+		    <button type="button" class="btn btn-default btn-xs"><span class="glyphicon glyphicon-plus"></span></button>
+		    <button type="button" class="btn btn-default btn-xs"><span class="glyphicon glyphicon-cog"></span></button>
+		  </div>
+		</h2>
+                <h6><span class="subTitle">reusable items</h6>
               </a>
             </div>
       </div><!--/right-->
@@ -220,7 +236,7 @@
   <div class="row">
     <div class="col-sm-4">
       <div class="row">
-        <div class="col-sm-10 col-sm-offset-2 text-center"><h3>Lists</h3><p>Market Bucket classifies your groceries into three lists: now, later, and archived.<br />  (You can rename these lists.)<br />  Checked-off items are automatically archived, or you can rearrange your lists manually.</p><i class="fa fa-list fa-5x"></i></div>
+        <div class="col-sm-10 col-sm-offset-2 text-center"><h3>Lists</h3><p>Market Bucket classifies your groceries into three lists: now, later, and archived.<br />  (You can rename these lists.)<br />  Checked-off items are automatically archived, or you can rearrange your lists manually.</p><span class="fa fa-list fa-5x"></i></div>
       </div>
     </div>
     <div class="col-sm-4 text-center">

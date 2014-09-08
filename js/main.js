@@ -94,7 +94,7 @@ function completeChannels(response) {
 			var thisChannel = response.data[c];
 			//Currently assuming we're the only annotation.
 			var annotation = thisChannel.annotations[0].value;
-			$(columnArray[annotation.list_type] + " h2").html((annotation.title ? annotation.title : annotation.list_type));
+			$(columnArray[annotation.list_type] + " h2 span.mainTitle").html((annotation.title ? annotation.title : annotation.list_type));
 			var args = {
 				include_annotations: 1
 			};
