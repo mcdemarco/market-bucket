@@ -3,9 +3,20 @@
  */
 html, body {
   height: 100%;
-  background: center no-repeat fixed url("/images/good-food-1024-background.jpg");
+  background-image: url("/images/good-food-1024-background.jpg");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-attachment: fixed;
   background-size: cover; }
 
+/* address mobile fixed background image weirdness */
+@media screen and (max-width: 600px) {
+  section.transparentSection {
+    background-image: url("/images/good-food-300-background.jpg");
+    background-repeat: no-repeat;
+    background-position: top;
+    background-attachment: scroll;
+    background-size: 100%; } }
 .icon-bar {
   background-color: #fff; }
 
@@ -41,7 +52,7 @@ section {
   border-color: transparent; }
 
 #sectionBrand h1 {
-  font-size: 70px; }
+  font-size: 50px; }
 
 #sectionBlurb {
   background-color: #e5f5de;
