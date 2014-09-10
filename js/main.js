@@ -3,12 +3,12 @@
 //To force authorization: https://account.app.net/oauth/authorize etc.
 var authUrl = "https://account.app.net/oauth/authenticate?client_id=" + api['client_id'] + "&response_type=token&redirect_uri=" + encodeURIComponent(site) + "&scope=messages:" + api.channel_type;
 var channelArgs = {count: -5, since_id: 'last_read_inclusive'}; //Default post count for retrieval.
-var columnArray = {};
 var channelArray = {"now": {"column": "#col1", "channel": 0},
 					"later": {"column": "#col2", "channel": 0},
 					"archive": {"column": "#col3", "channel": 0},
 					"hashtags" : {"column": "#col4"}
 				   };
+var reverseChannelArray = {};
 
 /* main execution path */
 
@@ -31,6 +31,7 @@ function initialize() {
 		getChannels();
 		$(".loggedIn").show('slow');
 	}
+	initializeButtons();
 	colorizeTags();
 }
 
@@ -110,6 +111,7 @@ function completeChannels(response) {
 				include_annotations: 1
 			};
 			channelArray[annotation.list_type].channel = thisChannel.id;
+			reverseChannelArray[thisChannel.id] = annotation.list_type;
 			var promise = $.appnet.message.getChannel(thisChannel.id, args);
 			promise.then(completeChannel, function (response) {failAlert('Failed to retrieve items.');});
 		}
@@ -121,21 +123,10 @@ function completeChannels(response) {
 
 function completeChannel(response) {
 	if (response.data.length > 0) {
-		
 		//Populate channel.
-/*
-	$(columnArray["my_stream"]).append("<h3>User Stream</h3");
-	var promise1 = $.appnet.message.getChannel(channel,channelArgs);
-	promise1.then(completeStream, function (response) {failAlert('Failed to retrieve user stream.');});
-
-	$(columnArray["unified"]).append("<h3>Unified Stream</h3");
-	var promise2 = $.appnet.post.getUnifiedStream(streamArgs);
-	promise2.then(completeStream, function (response) {failAlert('Failed to retrieve unified stream.');});
-
-	$(columnArray["global"]).append("<h3>Global Stream</h3");
-	var promise3 = $.appnet.post.getGlobal(streamArgs);
-	promise3.then(completeStream, function (response) {failAlert('Failed to retrieve global stream.');});
-*/
+		for (var i=0; i < response.data.length; i++) {
+			formatItem(response.data[i]);
+		}
 	}
 }
 
@@ -159,76 +150,17 @@ function createItem(channel,message) {
 
 function completeItem(response) {
 	var respd = response.data;
+	formatItem(respd);
 	clearForm();
-	//need a reverse map to get the column here.
-	//$("#col1").prepend(formatItem(respd,true));
 }
 
 // ***** //
 
+/* miscellaneous functions */
+
 function clearForm() {
 	$("textarea#item").val("");
 }
-
-function completeStream(response) {
-	if (response.data.length > 0) {
-		var thisCrick = response.data;
-		var thisTicker = response.meta.marker;
-		var thisColumn = columnArray[thisTicker.name];
-	}
-
-	if (thisCrick[thisCrick.length - 1].id == thisTicker.last_read_id) {
-		if (response.meta.more == true) {
-			//First call, but not starting at the head of the stream.
-			formatEllipsis(thisColumn);
-		}
-		$(thisColumn).append("<hr />");
-	}
-
-	//Process the stream and marker.
-	for (var i=0; i < thisCrick.length; i++) {
-		if (thisCrick[i].id == thisTicker.id) {
-			formatMarker(thisTicker,thisColumn);
-		} else if (thisCrick[i].id == thisTicker.last_read_id) {
-			formatLastSeen(thisTicker,thisColumn);
-		}
-		formatPost(thisCrick[i],thisColumn,thisTicker);
-	}
-
-	if (thisCrick[thisCrick.length - 1].id == thisTicker.last_read_id) {
-		//We're ending at the marker and have more to retrieve.
-		if (thisTicker.id == thisTicker.last_read_id) {
-			//We got the real marker as the last read marker and can skip it in the request.
-			var restreamArgs = restreamArgsExclusive;
-		} else {
-			//The marker and last read marker are different, so:
-			//include the marker next time,
-			var restreamArgs = restreamArgsInclusive;
-			//and indicate the break.
-			formatEllipsis(thisColumn);
-			$(thisColumn).append("<hr />");
-		}
-		switch (thisTicker.name) {
-			case "my_stream":
-				var promise = $.appnet.post.getUserStream(restreamArgs);
-				break;
-			case "unified":
-				var promise = $.appnet.post.getUnifiedStream(restreamArgs);
-				break;
-			case "global":
-				var promise = $.appnet.post.getGlobal(restreamArgs);
-				break;
-		}
-
-		promise.then(completeStream, function (response) {failAlert('Failed to retrieve rest of stream.');});
-	} else {
-		//Just assume there's more stream.
-		formatEllipsis(thisColumn);
-	}
-
-}
-
-/* miscellaneous functions */
 
 function checkLocalStorage() {
 	if (localStorage && localStorage["accessToken"]) {
@@ -250,12 +182,28 @@ function failAlert(msg) {
 }
 
 function formatEllipsis(column) {
-		$(column).append("<div class='spacer'><span class='fa fa-ellipsis-v'></span></div>");
+	$(column).append("<div class='spacer'><span class='fa fa-ellipsis-v'></span></div>");
 }
 
-function formatItem(post,column) {
-	var postDate = new Date(post.created_at);
-	$(column).append("<div><span class='author'><strong>@"+post.user.username+"</strong>" + (post.user.name ? " (" + post.user.name + ")" : "") + "</span><br/>" + (post.html ? post.html : "<span class='special'>[Post deleted]</span>") + "<br/>" + "<div style='text-align:right;'><a style='font-style:italic;text-decoration:none;font-size:smaller;' href='" + post.canonical_url + "'>" + postDate.toLocaleString() + "</a><span onclick='completeItem(" + post.id + ");' class='fa fa-check-o markButton' title='Set marker to post " + post.id + "'></span></div></div><hr/>");
+function forceScroll(hash) {
+	var target = $(hash);
+	$('html,body').animate({scrollTop: target.offset().top - 50}, 1000);
+	return false;
+}
+
+function formatItem(item) {
+	var itemDate = new Date(item.created_at);
+	var formattedItem = "<a href='#' class='list-group-item' id='item_" + item.id + "'>";
+	formattedItem += "<p class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + item.user.username + "'>";
+	formattedItem += item.html + "</p></a>";
+	$(channelArray[reverseChannelArray[item.channel_id]].column + " div.list-group").append(formattedItem);
+}
+
+function initializeButtons() {
+	$("button[data-type=addButton]").click(function (event) {
+		event.preventDefault();
+		onClickAdd($(this).data("list"));
+	});
 }
 
 function logout() {
@@ -274,10 +222,19 @@ function logout() {
 	$(channelArray["archive"].column).html("");
 }
 
+function onClickAdd(channelName) {
+	$("input[name=bucketBucket]").prop("checked", false);
+	$("input#" + channelName).prop("checked", true);
+	pushHistory(site + "#sectionAdd");
+	forceScroll("#sectionAdd");
+}
+
 function pushHistory(newLocation) {
 	if (history.pushState) 
 		history.pushState({}, document.title, newLocation);
 }
+
+/* tag functions */
 
 function colorizeTags() {
 	$(".tag").each(function(index) {
@@ -288,9 +245,9 @@ function colorizeTags() {
 
 function getColor(str) {
 	//Get a random color from the tag text.
-    for (var i = 0, hash = 0; i < str.length; hash = str.charCodeAt(i++) + ((hash << 5) - hash));
-    color = Math.floor(Math.abs((Math.sin(hash) * 10000) % 1 * 16777216)).toString(16);
-    return '#' + Array(6 - color.length + 1).join('0') + color;
+	for (var i = 0, hash = 0; i < str.length; hash = str.charCodeAt(i++) + ((hash << 5) - hash));
+	color = Math.floor(Math.abs((Math.sin(hash) * 10000) % 1 * 16777216)).toString(16);
+	return '#' + Array(6 - color.length + 1).join('0') + color;
 }
 
 function getContrastYIQ(hexcolor){
