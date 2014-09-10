@@ -30,6 +30,7 @@ function initialize() {
 		getChannels();
 		$(".loggedIn").show('slow');
 	}
+	colorizeTags();
 }
 
 function createChannels() {
@@ -304,9 +305,31 @@ function tick() {
 }
 
 function completeTick(response) {
-	//Clear form and refresh marker by reloading.
+	//Clear form and refresh lists by reloading.
 	location.reload();
-	//failAlert(response.meta.code);
+}
+
+function colorizeTags() {
+	$(".tag").each(function(index) {
+		var thisColor = getColor($(this).html());
+		$(this).css("background-color", thisColor).css("color", getContrastYIQ(thisColor.substring(1,7)));
+	});
+}
+
+function getColor(str) {
+	//Get a random color from the tag text.
+    for (var i = 0, hash = 0; i < str.length; hash = str.charCodeAt(i++) + ((hash << 5) - hash));
+    color = Math.floor(Math.abs((Math.sin(hash) * 10000) % 1 * 16777216)).toString(16);
+    return '#' + Array(6 - color.length + 1).join('0') + color;
+}
+
+function getContrastYIQ(hexcolor){
+	//Get the contrast color for user-defined tag colors using the YIQ formula.
+	var r = parseInt(hexcolor.substr(0,2),16);
+	var g = parseInt(hexcolor.substr(2,2),16);
+	var b = parseInt(hexcolor.substr(4,2),16);
+	var yiq = ((r*299)+(g*587)+(b*114))/1000;
+	return (yiq >= 128) ? 'black' : 'white';
 }
 
 function tagButton(that) {
