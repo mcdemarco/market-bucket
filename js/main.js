@@ -1,13 +1,14 @@
 //main.js for Market Bucket by @mcdemarco.
 
 //To force authorization: https://account.app.net/oauth/authorize etc.
-var authUrl = "https://account.app.net/oauth/authenticate?client_id=" + api['client_id'] + "&response_type=token&redirect_uri=" + encodeURIComponent(site) + "&scope=messages:net.mcdemarco.market-bucket.list";
+var authUrl = "https://account.app.net/oauth/authenticate?client_id=" + api['client_id'] + "&response_type=token&redirect_uri=" + encodeURIComponent(site) + "&scope=messages:" + api.channel_type;
 var channelArgs = {count: -5, since_id: 'last_read_inclusive'}; //Default post count for retrieval.
 var columnArray = {};
-columnArray["now"] = "#col1";
-columnArray["later"] = "#col2";
-columnArray["archive"] = "#col3";
-columnArray["hashtags"] = "#col4";
+var channelArray = {"now": {"column": "#col1", "channel": 0},
+					"later": {"column": "#col2", "channel": 0},
+					"archive": {"column": "#col3", "channel": 0},
+					"hashtags" : {"column": "#col4"}
+				   };
 
 /* main execution path */
 
@@ -33,13 +34,22 @@ function initialize() {
 	colorizeTags();
 }
 
+function addItem() {
+	var message = $("textarea#item").val();
+	if (message == "") return;
+	$("input[name=bucketBucket]").each(function (index) {
+		if ($(this).is(":checked"))
+			createItem(channelArray[$(this).prop("id")].channel, message);
+	});
+}
+
 function createChannels() {
 	//Create new channels for user.
 	var channel = {
-		type: 'net.mcdemarco.market-bucket.list',
+		type: api.channel_type,
 		auto_subscribe: true,
 		annotations:  [{
-						  type: 'net.mcdemarco.market-bucket.list',
+						  type: api.channel_type,
 						  value: {'list_type': 'now'}
 					  }]
 	};
@@ -50,10 +60,10 @@ function createChannels() {
 function createChannel2() {
 	//Create new channels for user.
 	var channel2 = {
-		type: 'net.mcdemarco.market-bucket.list',
+		type: api.channel_type,
 		auto_subscribe: true,
 		annotations:  [{
-						  type: 'net.mcdemarco.market-bucket.list',
+						  type: api.channel_type,
 						  value: {'list_type': 'later'}
 					  }]
 	};
@@ -64,10 +74,10 @@ function createChannel2() {
 function createChannel3() {
 	//Create new channels for user.
 	var channel3 = {
-		type: 'net.mcdemarco.market-bucket.list',
+		type: api.channel_type,
 		auto_subscribe: true,
 		annotations:  [{
-						  type: 'net.mcdemarco.market-bucket.list',
+						  type: api.channel_type,
 						  value: {'list_type': 'archive'}
 					  }]
 	};
@@ -82,7 +92,7 @@ function completeCreateChannels() {
 function getChannels() {
 	//Determine channels.
 	var args = {
-		channel_types: 'net.mcdemarco.market-bucket.list',
+		channel_types: api.channel_type,
 		include_annotations: 1
 	};
 	var promise = $.appnet.channel.getCreated(args);
@@ -95,13 +105,13 @@ function completeChannels(response) {
 			var thisChannel = response.data[c];
 			//Currently assuming we're the only annotation.
 			var annotation = thisChannel.annotations[0].value;
-			$(columnArray[annotation.list_type] + " h2 span.mainTitle").html((annotation.title ? annotation.title : annotation.list_type));
+			$(channelArray[annotation.list_type].column + " h2 span.mainTitle").html((annotation.title ? annotation.title : annotation.list_type));
 			var args = {
 				include_annotations: 1
 			};
+			channelArray[annotation.list_type].channel = thisChannel.id;
 			var promise = $.appnet.message.getChannel(thisChannel.id, args);
 			promise.then(completeChannel, function (response) {failAlert('Failed to retrieve items.');});
-			//api.channel_id = pasteChannel.id;
 		}
 	} else {
 		createChannels();
@@ -130,13 +140,35 @@ function completeChannel(response) {
 }
 
 function updateChannels() {/*
-	$.appnet.channel.update(55870,{annotations:  [{ type: 'net.mcdemarco.market-bucket.list', value: {'list_type': 'now'}}]})
-	$.appnet.channel.update(55871,{annotations:  [{ type: 'net.mcdemarco.market-bucket.list', value: {'list_type': 'later'}}]})
-	$.appnet.channel.update(55872,{annotations:  [{ type: 'net.mcdemarco.market-bucket.list', value: {'list_type': 'archive'}}]})
+	$.appnet.channel.update(55870,{annotations:  [{ type: api.channel_type, value: {'list_type': 'now'}}]})
+	$.appnet.channel.update(55871,{annotations:  [{ type: api.channel_type, value: {'list_type': 'later'}}]})
+	$.appnet.channel.update(55872,{annotations:  [{ type: api.channel_type, value: {'list_type': 'archive'}}]})
 */}
 
+function createItem(channel,message) {
+	if (channel == 0) {
+		failAlert('Failed to create item.');
+		return;
+	}
+	var newMessage = {
+		text: message
+	};
+	var promise = $.appnet.message.create(channel, newMessage);
+	promise.then(completeItem, function (response) {failAlert('Failed to create item.');});
+}
+
+function completeItem(response) {
+	var respd = response.data;
+	clearForm();
+	//need a reverse map to get the column here.
+	//$("#col1").prepend(formatItem(respd,true));
+}
 
 // ***** //
+
+function clearForm() {
+	$("textarea#item").val("");
+}
 
 function completeStream(response) {
 	if (response.data.length > 0) {
@@ -221,19 +253,9 @@ function formatEllipsis(column) {
 		$(column).append("<div class='spacer'><span class='fa fa-ellipsis-v'></span></div>");
 }
 
-function formatLastSeen(marker,column) {
-	var markerDate = new Date(marker.updated_at);
-	$(column).append("<div class='marker marked' title='Version: " + marker.version + ", Percentage: " + marker.percentage + "'>" + markerDate.toLocaleString() + " <span class='fa fa-eye'></span></div>");
-}
-
-function formatMarker(marker,column) {
-	var markerDate = new Date(marker.updated_at);
-	$(column).append("<div class='marker marked' title='Version: " + marker.version + ", Percentage: " + marker.percentage + "'>" + markerDate.toLocaleString() + ((marker.id == marker.last_read_id) ? " <span class='fa fa-eye'></span>" : "") + " <span onclick='markPost(" + marker.id + ",\"" + marker.name + "\"" + ", true);' class='fa fa-bookmark markButton' title='Set other markers and/or last read to post " + marker.id + "'></span></div>");
-}
-
-function formatPost(post,column,marker) {
+function formatItem(post,column) {
 	var postDate = new Date(post.created_at);
-	$(column).append("<div class='" + (post.id > marker.last_read_id ? "after" : "before") + (post.id == marker.id ? " marked" : "") + "' " +">" + "<span class='author'><strong>@"+post.user.username+"</strong>" + (post.user.name ? " (" + post.user.name + ")" : "") + "</span><br/>" + (post.html ? post.html : "<span class='special'>[Post deleted]</span>") + "<br/>" + "<div style='text-align:right;'><a style='font-style:italic;text-decoration:none;font-size:smaller;' href='" + post.canonical_url + "'>" + postDate.toLocaleString() + "</a>" + ((post.id != marker.id) ? " <span onclick='markPost(" + post.id + ",\"" + marker.name + "\");' class='fa fa-bookmark-o markButton' title='Set marker to post " + post.id + "'></span>" : "") + "</div></div><hr/>");
+	$(column).append("<div><span class='author'><strong>@"+post.user.username+"</strong>" + (post.user.name ? " (" + post.user.name + ")" : "") + "</span><br/>" + (post.html ? post.html : "<span class='special'>[Post deleted]</span>") + "<br/>" + "<div style='text-align:right;'><a style='font-style:italic;text-decoration:none;font-size:smaller;' href='" + post.canonical_url + "'>" + postDate.toLocaleString() + "</a><span onclick='completeItem(" + post.id + ");' class='fa fa-check-o markButton' title='Set marker to post " + post.id + "'></span></div></div><hr/>");
 }
 
 function logout() {
@@ -247,66 +269,14 @@ function logout() {
 
 	$(".loggedIn").hide();
 	$(".loggedOut").show();
-	$(columnArray["my_stream"]).html("");
-	$(columnArray["unified"]).html("");
-	$(columnArray["global"]).html("");
-}
-
-function markPost(id,stream,marked) {
-	//Pass the current post information into the form.
-	$("#post_id").val(id);
-	//Set the checkboxes to match stream.
-	if (marked) {
-		$("#reset_last_read").prop("checked",true);
-		if (stream == "global")
-			$("input[name=crickToTick]").prop("checked",false);
-		else
-			$("input[name=crickToTick]").prop("checked",true);
-		$("input#" + stream).prop("checked",true);
-	} else {
-		$("#reset_last_read").prop("checked",false);
-		$("input[name=crickToTick]").prop("checked",false);
-		$("input#" + stream).prop("checked",true);
-	}
-	//Scroll to the form.
-	$('html,body').animate({scrollTop: $("#tickerTicker").offset().top},'slow');
+	$(channelArray["now"].column).html("");
+	$(channelArray["later"].column).html("");
+	$(channelArray["archive"].column).html("");
 }
 
 function pushHistory(newLocation) {
 	if (history.pushState) 
 		history.pushState({}, document.title, newLocation);
-}
-
-function tick() {
-	//Validate.
-	var post_id = $("#post_id").val();
-	var intRegex = /^\d+$/;
-	if (!intRegex.test(post_id)) {
-		failAlert('The post id must be a non-negative integer.');
-		return;
-	}
-	//Prepare the marker.
-	var markerObj = [];
-	var markerArgs = {};
-	if ($("#reset_last_read").is(":checked"))
-		markerArgs = {reset_read_id: 1};
-
-	$.each(columnArray, function(key, value) {
-		if ($("#" + key).is(":checked")) {
-			var thisObj = {};
-			thisObj['name'] = key;
-			thisObj['id'] = post_id;
-			markerObj.push(thisObj);
-		}
-	});
-	//Set the stream marker(s).
-	var promiseTick = $.appnet.marker.update(markerObj, markerArgs);
-	promiseTick.then(completeTick, function (response)  {failAlert('Failed to update stream marker(s).');});
-}
-
-function completeTick(response) {
-	//Clear form and refresh lists by reloading.
-	location.reload();
 }
 
 function colorizeTags() {

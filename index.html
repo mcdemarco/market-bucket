@@ -242,12 +242,12 @@
       <div class="col-sm-8 col-sm-offset-2">
       <form role="form" id="bucketItemEntry">
 	<div class="form-group">
-	  <label class="checkbox-inline" for="now"><input type="checkbox" name="bucketBUcket" id="now" checked="checked"/> Now</label>
-	  <label class="checkbox-inline" for="later"><input type="checkbox" name="bucketBUcket" id="later" /> Later</label>
+	  <label class="checkbox-inline" for="now"><input type="checkbox" name="bucketBucket" id="now" checked="checked"/> Now</label>
+	  <label class="checkbox-inline" for="later"><input type="checkbox" name="bucketBucket" id="later" /> Later</label>
 	  <label class="checkbox-inline" for="archive"><input type="checkbox" name="bucketBucket" id="archive"/> Archive</label>
 	  <label class="sr-only" for="item"></label>
 	  <textarea type="text" class="form-control" rows="2" id="item"></textarea>
-	  <button id="addButton" class="form-control btn btn-primary" onclick="addItem();">Add Item(s)</button><br />
+	  <button id="addButton" type="button" class="form-control btn btn-primary" onclick="addItem();">Add Item(s)</button><br />
 	<br/>
 	<span id="tagBucket">
 	  <button type="button" class="btn btn-default btn-sm tag" style="background-color:#abc;" onclick="tagButton(this);" value="perishable">#perishable</button> 
