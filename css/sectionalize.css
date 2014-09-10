@@ -54,7 +54,7 @@ section {
 #sectionBrand h1 {
   font-size: 50px; }
 
-#sectionBlurb {
+#sectionBlurb, #sectionAdd {
   background-color: #e5f5de;
   color: #687858; }
 
