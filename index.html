@@ -54,6 +54,11 @@
         <li class="loggedOut"><a href="#sectionBlurb"><i class="fa fa-lightbulb-o"></i></a></li>
         <li class="loggedOut"><a href="#sectionFakeLists">Lists</a></li>
         <li class="loggedIn"><a href="#sectionLists">Lists</a></li>
+        <li class="loggedIn"><a href="#col1"><i class="fa fa-clock-o"></i></a></li>
+        <li class="loggedIn"><a href="#col2"><i class="fa fa-calendar"></i></a></li>
+        <li class="loggedIn"><a href="#col3"><i class="fa fa-archive"></i></a></li>
+        <li class="loggedIn"><a href="#sectionAdd"><i class="fa fa-plus"></i></a></li>
+        <li class="loggedIn"><a href="#sectionSettings"><i class="fa fa-cog"></i></a></li>
         <li class="loggedIn"><a href="#sectionTags">Tags</a></li>
         <li><a href="#sectionAbout">About</a></li>
         <!--li>&nbsp;</li-->
@@ -92,7 +97,7 @@
     </div>
     <div class="col-sm-4 text-center">
       <div class="row">
-        <div class="col-sm-10 col-sm-offset-1 text-center"><h3>Later</h3><p>Keep a record of less pressing matters.</p><i class="fa fa-calendar-o fa-5x"></i></div>
+        <div class="col-sm-10 col-sm-offset-1 text-center"><h3>Later</h3><p>Keep a record of less pressing matters.</p><i class="fa fa-calendar fa-5x"></i></div>
       </div>
     </div>
     <div class="col-sm-4 text-center">
@@ -231,22 +236,53 @@
   </div>
 </section>
 
+<section class="container-fluid loggedIn" id="sectionAdd">
+  <h1 class="text-center">Add an Item</h1>
+    <div class="row text-center">
+      <div class="col-sm-8 col-sm-offset-2">
+      <form role="form" id="bucketItemEntry">
+	<div class="form-group">
+	  <label class="checkbox-inline" for="now"><input type="checkbox" name="bucketBUcket" id="now" checked="checked"/> Now</label>
+	  <label class="checkbox-inline" for="later"><input type="checkbox" name="bucketBUcket" id="later" /> Later</label>
+	  <label class="checkbox-inline" for="archive"><input type="checkbox" name="bucketBucket" id="archive"/> Archive</label>
+	  <label class="sr-only" for="item"></label>
+	  <textarea type="text" class="form-control" rows="2" id="item"></textarea>
+	  <button id="addButton" class="form-control btn btn-primary" onclick="addItem();">Add Item(s)</button><br />
+	<br/>
+	<span id="tagBucket">
+	  <button type="button" class="btn btn-default btn-sm tag" style="background-color:#abc;" onclick="tagButton(this);" value="perishable">#perishable</button> 
+	  <button type="button" class="btn btn-default btn-sm tag" onclick="tagButton(this);" value="portable">#portable</button> 
+	  <button type="button" class="btn btn-default btn-sm tag" onclick="tagButton(this);" value="MarketBasket">#MarketBasket</button> 
+	  <button type="button" class="btn btn-default btn-sm tag" onclick="tagButton(this);" value="WholeFoods">#WholeFoods</button> 
+	  <button type="button" class="btn btn-default btn-sm tag" onclick="tagButton(this);" value="Costco">#Costco</button> 
+	  <button type="button" class="btn btn-default btn-sm tag" onclick="tagButton(this);" value="StarMarket">#StarMarket</button> 
+	  <button type="button" class="btn btn-default btn-sm tag" onclick="tagButton(this);" value="HarvestCoop">#HarvestCoop</button> 
+	  <button type="button" class="btn btn-default btn-sm tag" onclick="tagButton(this);" value="Russos">#Russos</button> 
+	  <button type="button" class="btn btn-default btn-sm tag" onclick="tagButton(this);" value="Walmart">#Walmart</button> 
+	  <button type="button" class="btn btn-default btn-sm tag" onclick="tagButton(this);" value="TraderJoes">#TraderJoes</button> 
+	</span>
+      </form>
+      <div id="errorDiv"></div>
+      </div>
+    </div>
+</section>
+
 <section class="container-fluid" id="sectionAbout">
   <h1 class="text-center">About</h1>
   <div class="row">
     <div class="col-sm-4">
       <div class="row">
-        <div class="col-sm-10 col-sm-offset-2 text-center"><h3>Lists</h3><p>Market Bucket classifies your groceries into three lists: now, later, and archived.<br />  (You can rename these lists.)<br />  Checked-off items are automatically archived, or you can rearrange your lists manually.</p><span class="fa fa-list fa-5x"></i></div>
+        <div class="col-sm-10 col-sm-offset-2 text-center"><h3>Lists</h3><p>Market Bucket classifies your groceries into three lists: now, later, and archived.<br />  (You can rename these lists.)<br />  Checked-off items are automatically archived, or you can rearrange your lists manually.</p><span class="fa fa-list fa-4x"></i></div>
       </div>
     </div>
     <div class="col-sm-4 text-center">
       <div class="row">
-        <div class="col-sm-10 col-sm-offset-1 text-center"><h3>Social</h3><p>List sharing powered by the social networking platform app.net.<br/> To create or access grocery lists, you will need a (free) app.net account.</p><i class="fa fa-adn fa-5x"></i></div>
+        <div class="col-sm-10 col-sm-offset-1 text-center"><h3>Social</h3><p>List sharing powered by the social networking platform app.net.<br/> To create or access grocery lists, you will need a (free) app.net account.</p><i class="fa fa-adn fa-4x"></i></div>
       </div>
     </div>
     <div class="col-sm-4 text-center">
       <div class="row">
-        <div class="col-sm-10 text-center"><h3>Tags</h3><p>Market Bucket uses hashtags to further sort your lists--by store, item type, or anything else you choose.<br />  Market Bucket stores your hashtags for easy reference; you can edit your hashtag list as well.</p><i class="fa fa-tags fa-5x"></i></div>
+        <div class="col-sm-10 text-center"><h3>Tags</h3><p>Market Bucket uses hashtags to further sort your lists--by store, item type, or anything else you choose.<br />  Market Bucket stores your hashtags for easy reference; you can edit your hashtag list as well.</p><i class="fa fa-tags fa-4x"></i></div>
       </div>
     </div>
   </div>
@@ -262,33 +298,6 @@
     </div>
   </div>
 </section>
-
-	<!---->
-
-
-		<div id="overview">
-			<div id="errorDiv"></div>
-		</div>
-
-		<!--div class="sixteen columns loggedIn" style="text-align:center;">
-			<h3>Add List Item(s)</h3>
-		</div>
-			<div class="one-third column loggedIn" id="bucketItemEntry">
-				<label for="item">Item: <textarea type="text" size="10" rows="2" id="item"></textarea></label><br />
-				<label for="now"><input type="checkbox" name="bucketBUcket" id="now" checked="checked"/> Now</label>
-				<label for="later"><input type="checkbox" name="bucketBUcket" id="later" /> Later</label>
-				<label for="archive"><input type="checkbox" name="bucketBucket" id="archive"/> Archive</label>
-			</div>
-			<div class="one-third column loggedIn" id="tagBucket">
-				<button type="button" onclick="tagButton(this);" value="perishable">perishable</button> 
-				<button type="button" onclick="tagButton(this);" value="portable">portable</button> 
-				<button type="button" onclick="tagButton(this);" value="MarketBasket">MarketBasket</button> 
-				<button type="button" onclick="tagButton(this);" value="StarMarket">StarMarket</button> 
-			</div>
-			<div class="one-third column loggedIn" id="buckBucket">
-				<button id="addButton" onclick="add();">Add Item(s)</button>
-			</div-->
-
 		
 <footer>
   <div class="container-fluid">
