@@ -38,6 +38,10 @@ function initialize() {
 function addItem() {
 	var message = $("textarea#item").val();
 	if (message == "") return;
+	if (!$("input[name=bucketBucket]").is(":checked")) {
+		alert("No list selected for item.");
+		return;
+	}
 	$("input[name=bucketBucket]").each(function (index) {
 		if ($(this).is(":checked"))
 			createItem(channelArray[$(this).prop("id")].channel, message);
@@ -97,7 +101,7 @@ function getChannels() {
 		include_annotations: 1
 	};
 	var promise = $.appnet.channel.getCreated(args);
-	promise.then(completeChannels, function (response) {failAlert('Failed to retrieve grocery channel.');});
+	promise.then(completeChannels, function (response) {failAlert('Failed to retrieve grocery channel.');}).done(colorizeTags);
 }
 
 function completeChannels(response) {
@@ -113,28 +117,29 @@ function completeChannels(response) {
 			channelArray[annotation.list_type].channel = thisChannel.id;
 			reverseChannelArray[thisChannel.id] = annotation.list_type;
 			var promise = $.appnet.message.getChannel(thisChannel.id, args);
-			promise.then(completeChannel, function (response) {failAlert('Failed to retrieve items.');});
+			promise.then(completeChannel, function (response) {failAlert('Failed to retrieve items.');}).done(colorizeTags);
 		}
 	} else {
 		createChannels();
 	}
-
 }
 
 function completeChannel(response) {
+	//Populate the UI for an individual retrieved list.
 	if (response.data.length > 0) {
-		//Populate channel.
 		for (var i=0; i < response.data.length; i++) {
 			formatItem(response.data[i]);
 		}
 	}
 }
 
-function updateChannels() {/*
+function updateChannels() {//manual channel repair for dev.
+/*
 	$.appnet.channel.update(55870,{annotations:  [{ type: api.channel_type, value: {'list_type': 'now'}}]})
 	$.appnet.channel.update(55871,{annotations:  [{ type: api.channel_type, value: {'list_type': 'later'}}]})
 	$.appnet.channel.update(55872,{annotations:  [{ type: api.channel_type, value: {'list_type': 'archive'}}]})
-*/}
+*/
+}
 
 function createItem(channel,message) {
 	if (channel == 0) {
@@ -152,6 +157,7 @@ function completeItem(response) {
 	var respd = response.data;
 	formatItem(respd);
 	clearForm();
+	forceScroll("#sectionLists");
 }
 
 // ***** //
@@ -197,6 +203,12 @@ function formatItem(item) {
 	formattedItem += "<p class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + item.user.username + "'>";
 	formattedItem += item.html + "</p></a>";
 	$(channelArray[reverseChannelArray[item.channel_id]].column + " div.list-group").append(formattedItem);
+	//Pre-format the hashtags.
+	$("#item_" + item.id + " span[itemprop='hashtag']").each(function(index) {
+		if (!$(this).hasClass("tag")) {
+			$(this).addClass("tag").css("padding","2px").css("border-radius","3px");
+		}
+	});
 }
 
 function initializeButtons() {
@@ -225,7 +237,7 @@ function logout() {
 function onClickAdd(channelName) {
 	$("input[name=bucketBucket]").prop("checked", false);
 	$("input#" + channelName).prop("checked", true);
-	pushHistory(site + "#sectionAdd");
+	//pushHistory(site + "#sectionAdd");
 	forceScroll("#sectionAdd");
 }
 
@@ -238,8 +250,10 @@ function pushHistory(newLocation) {
 
 function colorizeTags() {
 	$(".tag").each(function(index) {
-		var thisColor = getColor($(this).html());
-		$(this).css("background-color", thisColor).css("color", getContrastYIQ(thisColor.substring(1,7)));
+		if (!$(this).hasClass("colorized")) {
+			var thisColor = getColor($(this).html().toLowerCase());
+			$(this).css("background-color", thisColor).css("color", getContrastYIQ(thisColor.substring(1,7))).addClass("colorized");
+		}
 	});
 }
 

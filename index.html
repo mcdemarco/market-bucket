@@ -247,9 +247,12 @@
 	  <label class="checkbox-inline" for="archive"><input type="checkbox" name="bucketBucket" id="archive"/> Archive</label>
 	  <label class="sr-only" for="item"></label>
 	  <textarea type="text" class="form-control" rows="2" id="item"></textarea>
-	  <button id="addButton" type="button" class="form-control btn btn-primary" onclick="addItem();">Add Item(s)</button><br />
-	<br/>
-	<span id="tagBucket">
+	  <div class="btn-group form-group">
+	    <button id="addButton" type="button" class="btn btn-primary" onclick="addItem();">Add Item(s)</button>
+	    <button id="clearButton" type="button" class="btn btn-warning" onclick="clearForm();">Cancel</button>
+	  </div>
+	</div>
+	<div class="form-group" id="tagBucket">
 	  <button type="button" class="btn btn-default btn-sm tag" style="background-color:#abc;" onclick="tagButton(this);" value="perishable">#perishable</button> 
 	  <button type="button" class="btn btn-default btn-sm tag" onclick="tagButton(this);" value="portable">#portable</button> 
 	  <button type="button" class="btn btn-default btn-sm tag" onclick="tagButton(this);" value="MarketBasket">#MarketBasket</button> 
@@ -260,7 +263,7 @@
 	  <button type="button" class="btn btn-default btn-sm tag" onclick="tagButton(this);" value="Russos">#Russos</button> 
 	  <button type="button" class="btn btn-default btn-sm tag" onclick="tagButton(this);" value="Walmart">#Walmart</button> 
 	  <button type="button" class="btn btn-default btn-sm tag" onclick="tagButton(this);" value="TraderJoes">#TraderJoes</button> 
-	</span>
+	</div>
       </form>
       <div id="errorDiv"></div>
       </div>
