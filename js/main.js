@@ -9,6 +9,8 @@ var channelArray = {"now": {"column": "#col1", "channel": 0},
 					"hashtags" : {"column": "#col4"}
 				   };
 var reverseChannelArray = {};
+var tagArray = [];
+
 
 /* main execution path */
 
@@ -33,19 +35,6 @@ function initialize() {
 	}
 	initializeButtons();
 	colorizeTags();
-}
-
-function addItem() {
-	var message = $("textarea#item").val();
-	if (message == "") return;
-	if (!$("input[name=bucketBucket]").is(":checked")) {
-		alert("No list selected for item.");
-		return;
-	}
-	$("input[name=bucketBucket]").each(function (index) {
-		if ($(this).is(":checked"))
-			createItem(channelArray[$(this).prop("id")].channel, message);
-	});
 }
 
 function createChannels() {
@@ -129,16 +118,28 @@ function completeChannel(response) {
 	if (response.data.length > 0) {
 		for (var i=0; i < response.data.length; i++) {
 			formatItem(response.data[i]);
+			collectTags(response.data[i].entities.hashtags);
 		}
 	}
 }
 
-function updateChannels() {//manual channel repair for dev.
-/*
-	$.appnet.channel.update(55870,{annotations:  [{ type: api.channel_type, value: {'list_type': 'now'}}]})
-	$.appnet.channel.update(55871,{annotations:  [{ type: api.channel_type, value: {'list_type': 'later'}}]})
-	$.appnet.channel.update(55872,{annotations:  [{ type: api.channel_type, value: {'list_type': 'archive'}}]})
-*/
+/* item functions */
+
+function addItem() {
+	var message = $("textarea#item").val();
+	if (message == "") return;
+	if (!$("input[name=bucketBucket]").is(":checked")) {
+		alert("No list selected for item.");
+		return;
+	}
+	$("input[name=bucketBucket]").each(function (index) {
+		if ($(this).is(":checked"))
+			createItem(channelArray[$(this).prop("id")].channel, message);
+	});
+}
+
+function clearForm() {
+	$("textarea#item").val("");
 }
 
 function createItem(channel,message) {
@@ -160,13 +161,85 @@ function completeItem(response) {
 	forceScroll("#sectionLists");
 }
 
-// ***** //
+function formatItem(item) {
+	var itemDate = new Date(item.created_at);
+	var formattedItem = "<a href='#' class='list-group-item' id='item_" + item.id + "'>";
+	formattedItem += "<p class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + item.user.username + "'>";
+	formattedItem += item.html + "</p></a>";
+	$(channelArray[reverseChannelArray[item.channel_id]].column + " div.list-group").append(formattedItem);
+	//Pre-format the hashtags.
+	$("#item_" + item.id + " span[itemprop='hashtag']").each(function(index) {
+		if (!$(this).hasClass("tag")) {
+			$(this).addClass("tag").css("padding","2px").css("border-radius","3px");
+		}
+		$(this).click(function(event) {
+			event.preventDefault();
+			onClickItemTag($(this).data("hashtagName"));
+		});
+	});
+}
+
+function onClickAdd(channelName) {
+	$("input[name=bucketBucket]").prop("checked", false);
+	$("input#" + channelName).prop("checked", true);
+	//pushHistory(site + "#sectionAdd");
+	forceScroll("#sectionAdd");
+}
+
+/* tag functions */
+
+function collectTags(currentTags) {
+	//Populate the tag list.
+	var tag;
+	for (var t=0; t < currentTags.length; t++) {
+		tag = currentTags[t].name;
+		if (tagArray.indexOf(tag) < 0) {
+			tagArray.push(tag);
+			displayTags(tag);
+		}
+	}
+}
+
+function colorizeTags() {
+	$(".tag").each(function(index) {
+		if (!$(this).hasClass("colorized")) {
+			var thisColor = getColor($(this).html().toLowerCase());
+			$(this).css("background-color", thisColor).css("color", getContrastYIQ(thisColor.substring(1,7))).addClass("colorized");
+		}
+	});
+}
+
+function displayTags(unhashedTag) {
+	var tagString = "<button type='button' class='btn btn-default btn-sm tag' onclick='onClickTagButton(this);' value='" + unhashedTag + "'>#" + unhashedTag + "</button> ";
+	$(".tagBucket").append(tagString);
+}
+
+function getColor(str) {
+	//Get a random color from the tag text.
+	for (var i = 0, hash = 0; i < str.length; hash = str.charCodeAt(i++) + ((hash << 5) - hash));
+	color = Math.floor(Math.abs((Math.sin(hash) * 10000) % 1 * 16777216)).toString(16);
+	return '#' + Array(6 - color.length + 1).join('0') + color;
+}
+
+function getContrastYIQ(hexcolor){
+	//Get the contrast color for user-defined tag colors using the YIQ formula.
+	var r = parseInt(hexcolor.substr(0,2),16);
+	var g = parseInt(hexcolor.substr(2,2),16);
+	var b = parseInt(hexcolor.substr(4,2),16);
+	var yiq = ((r*299)+(g*587)+(b*114))/1000;
+	return (yiq >= 128) ? 'black' : 'white';
+}
+
+function onClickItemTag(unhashedTag) {
+	//Clicking a tag in the lists restricts the lists to that tag.
+}
+
+function onClickTagButton(that) {
+	$("#item").val($("#item").val() + " #" + $(that).val());
+}
+
 
 /* miscellaneous functions */
-
-function clearForm() {
-	$("textarea#item").val("");
-}
 
 function checkLocalStorage() {
 	if (localStorage && localStorage["accessToken"]) {
@@ -183,32 +256,15 @@ function checkLocalStorage() {
 }
 
 function failAlert(msg) {
-	document.getElementById("errorDiv").scrollIntoView();
-	$('#errorDiv').html(msg).show().fadeOut(8000);
-}
-
-function formatEllipsis(column) {
-	$(column).append("<div class='spacer'><span class='fa fa-ellipsis-v'></span></div>");
+	//document.getElementById("errorDiv").scrollIntoView();
+	//$('#errorDiv').html(msg).show().fadeOut(8000);
+	alert(msg);
 }
 
 function forceScroll(hash) {
 	var target = $(hash);
 	$('html,body').animate({scrollTop: target.offset().top - 50}, 1000);
 	return false;
-}
-
-function formatItem(item) {
-	var itemDate = new Date(item.created_at);
-	var formattedItem = "<a href='#' class='list-group-item' id='item_" + item.id + "'>";
-	formattedItem += "<p class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + item.user.username + "'>";
-	formattedItem += item.html + "</p></a>";
-	$(channelArray[reverseChannelArray[item.channel_id]].column + " div.list-group").append(formattedItem);
-	//Pre-format the hashtags.
-	$("#item_" + item.id + " span[itemprop='hashtag']").each(function(index) {
-		if (!$(this).hasClass("tag")) {
-			$(this).addClass("tag").css("padding","2px").css("border-radius","3px");
-		}
-	});
 }
 
 function initializeButtons() {
@@ -234,47 +290,9 @@ function logout() {
 	$(channelArray["archive"].column).html("");
 }
 
-function onClickAdd(channelName) {
-	$("input[name=bucketBucket]").prop("checked", false);
-	$("input#" + channelName).prop("checked", true);
-	//pushHistory(site + "#sectionAdd");
-	forceScroll("#sectionAdd");
-}
-
 function pushHistory(newLocation) {
 	if (history.pushState) 
 		history.pushState({}, document.title, newLocation);
-}
-
-/* tag functions */
-
-function colorizeTags() {
-	$(".tag").each(function(index) {
-		if (!$(this).hasClass("colorized")) {
-			var thisColor = getColor($(this).html().toLowerCase());
-			$(this).css("background-color", thisColor).css("color", getContrastYIQ(thisColor.substring(1,7))).addClass("colorized");
-		}
-	});
-}
-
-function getColor(str) {
-	//Get a random color from the tag text.
-	for (var i = 0, hash = 0; i < str.length; hash = str.charCodeAt(i++) + ((hash << 5) - hash));
-	color = Math.floor(Math.abs((Math.sin(hash) * 10000) % 1 * 16777216)).toString(16);
-	return '#' + Array(6 - color.length + 1).join('0') + color;
-}
-
-function getContrastYIQ(hexcolor){
-	//Get the contrast color for user-defined tag colors using the YIQ formula.
-	var r = parseInt(hexcolor.substr(0,2),16);
-	var g = parseInt(hexcolor.substr(2,2),16);
-	var b = parseInt(hexcolor.substr(4,2),16);
-	var yiq = ((r*299)+(g*587)+(b*114))/1000;
-	return (yiq >= 128) ? 'black' : 'white';
-}
-
-function tagButton(that) {
-	$("#item").val($("#item").val() + " #" + $(that).val());
 }
 
 function toggleAbout() {
@@ -284,6 +302,14 @@ function toggleAbout() {
 		 $('#more').html("[less]");
 	else
 		$('#more').html("[more]");
+}
+
+function updateChannels() {//manual channel repair for dev.
+/*
+	$.appnet.channel.update(55870,{annotations:  [{ type: api.channel_type, value: {'list_type': 'now'}}]})
+	$.appnet.channel.update(55871,{annotations:  [{ type: api.channel_type, value: {'list_type': 'later'}}]})
+	$.appnet.channel.update(55872,{annotations:  [{ type: api.channel_type, value: {'list_type': 'archive'}}]})
+*/
 }
 
 /* eof */
