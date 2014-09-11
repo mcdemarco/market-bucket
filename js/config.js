@@ -3,6 +3,7 @@
 
 var api = {
 	client_id: 'hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr',
-	channel_type: 'net.mcdemarco.market-bucket.list'
+	channel_type: 'net.mcdemarco.market-bucket.list',
+	annotation_type: 'net.mcdemarco.market-bucket.settings'
 };
 var site = "http://market-bucket.mcdemarco.net";

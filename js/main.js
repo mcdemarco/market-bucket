@@ -42,7 +42,7 @@ function createChannels() {
 		type: api.channel_type,
 		auto_subscribe: true,
 		annotations:  [{
-						  type: api.channel_type,
+						  type: api.annotation_type,
 						  value: {'list_type': 'now'}
 					  }]
 	};
@@ -56,7 +56,7 @@ function createChannel2() {
 		type: api.channel_type,
 		auto_subscribe: true,
 		annotations:  [{
-						  type: api.channel_type,
+						  type: api.annotation_type,
 						  value: {'list_type': 'later'}
 					  }]
 	};
@@ -70,7 +70,7 @@ function createChannel3() {
 		type: api.channel_type,
 		auto_subscribe: true,
 		annotations:  [{
-						  type: api.channel_type,
+						  type: api.annotation_type,
 						  value: {'list_type': 'archive'}
 					  }]
 	};
@@ -331,11 +331,16 @@ function toggleAbout() {
 }
 
 function updateChannels() {//manual channel repair for dev.
-/*
-	$.appnet.channel.update(55870,{annotations:  [{ type: api.channel_type, value: {'list_type': 'now'}}]})
-	$.appnet.channel.update(55871,{annotations:  [{ type: api.channel_type, value: {'list_type': 'later'}}]})
-	$.appnet.channel.update(55872,{annotations:  [{ type: api.channel_type, value: {'list_type': 'archive'}}]})
-*/
+	/* Delete old annotation type
+	$.appnet.channel.update(55870,{annotations:  [{ type: api.channel_type }] });
+	$.appnet.channel.update(55871,{annotations:  [{ type: api.channel_type }] });
+	$.appnet.channel.update(55872,{annotations:  [{ type: api.channel_type }] });
+	 */
+	/* add new annotation type
+	$.appnet.channel.update(55870,{annotations:  [{ type: api.annotation_type, value: {'list_type': 'now'}}]});
+	$.appnet.channel.update(55871,{annotations:  [{ type: api.annotation_type, value: {'list_type': 'later'}}]});
+	$.appnet.channel.update(55872,{annotations:  [{ type: api.annotation_type, value: {'list_type': 'archive'}}]});
+	 */
 }
 
 /* eof */
