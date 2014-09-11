@@ -170,7 +170,7 @@ function formatItem(item) {
 	//Pre-format the hashtags.
 	$("#item_" + item.id + " span[itemprop='hashtag']").each(function(index) {
 		if (!$(this).hasClass("tag")) {
-			$(this).addClass("tag").css("padding","2px").css("border-radius","3px");
+			$(this).addClass("tag").css("padding","1px 3px").css("border-radius","3px");
 		}
 		$(this).click(function(event) {
 			event.preventDefault();
@@ -232,7 +232,11 @@ function getColor(str) {
 	//Get a random color from the tag text.
 	for (var i = 0, hash = 0; i < str.length; hash = str.charCodeAt(i++) + ((hash << 5) - hash));
 	color = Math.floor(Math.abs((Math.sin(hash) * 10000) % 1 * 16777216)).toString(16);
-	return '#' + Array(6 - color.length + 1).join('0') + color;
+	var paddedColor = '#' + Array(6 - color.length + 1).join('0') + color;
+    // mix the color with white (255, 255, 255) or our green 229, 245, 222 a la
+	// http://stackoverflow.com/questions/43044/algorithm-to-randomly-generate-an-aesthetically-pleasing-color-palette
+	var pastelColor = "#" + Math.floor((parseInt(paddedColor.substring(1,3), 16) + 229)/2).toString(16) + Math.floor((parseInt(paddedColor.substring(3,5), 16) + 245)/2).toString(16) + Math.floor((parseInt(paddedColor.substring(5,7), 16) + 222)/2).toString(16);
+	return pastelColor;
 }
 
 function getContrastYIQ(hexcolor){

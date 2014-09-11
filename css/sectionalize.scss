@@ -7,6 +7,7 @@ $sub-stack: 'Open Sans', sans-serif;
 
 $opaque-bgcolor: #363822;
 $opacity: 0.7;
+$less-opacity: 0.5;
 
 $nav-color: #fff;
 $nav-link-color: #B3C293;
@@ -46,6 +47,12 @@ section.transparentSection {
 
 .icon-bar {
     background-color:#fff;
+}
+
+.div-trans {
+    background-color: rgba($opaque-bgcolor, $less-opacity);
+    color: $nav-color;
+    padding: 10px 0;
 }
 
 .navbar-trans {

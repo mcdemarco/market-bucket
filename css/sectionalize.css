@@ -20,6 +20,11 @@ html, body {
 .icon-bar {
   background-color: #fff; }
 
+.div-trans {
+  background-color: rgba(54, 56, 34, 0.5);
+  color: #fff;
+  padding: 10px 0; }
+
 .navbar-trans {
   background-color: #363822;
   color: #fff;
