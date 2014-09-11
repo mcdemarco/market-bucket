@@ -204,14 +204,28 @@ function colorizeTags() {
 	$(".tag").each(function(index) {
 		if (!$(this).hasClass("colorized")) {
 			var thisColor = getColor($(this).html().toLowerCase());
-			$(this).css("background-color", thisColor).css("color", getContrastYIQ(thisColor.substring(1,7))).addClass("colorized");
+			$(this).css("background-color", thisColor).css("border-color", thisColor).css("color", getContrastYIQ(thisColor.substring(1,7))).addClass("colorized");
 		}
 	});
 }
 
 function displayTags(unhashedTag) {
+	//Display tags individually as part of the tag collection process.
 	var tagString = "<button type='button' class='btn btn-default btn-sm tag' onclick='onClickTagButton(this);' value='" + unhashedTag + "'>#" + unhashedTag + "</button> ";
 	$(".tagBucket").append(tagString);
+}
+
+function filterListsByTag(unhashedTag) {
+	if (!unhashedTag) {
+		//Reset filtration.
+		$("#sectionLists").find("a.list-group-item").show();
+	} else {
+		//Filter further.
+		$("#sectionLists").find("a.list-group-item").each(function(index) {
+			if ($(this).find("span[data-hashtag-name='" + unhashedTag + "']").length == 0 && (!$(this).hasClass("active")))
+				$(this).hide();
+		});
+	}
 }
 
 function getColor(str) {
@@ -232,10 +246,15 @@ function getContrastYIQ(hexcolor){
 
 function onClickItemTag(unhashedTag) {
 	//Clicking a tag in the lists restricts the lists to that tag.
+	filterListsByTag(unhashedTag);
 }
 
 function onClickTagButton(that) {
-	$("#item").val($("#item").val() + " #" + $(that).val());
+	//Add the tag to the item for the Add Item form, or filter by the tag for the list display.
+	if ($(that).closest("form").attr("id") == "bucketItemEntry")
+		$("#item").val($("#item").val() + " #" + $(that).val());
+	else
+		filterListsByTag($(that).val());
 }
 
 
