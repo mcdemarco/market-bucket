@@ -253,8 +253,8 @@
 	  <label class="sr-only" for="item"></label>
 	  <textarea type="text" class="form-control" rows="2" id="item"></textarea>
 	  <div class="btn-group form-group">
-	    <button id="addButton" type="button" class="btn btn-primary" onclick="addItem();">Add Item(s)</button>
-	    <button id="clearButton" type="button" class="btn btn-warning" onclick="clearForm();">Clear Form</button>
+	    <button id="addButton" type="button" class="btn btn-custom" onclick="addItem();">Add Item(s)</button>
+	    <button id="clearButton" type="button" class="btn btn-default" onclick="clearForm();">Clear Form</button>
 	  </div>
 	</div>
 	<div class="form-group tagBucket" title="Click a tag to add it to your item."></div>
@@ -272,21 +272,54 @@
     <div class="row text-center">
 	<div class="form-group">
 	  <div class="col-xs-4 text-right">
-	    <label class="control-label" for="listSet">Current list set:</label>
+	    <label class="control-label" for="listSet">Current list owner:</label>
 	  </div>
-	  <div class="col-xs-4">
-	    <input type="text" id="listSet" class="form-control" value="" />
-	  </div>
-	  <div class="col-xs-4 text-left">
-	    <button id="renameButton" type="button" class="btn btn-primary" onclick="renameListGroup();">(Re)name</button>
+	  <div class="col-xs-4" id="listOwner">
+	    <input type="text" id="listSet" class="form-control" value="(me)" disabled />
 	  </div>
 	</div>
 	<div class="form-group">
 	  <div class="col-xs-4 text-right">
-	    <label class="control-label" for="listSet">Current list owner:</label>
+	    <label class="control-label" for="listSet">Current list (set):</label>
 	  </div>
-	  <div class="col-xs-4" id="listOwner">
-	    <input type="text" id="listSet" class="form-control" value="me" disabled />
+	  <div class="col-xs-4">
+	    <input type="text" id="listSet" class="form-control" value="(default set)" />
+	  </div>
+	  <div class="col-xs-4 text-left">
+	    <button type="button" class="btn btn-custom" onclick="rename(this);">(Re)name</button>
+	  </div>
+	</div>
+	<div class="form-group">
+	  <div class="col-xs-4 text-right">
+	    <label class="control-label" for="listSet">List 1 name:</label>
+	  </div>
+	  <div class="col-xs-4">
+	    <input type="text" id="list1name" class="form-control" value="(now)" />
+	  </div>
+	  <div class="col-xs-4 text-left">
+	    <button type="button" class="btn btn-custom" onclick="rename(this);">(Re)name</button>
+	  </div>
+	</div>
+	<div class="form-group">
+	  <div class="col-xs-4 text-right">
+	    <label class="control-label" for="listSet">List 2 name:</label>
+	  </div>
+	  <div class="col-xs-4">
+	    <input type="text" id="list2name" class="form-control" value="(later)" />
+	  </div>
+	  <div class="col-xs-4 text-left">
+	    <button type="button" class="btn btn-custom" onclick="rename(this);">(Re)name</button>
+	  </div>
+	</div>
+	<div class="form-group">
+	  <div class="col-xs-4 text-right">
+	    <label class="control-label" for="listSet">Archive name:</label>
+	  </div>
+	  <div class="col-xs-4">
+	    <input type="text" id="list3name" class="form-control" value="(archive)" />
+	  </div>
+	  <div class="col-xs-4 text-left">
+	    <button type="button" class="btn btn-custom" onclick="rename(this);">(Re)name</button>
 	  </div>
 	</div>
     </div>

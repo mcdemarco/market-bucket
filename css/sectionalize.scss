@@ -24,6 +24,11 @@ $secondary-color: #687858;
 $transparent-color: #fff;
 $transparent-shadow: 2px 2px 4px #112200;
 
+$custom-button-color: #fff;
+$custom-button-bgcolor: #4f5231;
+$custom-button-darker: #30321e;
+$custom-button-lighter: #404227;
+
 html,body {
     height:100%;
     background-image: url('/images/good-food-1024-background.jpg');
@@ -160,3 +165,34 @@ a.list-group-item.active {
     border-color: $primary-highlight;
 }
 
+/* custom button */
+
+.btn-custom {
+    color: $custom-button-color;
+    background-color: $custom-button-bgcolor;
+    border-color: $custom-button-bgcolor;
+}
+.btn-custom:hover,
+.btn-custom:focus,
+.btn-custom:active,
+.btn-custom.active {
+    color: $custom-button-color;
+    background-color: $custom-button-lighter;
+    border-color: $custom-button-darker;
+}
+.btn-custom.disabled:hover,
+.btn-custom.disabled:focus,
+.btn-custom.disabled:active,
+.btn-custom.disabled.active,
+.btn-custom[disabled]:hover,
+.btn-custom[disabled]:focus,
+.btn-custom[disabled]:active,
+.btn-custom[disabled].active,
+fieldset[disabled] .btn-custom:hover,
+fieldset[disabled] .btn-custom:focus,
+fieldset[disabled] .btn-custom:active,
+fieldset[disabled] .btn-custom.active {
+    color: $custom-button-color;
+    background-color: $custom-button-bgcolor;
+    border-color: $custom-button-bgcolor;
+}
