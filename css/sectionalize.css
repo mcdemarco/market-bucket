@@ -59,11 +59,11 @@ section {
 #sectionBrand h1 {
   font-size: 50px; }
 
-#sectionBlurb, #sectionAdd {
+#sectionBlurb, #sectionSettings {
   background-color: #e5f5de;
   color: #687858; }
 
-#sectionAbout {
+#sectionAbout, #sectionAdd {
   background-color: #7E8250;
   color: #deefcc; }
 

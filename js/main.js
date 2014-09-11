@@ -3,10 +3,9 @@
 //To force authorization: https://account.app.net/oauth/authorize etc.
 var authUrl = "https://account.app.net/oauth/authenticate?client_id=" + api['client_id'] + "&response_type=token&redirect_uri=" + encodeURIComponent(site) + "&scope=messages:" + api.channel_type;
 var channelArgs = {count: -5, since_id: 'last_read_inclusive'}; //Default post count for retrieval.
-var channelArray = {"now": {"column": "#col1", "channel": 0},
-					"later": {"column": "#col2", "channel": 0},
-					"archive": {"column": "#col3", "channel": 0},
-					"hashtags" : {"column": "#col4"}
+var channelArray = {"now": {"column": "#list1", "channel": 0},
+					"later": {"column": "#list2", "channel": 0},
+					"archive": {"column": "#list3", "channel": 0}
 				   };
 var reverseChannelArray = {};
 var tagArray = [];
@@ -177,6 +176,10 @@ function formatItem(item) {
 			onClickItemTag($(this).data("hashtagName"));
 		});
 	});
+}
+
+function moveItem(itemId, newList) {
+
 }
 
 function onClickAdd(channelName) {

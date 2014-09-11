@@ -58,8 +58,8 @@
         <li class="loggedIn"><a href="#col2"><i class="fa fa-calendar"></i></a></li>
         <li class="loggedIn"><a href="#col3"><i class="fa fa-archive"></i></a></li>
         <li class="loggedIn"><a href="#sectionAdd"><i class="fa fa-plus"></i></a></li>
-        <li class="loggedIn"><a href="#sectionSettings"><i class="fa fa-cog"></i></a></li>
-        <li class="loggedIn"><a href="#sectionTags">Tags</a></li>
+        <li class="loggedIn"><a href="#sectionSettings">Settings<!--i class="fa fa-cog"></i--></a></li>
+        <!--li class="loggedIn"><a href="#sectionTags">Tags</a></li-->
         <li><a href="#sectionAbout">About</a></li>
         <!--li>&nbsp;</li-->
       </ul>
@@ -190,7 +190,7 @@
 
  <div class="col-sm-10 col-sm-offset-1">
     <div class="row">
-      <div class="col-sm-4 col-xs-12 bucketListDiv" id="col1">
+      <div class="col-sm-4 col-xs-12 bucketListDiv" id="list1">
             <div class="list-group">
               <a href="#" class="list-group-item active">
                 <h2 class="list-group-item-heading"><span class="mainTitle">now</span>
@@ -204,7 +204,7 @@
             </div>
       </div><!--/left-->
       
-      <div class="col-sm-4 col-xs-12 bucketListDiv" id="col2">
+      <div class="col-sm-4 col-xs-12 bucketListDiv" id="list2">
             <div class="list-group">
               <a href="#" class="list-group-item active">
                 <h2 class="list-group-item-heading"><span class="mainTitle">later</span>
@@ -218,7 +218,7 @@
             </div>
       </div><!--/middle-->
       
-      <div class="col-sm-4 col-xs-12 bucketListDiv" id="col3">
+      <div class="col-sm-4 col-xs-12 bucketListDiv" id="list3">
             <div class="list-group">
               <a href="#" class="list-group-item active">
                 <h2 class="list-group-item-heading"><span class="mainTitle">archive</span>
@@ -233,12 +233,10 @@
       </div><!--/right-->
       
     </div><!--/row-->
-    <div class="row div-trans">
-      <div class="col-xs-12 col-md-8 text-left tagBucket" title="Click a tag to see only those items listed.">
-	<span class="font-brand">Tags:</span> </div>
-      <div class="col-xs-6 col-md-4 text-right">
-	<button type="button" class="btn btn-success btn-sm" onclick="filterListsByTag();" title="Clear tag search results">Clear</button>
-      </div>
+    <div class="row div-trans text-center">
+      <span class="font-brand">Tag Search:</span>
+      <div class="tagBucket" style="display:inline-block;padding:3px;" title="Click a tag to see only those items listed."></div>
+      <button type="button" class="btn btn-default btn-sm" onclick="filterListsByTag();" title="Clear tag search results">Clear Search</button>
     </div>
   </div>
 </section>
@@ -256,12 +254,43 @@
 	  <textarea type="text" class="form-control" rows="2" id="item"></textarea>
 	  <div class="btn-group form-group">
 	    <button id="addButton" type="button" class="btn btn-primary" onclick="addItem();">Add Item(s)</button>
-	    <button id="clearButton" type="button" class="btn btn-warning" onclick="clearForm();">Cancel</button>
+	    <button id="clearButton" type="button" class="btn btn-warning" onclick="clearForm();">Clear Form</button>
 	  </div>
 	</div>
 	<div class="form-group tagBucket" title="Click a tag to add it to your item."></div>
       </form>
     </div>
+</section>
+
+<section class="container-fluid loggedIn" id="sectionSettings">
+  <div class="row text-center">
+    <div class="col-xs-12">
+      <h1>Manage Your Lists</h1>
+    </div>
+  </div>
+  <form class="form-horizontal" role="form" id="settingsForm">
+    <div class="row text-center">
+	<div class="form-group">
+	  <div class="col-xs-4 text-right">
+	    <label class="control-label" for="listSet">Current list set:</label>
+	  </div>
+	  <div class="col-xs-4">
+	    <input type="text" id="listSet" class="form-control" value="" />
+	  </div>
+	  <div class="col-xs-4 text-left">
+	    <button id="renameButton" type="button" class="btn btn-primary" onclick="renameListGroup();">(Re)name</button>
+	  </div>
+	</div>
+	<div class="form-group">
+	  <div class="col-xs-4 text-right">
+	    <label class="control-label" for="listSet">Current list owner:</label>
+	  </div>
+	  <div class="col-xs-4" id="listOwner">
+	    <input type="text" id="listSet" class="form-control" value="me" disabled />
+	  </div>
+	</div>
+    </div>
+  </form>
 </section>
 
 <section class="container-fluid" id="sectionAbout">

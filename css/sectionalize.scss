@@ -44,7 +44,6 @@ section.transparentSection {
 }
 }
 
-
 .icon-bar {
     background-color:#fff;
 }
@@ -98,12 +97,12 @@ section {
     font-size:50px;
 }
 
-#sectionBlurb, #sectionAdd {
+#sectionBlurb, #sectionSettings {
     background-color: $secondary-bgcolor;
     color: $secondary-color;
 }
 
-#sectionAbout {
+#sectionAbout, #sectionAdd {
     background-color: $primary-bgcolor;
     color: $primary-color;
 }
