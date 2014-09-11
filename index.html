@@ -188,10 +188,11 @@
 <section class="container-fluid loggedIn transparentSection" id="sectionLists">
   <h1 class="text-center" style="padding-bottom: 25px;">Your Lists</h1>
 
- <div class="col-sm-10 col-sm-offset-1">
-    <div class="row">
-      <div class="col-sm-4 col-xs-12 bucketListDiv" id="list1">
-            <div class="list-group">
+  <div class="row">
+    <div class="col-sm-10 col-sm-offset-1">
+      <div class="row">
+	<div class="col-sm-4 col-xs-12 bucketListDiv" id="list1">
+          <div class="list-group">
               <a href="#" class="list-group-item active">
                 <h2 class="list-group-item-heading"><span class="mainTitle">now</span>
 		  <div class="pull-right btn-group">
@@ -199,13 +200,13 @@
 		    <button type="button" class="btn btn-default btn-xs"><span class="glyphicon glyphicon-cog"></span></button>
 		  </div>
 		</h2>
-                <h6><span class="subTitle">urgent items</h6>
+                <h6><span class="subTitle">urgent items</span></h6>
               </a>
-            </div>
-      </div><!--/left-->
+          </div>
+	</div><!--/left-->
       
-      <div class="col-sm-4 col-xs-12 bucketListDiv" id="list2">
-            <div class="list-group">
+	<div class="col-sm-4 col-xs-12 bucketListDiv" id="list2">
+          <div class="list-group">
               <a href="#" class="list-group-item active">
                 <h2 class="list-group-item-heading"><span class="mainTitle">later</span>
 		  <div class="pull-right btn-group">
@@ -213,13 +214,13 @@
 		    <button type="button" class="btn btn-default btn-xs"><span class="glyphicon glyphicon-cog"></span></button>
 		  </div>
 		</h2>
-                <h6><span class="subTitle">non-urgent items</h6>
+                <h6><span class="subTitle">non-urgent items</span></h6>
               </a>
-            </div>
-      </div><!--/middle-->
+          </div>
+	</div><!--/middle-->
       
-      <div class="col-sm-4 col-xs-12 bucketListDiv" id="list3">
-            <div class="list-group">
+	<div class="col-sm-4 col-xs-12 bucketListDiv" id="list3">
+          <div class="list-group">
               <a href="#" class="list-group-item active">
                 <h2 class="list-group-item-heading"><span class="mainTitle">archive</span>
 		  <div class="pull-right btn-group">
@@ -227,18 +228,20 @@
 		    <button type="button" class="btn btn-default btn-xs"><span class="glyphicon glyphicon-cog"></span></button>
 		  </div>
 		</h2>
-                <h6><span class="subTitle">reusable items</h6>
+                <h6><span class="subTitle">reusable items</span></h6>
               </a>
-            </div>
-      </div><!--/right-->
+          </div>
+	</div><!--/right-->
       
-    </div><!--/row-->
-    <div class="row div-trans text-center">
-      <span class="font-brand">Tag Search:</span>
-      <div class="tagBucket" style="display:inline-block;padding:3px;" title="Click a tag to see only those items listed."></div>
-      <button type="button" class="btn btn-default btn-sm" onclick="filterListsByTag();" title="Clear tag search results">Clear Search</button>
+      </div><!--/row-->
+      <div class="row">
+	<div class="col-sm-8 col-sm-offset-1 col-xs-12 div-trans text-center">
+	  <span class="font-brand">Tag Search:</span>
+	  <div class="tagBucket" style="display:inline-block;padding:3px;" title="Click a tag to see only those items listed."></div>
+	  <button type="button" class="btn btn-default btn-sm" onclick="filterListsByTag();" title="Clear tag search results">Clear Search</button>
+	</div>
+      </div>
     </div>
-  </div>
 </section>
 
 <section class="container-fluid loggedIn" id="sectionAdd">
@@ -272,10 +275,10 @@
     <div class="row text-center">
 	<div class="form-group">
 	  <div class="col-xs-4 text-right">
-	    <label class="control-label" for="listSet">Current list owner:</label>
+	    <label class="control-label" for="listOwner">Current list owner:</label>
 	  </div>
-	  <div class="col-xs-4" id="listOwner">
-	    <input type="text" id="listSet" class="form-control" value="(me)" disabled />
+	  <div class="col-xs-4">
+	    <input type="text" id="listOwner" class="form-control" value="(me)" disabled />
 	  </div>
 	</div>
 	<div class="form-group">
@@ -291,7 +294,7 @@
 	</div>
 	<div class="form-group">
 	  <div class="col-xs-4 text-right">
-	    <label class="control-label" for="listSet">List 1 name:</label>
+	    <label class="control-label" for="list1name">List 1 name:</label>
 	  </div>
 	  <div class="col-xs-4">
 	    <input type="text" id="list1name" class="form-control" value="(now)" />
@@ -302,7 +305,7 @@
 	</div>
 	<div class="form-group">
 	  <div class="col-xs-4 text-right">
-	    <label class="control-label" for="listSet">List 2 name:</label>
+	    <label class="control-label" for="list2name">List 2 name:</label>
 	  </div>
 	  <div class="col-xs-4">
 	    <input type="text" id="list2name" class="form-control" value="(later)" />
@@ -313,10 +316,10 @@
 	</div>
 	<div class="form-group">
 	  <div class="col-xs-4 text-right">
-	    <label class="control-label" for="listSet">Archive name:</label>
+	    <label class="control-label" for="archiveName">Archive name:</label>
 	  </div>
 	  <div class="col-xs-4">
-	    <input type="text" id="list3name" class="form-control" value="(archive)" />
+	    <input type="text" id="archiveName" class="form-control" value="(archive)" />
 	  </div>
 	  <div class="col-xs-4 text-left">
 	    <button type="button" class="btn btn-custom" onclick="rename(this);">(Re)name</button>

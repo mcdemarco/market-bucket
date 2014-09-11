@@ -103,8 +103,13 @@ function completeChannels(response) {
 					annotationValue = thisChannel.annotations[a].value;
 				}
 			}
-			//Don't need to eject if no settings annotation?
+			//Eject if no settings annotation.
+			if (!annotationValue) continue;
+			//Save data.
 			channelArray[annotationValue.list_type].annotationValue = annotationValue;
+			//Get user/group data if this is the right channel.  Change 'now' to 1.
+			if (annotationValue.list_type == 'now')
+				processChannelSet(thisChannel, annotationValue);
 			//Rewrite to retrieve some values directly from the annotationValue?
 			$(channelArray[annotationValue.list_type].column + " h2 span.mainTitle").html((annotationValue.title ? annotationValue.title : annotationValue.list_type));
 			var args = {
@@ -128,6 +133,14 @@ function completeChannel(response) {
 			collectTags(response.data[i].entities.hashtags);
 		}
 	}
+}
+
+function processChannelSet(thisChannel,annotationValue) {
+	//User data.
+	$("input#listOwner").val(thisChannel.owner.username);
+	//List group data.
+	if ("list_group_name" in annotationValue)
+		$("input#listSet").val(annotationValue.list_group_name);
 }
 
 /* item functions */
