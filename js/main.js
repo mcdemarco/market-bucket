@@ -96,14 +96,22 @@ function completeChannels(response) {
 	if (response.data.length > 0) {
 		for (var c = 0; c < response.data.length; c++) {
 			var thisChannel = response.data[c];
-			//Currently assuming we're the only annotation.
-			var annotation = thisChannel.annotations[0].value;
-			$(channelArray[annotation.list_type].column + " h2 span.mainTitle").html((annotation.title ? annotation.title : annotation.list_type));
+			var annotationValue = {};
+			//No longer assuming we're the only annotation.
+			for (var a = 0; a < thisChannel.annotations.length; a++) {
+				if (thisChannel.annotations[a].type == api.annotation_type) {
+					annotationValue = thisChannel.annotations[a].value;
+				}
+			}
+			//Don't need to eject if no settings annotation?
+			channelArray[annotationValue.list_type].annotationValue = annotationValue;
+			//Rewrite to retrieve some values directly from the annotationValue?
+			$(channelArray[annotationValue.list_type].column + " h2 span.mainTitle").html((annotationValue.title ? annotationValue.title : annotationValue.list_type));
 			var args = {
 				include_annotations: 1
 			};
-			channelArray[annotation.list_type].channel = thisChannel.id;
-			reverseChannelArray[thisChannel.id] = annotation.list_type;
+			channelArray[annotationValue.list_type].channel = thisChannel.id;
+			reverseChannelArray[thisChannel.id] = annotationValue.list_type;
 			var promise = $.appnet.message.getChannel(thisChannel.id, args);
 			promise.then(completeChannel, function (response) {failAlert('Failed to retrieve items.');}).done(colorizeTags);
 		}
