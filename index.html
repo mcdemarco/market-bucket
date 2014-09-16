@@ -273,77 +273,49 @@
   <form class="form-horizontal" role="form" id="settingsForm">
     <div class="row text-center">
 	<div class="form-group"><!--always on -->
-	  <div class="col-xs-3 text-right">
-	    <label class="control-label" for="listSet">List group:</label>
-	  </div>
-	  <div class="col-xs-5">
+	  <div class="col-xs-4 col-md-5 text-right"><label class="control-label" for="listSet">List groups:</label></div>
+	  <div class="col-xs-4 col-md-2">
 	    <select class="form-control" id="listSet">
 	      <option id="default" value="">(default set)</option>
 	    </select>
 	  </div>
-	  <div class="col-xs-4 text-left">
-	    <a class="btn btn-default btn-sm" href="#" onclick="renameSetting(this);" title="(Re)name current list group"><i class="fa fa-pencil"></i></a>
+	  <div class="col-xs-4 col-md-5 text-left">
+	    <a class="btn btn-default btn-sm" href="#" onclick="$('#settingsForm div.listControl').toggle(); return false;" title="(Re)name current lists/group"><i class="fa fa-pencil"></i></a>
 	    <a class="btn btn-default btn-sm" href="#" onclick="addSetting(this);" title="Add new list groups"><i class="fa fa-plus"></i></a>
-	    <a class="btn btn-default btn-sm" href="#" onclick="$('#memberControl').show(); return false;" title="Add members"><i class="fa fa-group"></i></a>
+	    <a class="btn btn-default btn-sm" href="#" onclick="$('#memberControl').toggle(); return false;" title="Add members"><i class="fa fa-group"></i></a>
 	  </div>
 	</div>
-	<div class="form-group" id="memberControl" style="display:none;"><!-- hide if only me/private and put add button elsewhere -->
-	  <div class="col-xs-3 text-right">
-	    <label class="control-label" for="listMembers">List members:</label>
-	  </div>
-	  <div class="col-xs-5">
-	    <input type="text" id="listMembers" class="form-control" value="(me)" disabled />
-	  </div>
-	  <div class="col-xs-4 text-left">
-	    <a class="btn btn-default btn-sm" href="#" onclick="renameSetting(this);"><i class="fa fa-pencil"></i></a>
-	    <a class="btn btn-default btn-sm" href="#" onclick="addSetting(this);return false;"><i class="fa fa-plus"></i></a>
-	  </div>
+	<div class="form-group" id="memberControl">
+	  <div class="col-xs-4 text-right"></div>
+	  <div class="col-xs-4 text-center"><label>List members</label></div>
+	  <div class="col-xs-4 text-left"><a class="btn btn-default btn-xs" href="#" onclick="addSetting(this);return false;"><i class="fa fa-plus"></i></a></div>
+	  <div class="col-xs-12 text-left" id="memberResults"></div>
 	</div>
-	<div class="form-group" id="addMember" style="display:none;">
-	  <div class="col-xs-3 text-right">
-	    <label class="control-label" for="userSearch">Search users:</label>
-	  </div>
-	  <div class="col-xs-5">
-	    <input type="text" id="userSearch" class="form-control" value="@" />
-	  </div>
-	  <div class="col-xs-4 text-left">
-	    <a class="btn btn-default btn-sm" href="#userSearch" onclick="searchUsers();"><i class="fa fa-search"></i></a>
-	  </div>
-	  <div class="col-xs-12 text-center" id="searchResults">
-	  </div>
+	<div class="form-group" id="addMember">
+	  <div class="col-xs-4 text-right"><label class="control-label" for="userSearch">Search users:</label></div>
+	  <div class="col-xs-4"><input type="text" id="userSearch" class="form-control" value="@" /></div>
+	  <div class="col-xs-4 text-left"><a class="btn btn-default btn-sm" href="#userSearch" onclick="searchUsers();"><i class="fa fa-search"></i></a></div>
+	  <div class="col-xs-12 text-center" id="searchResults"></div>
 	</div>
-	<div class="form-group">
-	  <div class="col-xs-4 text-right">
-	    <label class="control-label" for="list1name">List 1:</label>
-	  </div>
-	  <div class="col-xs-4">
-	    <input type="text" id="list1name" class="form-control" value="(now)" />
-	  </div>
-	  <div class="col-xs-4 text-left">
-	    <button type="button" class="btn btn-custom" onclick="rename(this);">(Re)name</button>
-	  </div>
+	<div class="form-group listControl">
+	  <div class="col-xs-4 text-right"><label class="control-label" for="listGroupName">List group:</label></div>
+	  <div class="col-xs-4"><input type="text" id="listGroupName" class="form-control" value="(default)" /></div>
+	  <div class="col-xs-4 text-left"><button type="button" class="btn btn-custom" onclick="rename(this);">(Re)name</button></div>
 	</div>
-	<div class="form-group">
-	  <div class="col-xs-4 text-right">
-	    <label class="control-label" for="list2name">List 2:</label>
-	  </div>
-	  <div class="col-xs-4">
-	    <input type="text" id="list2name" class="form-control" value="(later)" />
-	  </div>
-	  <div class="col-xs-4 text-left">
-	    <button type="button" class="btn btn-custom" onclick="rename(this);">(Re)name</button>
-	  </div>
+	<div class="form-group listControl">
+	  <div class="col-xs-4 text-right"><label class="control-label" for="list1name">List 1:</label></div>
+	  <div class="col-xs-4"><input type="text" id="list1name" class="form-control" value="(now)" /></div>
+	  <div class="col-xs-4 text-left"><button type="button" class="btn btn-custom" onclick="rename(this);">(Re)name</button></div>
 	</div>
-	<div class="form-group">
-	  <div class="col-xs-4 text-right">
-	    <label class="control-label" for="archiveName">Archive:</label>
-	  </div>
-	  <div class="col-xs-4">
-	    <input type="text" id="archiveName" class="form-control" value="(archive)" />
-	  </div>
-	  <div class="col-xs-4 text-left">
-	    <button type="button" class="btn btn-custom" onclick="rename(this);">(Re)name</button>
-	  </div>
+	<div class="form-group listControl">
+	  <div class="col-xs-4 text-right"><label class="control-label" for="list2name">List 2:</label></div>
+	  <div class="col-xs-4"><input type="text" id="list2name" class="form-control" value="(later)" /></div>
+	  <div class="col-xs-4 text-left"><button type="button" class="btn btn-custom" onclick="rename(this);">(Re)name</button></div>
+	</div>
+	<div class="form-group listControl">
+	  <div class="col-xs-4 text-right"><label class="control-label" for="archiveName">Archive:</label></div>
+	  <div class="col-xs-4"><input type="text" id="archiveName" class="form-control" value="(archive)" /></div>
+	  <div class="col-xs-4 text-left"><button type="button" class="btn btn-custom" onclick="rename(this);">(Re)name</button></div>
 	</div>
     </div>
   </form>

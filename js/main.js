@@ -2,14 +2,13 @@
 
 //To force authorization: https://account.app.net/oauth/authorize etc.
 var authUrl = "https://account.app.net/oauth/authenticate?client_id=" + api['client_id'] + "&response_type=token&redirect_uri=" + encodeURIComponent(site) + "&scope=messages:" + api.channel_type;
-var channelArgs = {count: -5, since_id: 'last_read_inclusive'}; //Default post count for retrieval.
+
 var channelArray = {"now": {"column": "#list1", "channel": 0},
 					"later": {"column": "#list2", "channel": 0},
 					"archive": {"column": "#list3", "channel": 0}
 				   };
 var reverseChannelArray = {};
 var tagArray = [];
-
 
 /* main execution path */
 
@@ -121,7 +120,9 @@ function completeChannels(response) {
 			promise.then(completeChannel, function (response) {failAlert('Failed to retrieve items.');}).done(colorizeTags);
 		}
 	} else {
-		createChannels();
+		//Ask before creating; the user may not want them.
+		//Or make a publically writeable sandbox channel set...
+		//createChannels();
 	}
 }
 
@@ -136,22 +137,25 @@ function completeChannel(response) {
 }
 
 function processChannelSet(thisChannel,annotationValue) {
+	//Owner not included in the editors list, so add separately.
+	displayUserResult(thisChannel.owner, "owner");
 	//User data.
-	$("input#listOwner").val(thisChannel.owner.username);
-	if (thisChannel.editors.user_ids.length > 0) {
-		//Retrieve the usernames.
-		var promise = $.appnet.user.getList(thisChannel.editors.user_ids);
+	if (thisChannel.writers.user_ids.length > 0) {
+		//Retrieve the user data.
+		var promise = $.appnet.user.getList(thisChannel.writers.user_ids);
 		promise.then(completeUsers, function (response) {failAlert('Failed to retrieve users.');});
 	}
+
 	//List group data.
 	if ("list_group_name" in annotationValue)
 		$("input#listSet").val(annotationValue.list_group_name);
 }
 
-function completeUsers(response) {//hypothetically speaking
+function completeUsers(response) {
 	var users;
 	for (u=0; u < response.length; u++) {
 		users += response[u].username + " ";
+		displayUserResult(response[u]);
 	}
 	$("input#listMembers").val(users);
 }
@@ -310,9 +314,19 @@ function addSetting(that) {
 	}
 }
 
+/* user functions */
+
+function addUser(id) {
+	var addArgs = {
+		writers: {user_ids: id} 
+	};
+	var promise = $.appnet.channel.update();
+	promise.then(completeAdd, function (response) {failAlert('Addition of member failed.');});
+}
+
 function searchUsers() {
 	$("div#searchResults").html("");
-	var searchArgs = {q: $("input#userSearch").val()};
+	var searchArgs = {q: $("input#userSearch").val(), count: 10};
 	var promise = $.appnet.user.search(searchArgs);
 	promise.then(completeSearch, function (response) {failAlert('Search request failed.');});
 }
@@ -322,18 +336,27 @@ function completeSearch(response) {
 		$("div#searchResults").html("<p>No users found.</p>");
 	} else {
 		for (var u=0; u < response.data.length; u++) {
-			displayUserResult(response.data[u]);
+			displayUserResult(response.data[u], "search");
 		}	
-	}
-
-	function displayUserResult(result) {
-		var resultString = "<div class='col-xs-3 text-right'><img src='" + result.avatar_image.url + "' class='avatarImg' /></div>";
-		resultString += "<div class='col-xs-5'>@" + result.username + "<br /> " + result.name + "</div>";
-		resultString += "<div class='col-xs-4'><a class='btn btn-default btn-sm' href='#userSearch' onclick='addUser(" + result.id + ")'><i class='fa fa-plus'></i></a></div>";
-		$("div#searchResults").append(resultString);
 	}
 }
 
+function displayUserResult(result, type) {
+	var resultLocation = "div#memberResults";
+	var resultString = "<div class='form-group memberRow' id='userRow_" + (type ? type + "_" : "") + result.id + "'>";
+	resultString += "<div class='col-xs-4 col-md-5 text-right'>" + (result.avatar_image.is_default ? "" : "<img src='" + result.avatar_image.url + "' class='avatarImg' />") + "</div>";
+	resultString += "<div class='col-xs-4 col-md-2 text-center'>@" + result.username + (result.name ? "<br /><span class='realName'>" + result.name + "</span>" : "" ) + "</div>";
+	resultString += "<div class='col-xs-4 col-md-5 text-left'>";
+	if (type && type=="search") {
+		//Should add a check for existing membership here.
+		resultString += "<a class='btn btn-default btn-sm' href='#userSearch' title='Add member' onclick='addUser(" + result.id + ")'><i class='fa fa-plus'></i></a>";
+		resultLocation = "div#searchResults";
+	} else if (!type || type != "owner") {
+		resultString += "<a class='btn btn-default btn-sm' href='#sectionSettings' title='Remove member' onclick='removeUser(" + result.id + ")'><i class='fa fa-times'></i></a>";
+	}
+	resultString += "</div></div>";
+	$(resultLocation).append(resultString);
+}
 
 /* miscellaneous functions */
 

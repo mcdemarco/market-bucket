@@ -20,6 +20,7 @@ $primary-highlight: #91C133;
 
 $secondary-bgcolor: #e5f5de;
 $secondary-color: #687858;
+$secondary-color-gray: #686868;
 
 $transparent-color: #fff;
 $transparent-shadow: 2px 2px 4px #112200;
@@ -169,6 +170,36 @@ img.avatarImg {
     height: 40px;
     width: 40px;
 }
+
+span.realName {
+    font-style:italic;
+    color: $secondary-color-gray;
+}
+
+div.memberRow {
+    padding: 5px 0;
+}
+
+div.memberRow img {
+    border: 1px solid $secondary-color-gray;
+}
+
+div.memberRow span.realName {
+    font-style:italic;
+    color: $secondary-color-gray;
+}
+
+div#addMember, 
+div#memberControl, 
+form#settingsForm div.listControl {
+    display:none;
+}
+
+#sectionSettings h1 {
+    padding-bottom:30px;
+}
+
+
 
 /* custom button */
 

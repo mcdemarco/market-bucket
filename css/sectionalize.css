@@ -113,6 +113,28 @@ img.avatarImg {
   height: 40px;
   width: 40px; }
 
+span.realName {
+  font-style: italic;
+  color: #686868; }
+
+div.memberRow {
+  padding: 5px 0; }
+
+div.memberRow img {
+  border: 1px solid #686868; }
+
+div.memberRow span.realName {
+  font-style: italic;
+  color: #686868; }
+
+div#addMember,
+div#memberControl,
+form#settingsForm div.listControl {
+  display: none; }
+
+#sectionSettings h1 {
+  padding-bottom: 20px; }
+
 /* custom button */
 .btn-custom {
   color: #fff;
