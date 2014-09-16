@@ -106,6 +106,7 @@ function completeChannels(response) {
 			if (!annotationValue) continue;
 			//Save data.
 			channelArray[annotationValue.list_type].annotationValue = annotationValue;
+			channelArray[annotationValue.list_type].writers = thisChannel.writers.user_ids;
 			//Get user/group data if this is the right channel.  Change 'now' to 1.
 			if (annotationValue.list_type == 'now')
 				processChannelSet(thisChannel, annotationValue);
@@ -152,12 +153,9 @@ function processChannelSet(thisChannel,annotationValue) {
 }
 
 function completeUsers(response) {
-	var users;
-	for (u=0; u < response.length; u++) {
-		users += response[u].username + " ";
-		displayUserResult(response[u]);
+	for (u=0; u < response.data.length; u++) {
+		displayUserResult(response.data[u]);
 	}
-	$("input#listMembers").val(users);
 }
 
 /* item functions */
@@ -316,12 +314,28 @@ function addSetting(that) {
 
 /* user functions */
 
-function addUser(id) {
-	var addArgs = {
-		writers: {user_ids: id} 
-	};
-	var promise = $.appnet.channel.update();
-	promise.then(completeAdd, function (response) {failAlert('Addition of member failed.');});
+function addUser(userId) {
+	for (var key in channelArray) {
+		if (channelArray.hasOwnProperty(key)) {
+			addUserToChannel(userId,channelArray[key]);
+		}
+	}
+
+	function addUserToChannel(userId, channelInfo) {
+		var newUsers = channelInfo.writers.slice();
+		newUsers.push(userId);
+		var addArgs = {
+			writers: {user_ids: newUsers} 
+		};
+		var promise = $.appnet.channel.update(channelInfo.channel,addArgs);
+		promise.then(completeAdd, function (response) {failAlert('Addition of member failed.');});
+	}
+}
+
+function completeAdd(response) {
+	var userId = response.data.writers.user_ids[response.data.writers.user_ids.length - 1];
+	var userRow = $("div#searchResults div#userRow_search_" + userId).detach();
+	$("div#memberResults").attach(userRow);
 }
 
 function searchUsers() {
