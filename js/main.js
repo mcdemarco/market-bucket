@@ -30,6 +30,7 @@ function initialize() {
 		$(".loggedOut").hide();
 		getChannels();
 		$(".loggedIn").show('slow');
+		checkLocalStorageUser();
 	}
 	initializeButtons();
 	colorizeTags();
@@ -93,6 +94,7 @@ function getChannels() {
 
 function completeChannels(response) {
 	if (response.data.length > 0) {
+		var listType;
 		for (var c = 0; c < response.data.length; c++) {
 			var thisChannel = response.data[c];
 			var annotationValue = {};
@@ -104,19 +106,23 @@ function completeChannels(response) {
 			}
 			//Eject if no settings annotation.
 			if (!annotationValue) continue;
+			//Eject if we've moved on to another channel set.  Deal with that later.
+			if (c > 0 && annotationValue.list_group != channelArray[listType].annotationValue.list_group) continue;
+			listType = annotationValue.list_type;
 			//Save data.
-			channelArray[annotationValue.list_type].annotationValue = annotationValue;
-			channelArray[annotationValue.list_type].writers = thisChannel.writers.user_ids;
+			channelArray[listType].annotationValue = annotationValue;
+			channelArray[listType].owner = thisChannel.owner.id;
+			channelArray[listType].writers = thisChannel.writers.user_ids;
 			//Get user/group data if this is the right channel.  Change 'now' to 1.
-			if (annotationValue.list_type == 'now')
+			if (listType == 'now')
 				processChannelSet(thisChannel, annotationValue);
 			//Rewrite to retrieve some values directly from the annotationValue?
-			$(channelArray[annotationValue.list_type].column + " h2 span.mainTitle").html((annotationValue.title ? annotationValue.title : annotationValue.list_type));
+			$(channelArray[listType].column + " h2 span.mainTitle").html((annotationValue.title ? annotationValue.title : listType));
+			channelArray[listType].channel = thisChannel.id;
+			reverseChannelArray[thisChannel.id] = listType;
 			var args = {
 				include_annotations: 1
 			};
-			channelArray[annotationValue.list_type].channel = thisChannel.id;
-			reverseChannelArray[thisChannel.id] = annotationValue.list_type;
 			var promise = $.appnet.message.getChannel(thisChannel.id, args);
 			promise.then(completeChannel, function (response) {failAlert('Failed to retrieve items.');}).done(colorizeTags);
 		}
@@ -127,7 +133,7 @@ function completeChannels(response) {
 	}
 }
 
-function completeChannel(response) {
+function completeChannel(response) {debugger;
 	//Populate the UI for an individual retrieved list.
 	if (response.data.length > 0) {
 		for (var i=0; i < response.data.length; i++) {
@@ -146,7 +152,13 @@ function processChannelSet(thisChannel,annotationValue) {
 		var promise = $.appnet.user.getList(thisChannel.writers.user_ids);
 		promise.then(completeUsers, function (response) {failAlert('Failed to retrieve users.');});
 	}
-
+	//Ownership hath its privileges.
+	if (thisChannel.owner.id != api.userId) {
+		$("form#settingsForm a.btn").hide();
+	} else {
+		//For list switching.
+		$("form#settingsForm a.btn").show();
+	}
 	//List group data.
 	if ("list_group_name" in annotationValue)
 		$("input#listSet").val(annotationValue.list_group_name);
@@ -303,6 +315,10 @@ function onClickTagButton(that) {
 
 /* settings functions */
 
+function getUser() {
+	//We need this to check whether the user can edit his channels.
+}
+
 function addSetting(that) {
 	var theSetting = $(that).closest("div.form-group").prop("id");
 	switch (theSetting) {
@@ -409,10 +425,31 @@ function checkLocalStorage() {
 			//Retrieve the access token.
 			try {api.accessToken = localStorage["accessToken"];} 
 			catch (e) {}
+			//Retrieve the user ID.
+			try {api.userId = localStorage["userId"];} 
+			catch (e) {}
 	} else {
 		api.accessToken = window.location.hash.split("access_token=")[1];
 		if (api.accessToken && localStorage) {
 			try {localStorage["accessToken"] = api.accessToken;} 
+			catch (e) {}
+		}
+	}
+}
+
+function checkLocalStorageUser() {
+	if (localStorage && localStorage["userId"]) {
+			try {api.userId = localStorage["userId"];} 
+			catch (e) {}
+	} else {
+		var promise = $.appnet.user.get("me");
+		promise.then(setLocalStorageUser, function (response) {failAlert('Failed to retrieve user ID.');});
+	}
+
+	function setLocalStorageUser(response) {
+		api.userId = response.data.id;
+		if (api.userId && localStorage) {
+			try {localStorage["userId"] = api.userId;} 
 			catch (e) {}
 		}
 	}
@@ -482,6 +519,17 @@ function updateChannels() {//manual channel repair for dev.
 	$.appnet.channel.update(55871,{annotations:  [{ type: api.annotation_type, value: {'list_type': 'later'}}]});
 	$.appnet.channel.update(55872,{annotations:  [{ type: api.annotation_type, value: {'list_type': 'archive'}}]});
 	 */
+	/* insure list groups */
+//	var promise = $.appnet.channel.update(55870,{annotations:  [{ type: api.annotation_type, value: {'list_type': 'now', 'list_group': '55870'}}]});
+//	promise.then(completeUpdateChannels,  function (response) {failAlert('Failed to create grocery channel.');});
+//	$.appnet.channel.update(55871,{annotations:  [{ type: api.annotation_type, value: {'list_type': 'later', 'list_group': '55870'}}]});
+//	$.appnet.channel.update(55872,{annotations:  [{ type: api.annotation_type, value: {'list_type': 'archive', 'list_group': '55870'}}]});
+
+	function completeUpdateChannels(response) {
+		//
+	}
 }
+
+
 
 /* eof */
