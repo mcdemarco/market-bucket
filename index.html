@@ -11,7 +11,6 @@
     
   <!-- Bootstrap core CSS -->
   <link href="/css/bootstrap.min.css" rel="stylesheet">
-  <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css" rel="stylesheet">
   
   <!-- Custom styles for this template -->
   <link href="/css/sectionalize.css" rel="stylesheet">
@@ -195,10 +194,10 @@
           <div class="list-group">
               <a href="#" class="list-group-item active">
                 <h2 class="list-group-item-heading"><span class="mainTitle">now</span>
-		  <div class="pull-right btn-group">
-		    <button type="button" class="btn btn-default btn-xs" data-type="addButton" data-list="now"><span class="glyphicon glyphicon-plus"></span></button>
-		    <button type="button" class="btn btn-default btn-xs"><span class="glyphicon glyphicon-cog"></span></button>
-		  </div>
+		  <span class="pull-right">
+		    <span data-type="addButton" data-list="now"><i class="fa fa-plus"></i></span>
+		    <span data-type="settingsButton" data-list="now"><i class="fa fa-cog"></i></span>
+		  </span>
 		</h2>
                 <h6><span class="subTitle">urgent items</span></h6>
               </a>
@@ -209,10 +208,10 @@
           <div class="list-group">
               <a href="#" class="list-group-item active">
                 <h2 class="list-group-item-heading"><span class="mainTitle">later</span>
-		  <div class="pull-right btn-group">
-		    <button type="button" class="btn btn-default btn-xs" data-type="addButton" data-list="later"><span class="glyphicon glyphicon-plus"></span></button>
-		    <button type="button" class="btn btn-default btn-xs"><span class="glyphicon glyphicon-cog"></span></button>
-		  </div>
+		  <span class="pull-right">
+		    <span data-type="addButton" data-list="now"><i class="fa fa-plus"></i></span>
+		    <span data-type="settingsButton" data-list="now"><i class="fa fa-cog"></i></span>
+		  </span>
 		</h2>
                 <h6><span class="subTitle">non-urgent items</span></h6>
               </a>
@@ -223,10 +222,10 @@
           <div class="list-group">
               <a href="#" class="list-group-item active">
                 <h2 class="list-group-item-heading"><span class="mainTitle">archive</span>
-		  <div class="pull-right btn-group">
-		    <button type="button" class="btn btn-default btn-xs" data-type="addButton" data-list="archive"><span class="glyphicon glyphicon-plus"></span></button>
-		    <button type="button" class="btn btn-default btn-xs"><span class="glyphicon glyphicon-cog"></span></button>
-		  </div>
+		  <span class="pull-right">
+		    <span data-type="addButton" data-list="now"><i class="fa fa-plus"></i></span>
+		    <span data-type="settingsButton" data-list="now"><i class="fa fa-cog"></i></span>
+		  </span>
 		</h2>
                 <h6><span class="subTitle">reusable items</span></h6>
               </a>
@@ -273,28 +272,49 @@
   </div>
   <form class="form-horizontal" role="form" id="settingsForm">
     <div class="row text-center">
-	<div class="form-group">
-	  <div class="col-xs-4 text-right">
-	    <label class="control-label" for="listOwner">Current list owner:</label>
+	<div class="form-group"><!--always on -->
+	  <div class="col-xs-3 text-right">
+	    <label class="control-label" for="listSet">List group:</label>
 	  </div>
-	  <div class="col-xs-4">
-	    <input type="text" id="listOwner" class="form-control" value="(me)" disabled />
-	  </div>
-	</div>
-	<div class="form-group">
-	  <div class="col-xs-4 text-right">
-	    <label class="control-label" for="listSet">Current list (set):</label>
-	  </div>
-	  <div class="col-xs-4">
-	    <input type="text" id="listSet" class="form-control" value="(default set)" />
+	  <div class="col-xs-5">
+	    <select class="form-control" id="listSet">
+	      <option id="default" value="">(default set)</option>
+	    </select>
 	  </div>
 	  <div class="col-xs-4 text-left">
-	    <button type="button" class="btn btn-custom" onclick="rename(this);">(Re)name</button>
+	    <a class="btn btn-default btn-sm" href="#" onclick="renameSetting(this);" title="(Re)name current list group"><i class="fa fa-pencil"></i></a>
+	    <a class="btn btn-default btn-sm" href="#" onclick="addSetting(this);" title="Add new list groups"><i class="fa fa-plus"></i></a>
+	    <a class="btn btn-default btn-sm" href="#" onclick="$('#memberControl').show(); return false;" title="Add members"><i class="fa fa-group"></i></a>
+	  </div>
+	</div>
+	<div class="form-group" id="memberControl" style="display:none;"><!-- hide if only me/private and put add button elsewhere -->
+	  <div class="col-xs-3 text-right">
+	    <label class="control-label" for="listMembers">List members:</label>
+	  </div>
+	  <div class="col-xs-5">
+	    <input type="text" id="listMembers" class="form-control" value="(me)" disabled />
+	  </div>
+	  <div class="col-xs-4 text-left">
+	    <a class="btn btn-default btn-sm" href="#" onclick="renameSetting(this);"><i class="fa fa-pencil"></i></a>
+	    <a class="btn btn-default btn-sm" href="#" onclick="addSetting(this);return false;"><i class="fa fa-plus"></i></a>
+	  </div>
+	</div>
+	<div class="form-group" id="addMember" style="display:none;">
+	  <div class="col-xs-3 text-right">
+	    <label class="control-label" for="userSearch">Search users:</label>
+	  </div>
+	  <div class="col-xs-5">
+	    <input type="text" id="userSearch" class="form-control" value="@" />
+	  </div>
+	  <div class="col-xs-4 text-left">
+	    <a class="btn btn-default btn-sm" href="#userSearch" onclick="searchUsers();"><i class="fa fa-search"></i></a>
+	  </div>
+	  <div class="col-xs-12 text-center" id="searchResults">
 	  </div>
 	</div>
 	<div class="form-group">
 	  <div class="col-xs-4 text-right">
-	    <label class="control-label" for="list1name">List 1 name:</label>
+	    <label class="control-label" for="list1name">List 1:</label>
 	  </div>
 	  <div class="col-xs-4">
 	    <input type="text" id="list1name" class="form-control" value="(now)" />
@@ -305,7 +325,7 @@
 	</div>
 	<div class="form-group">
 	  <div class="col-xs-4 text-right">
-	    <label class="control-label" for="list2name">List 2 name:</label>
+	    <label class="control-label" for="list2name">List 2:</label>
 	  </div>
 	  <div class="col-xs-4">
 	    <input type="text" id="list2name" class="form-control" value="(later)" />
@@ -316,7 +336,7 @@
 	</div>
 	<div class="form-group">
 	  <div class="col-xs-4 text-right">
-	    <label class="control-label" for="archiveName">Archive name:</label>
+	    <label class="control-label" for="archiveName">Archive:</label>
 	  </div>
 	  <div class="col-xs-4">
 	    <input type="text" id="archiveName" class="form-control" value="(archive)" />

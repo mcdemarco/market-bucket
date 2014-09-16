@@ -138,9 +138,22 @@ function completeChannel(response) {
 function processChannelSet(thisChannel,annotationValue) {
 	//User data.
 	$("input#listOwner").val(thisChannel.owner.username);
+	if (thisChannel.editors.user_ids.length > 0) {
+		//Retrieve the usernames.
+		var promise = $.appnet.user.getList(thisChannel.editors.user_ids);
+		promise.then(completeUsers, function (response) {failAlert('Failed to retrieve users.');});
+	}
 	//List group data.
 	if ("list_group_name" in annotationValue)
 		$("input#listSet").val(annotationValue.list_group_name);
+}
+
+function completeUsers(response) {//hypothetically speaking
+	var users;
+	for (u=0; u < response.length; u++) {
+		users += response[u].username + " ";
+	}
+	$("input#listMembers").val(users);
 }
 
 /* item functions */
@@ -286,6 +299,42 @@ function onClickTagButton(that) {
 }
 
 
+/* settings functions */
+
+function addSetting(that) {
+	var theSetting = $(that).closest("div.form-group").prop("id");
+	switch (theSetting) {
+		case "memberControl":
+		$("#addMember").show();
+		break;
+	}
+}
+
+function searchUsers() {
+	$("div#searchResults").html("");
+	var searchArgs = {q: $("input#userSearch").val()};
+	var promise = $.appnet.user.search(searchArgs);
+	promise.then(completeSearch, function (response) {failAlert('Search request failed.');});
+}
+
+function completeSearch(response) {
+	if (response.data.length == 0) {
+		$("div#searchResults").html("<p>No users found.</p>");
+	} else {
+		for (var u=0; u < response.data.length; u++) {
+			displayUserResult(response.data[u]);
+		}	
+	}
+
+	function displayUserResult(result) {
+		var resultString = "<div class='col-xs-3 text-right'><img src='" + result.avatar_image.url + "' class='avatarImg' /></div>";
+		resultString += "<div class='col-xs-5'>@" + result.username + "<br /> " + result.name + "</div>";
+		resultString += "<div class='col-xs-4'><a class='btn btn-default btn-sm' href='#userSearch' onclick='addUser(" + result.id + ")'><i class='fa fa-plus'></i></a></div>";
+		$("div#searchResults").append(resultString);
+	}
+}
+
+
 /* miscellaneous functions */
 
 function checkLocalStorage() {
@@ -315,9 +364,13 @@ function forceScroll(hash) {
 }
 
 function initializeButtons() {
-	$("button[data-type=addButton]").click(function (event) {
+	$("span[data-type=addButton]").click(function (event) {
 		event.preventDefault();
 		onClickAdd($(this).data("list"));
+	});
+	$("span[data-type=settingsButton]").click(function (event) {
+		event.preventDefault();
+		forceScroll("#sectionSettings");
 	});
 }
 

@@ -109,6 +109,10 @@ a.list-group-item.active {
   background-color: #91C133;
   border-color: #91C133; }
 
+img.avatarImg {
+  height: 40px;
+  width: 40px; }
+
 /* custom button */
 .btn-custom {
   color: #fff;
