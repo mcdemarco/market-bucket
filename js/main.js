@@ -324,18 +324,48 @@ function addUser(userId) {
 	function addUserToChannel(userId, channelInfo) {
 		var newUsers = channelInfo.writers.slice();
 		newUsers.push(userId);
-		var addArgs = {
+		var userArgs = {
 			writers: {user_ids: newUsers} 
 		};
-		var promise = $.appnet.channel.update(channelInfo.channel,addArgs);
-		promise.then(completeAdd, function (response) {failAlert('Addition of member failed.');});
+		var promise = $.appnet.channel.update(channelInfo.channel,userArgs);
+		promise.then(completeAddUser, function (response) {failAlert('Addition of member failed.');});
+	}
+	var userRow = $("div#searchResults div#userRow_search_" + userId).detach();
+	$("div#memberResults").append(userRow);
+	$("div#memberResults div#userRow_search_" + userId + " a").remove();
+}
+
+function completeAddUser(response) {
+	//Update the channel.
+	channelArray[reverseChannelArray[response.data.id]].writers = response.data.writers.user_ids;
+}
+
+function removeUser(userId) {
+	for (var key in channelArray) {
+		if (channelArray.hasOwnProperty(key)) {
+			removeUserFromChannel(userId,channelArray[key]);
+		}
+	}
+	$("div#userRow_" + userId).remove();
+
+	function removeUserFromChannel(userId, channelInfo) {
+		var newUsers = channelInfo.writers.slice();
+		//ADN's version of the array is of strings.
+		var index = newUsers.indexOf(userId.toString());
+		if (index > -1) {
+			newUsers.splice(index, 1);
+			var userArgs = {
+				writers: {user_ids: newUsers} 
+			};
+			var promise = $.appnet.channel.update(channelInfo.channel,userArgs);
+			promise.then(completeRemoveUser, function (response) {failAlert('Removal of member failed.');});
+		}
 	}
 }
 
-function completeAdd(response) {
-	var userId = response.data.writers.user_ids[response.data.writers.user_ids.length - 1];
-	var userRow = $("div#searchResults div#userRow_search_" + userId).detach();
-	$("div#memberResults").attach(userRow);
+function completeRemoveUser(response) {
+	//Only update the channel.
+	channelArray[reverseChannelArray[response.data.id]].writers = response.data.writers.user_ids;
 }
 
 function searchUsers() {
