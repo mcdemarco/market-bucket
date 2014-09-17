@@ -10,6 +10,7 @@ var channelArray = {"now": {"column": "#list1", "channel": 0},
 var reverseChannelArray = {};
 var currentChannelGroup;
 var tagArray = [];
+var messageTextArray = {};
 
 /* main execution path */
 
@@ -87,6 +88,7 @@ function getChannels() {
 	//Determine channels.
 	var args = {
 		include_annotations: 1,
+		include_inactive: 0,
 		type: api.channel_type
 	};
 	var promise = $.appnet.channel.search(args);
@@ -135,6 +137,7 @@ function completeChannels(response) {
 		channelArray[listType].channel = thisChannel.id;
 		reverseChannelArray[thisChannel.id] = listType;
 		var args = {
+			include_deleted: 0,
 			include_annotations: 1
 		};
 		var promise = $.appnet.message.getChannel(thisChannel.id, args);
@@ -236,16 +239,31 @@ function formatItem(item) {
 			onClickItemTag($(this).data("hashtagName"));
 		});
 	});
+	//Store the item.
+	messageTextArray[item.id] = item.text;
 }
 
 function moveItem(itemId) {
 	//For now, only one movement path.
-	if ($("#item_" + itemId).closest("div.bucketListDiv").prop("id") == channelArray["archive"].column) {
-		//delete from archive
-	} else {
-		//move to archive
+	thisChannelType = $("#item_" + itemId).closest("div.bucketListDiv").data("type");
+	if (thisChannelType != "archive") {
+		//repost to archive
+		createItem(channelArray["archive"].channel, messageTextArray[itemId]);
 	}
+	//delete from current list - rewrite the ids so don't need an inverse lookup for this one.
+	var promise = $.appnet.message.destroy(channelArray[thisChannelType].channel,itemId);
+	promise.then(completeDelete,  function (response) {failAlert('Failed to delete item.');});
+
 }
+
+function completeDelete(response) {
+	$("a#item_" + response.data.id).remove();
+}
+
+function completeMove(response) {
+	
+}
+
 
 function onClickAdd(channelName) {
 	$("input[name=bucketBucket]").prop("checked", false);
