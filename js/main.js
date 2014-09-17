@@ -90,7 +90,7 @@ function getChannels() {
 		type: api.channel_type
 	};
 	var promise = $.appnet.channel.search(args);
-	promise.then(completeChannels, function (response) {debugger; failAlert('Failed to retrieve grocery channel.');}).done(colorizeTags);
+	promise.then(completeChannels, function (response) {failAlert('Failed to retrieve grocery channel.');}).done(colorizeTags);
 }
 
 function completeChannels(response) {
@@ -142,7 +142,7 @@ function completeChannels(response) {
 	}
 }
 
-function completeChannel(response) {debugger;
+function completeChannel(response) {
 	//Populate the UI for an individual retrieved list.
 	if (response.data.length > 0) {
 		for (var i=0; i < response.data.length; i++) {
@@ -213,6 +213,7 @@ function createItem(channel,message) {
 function completeItem(response) {
 	var respd = response.data;
 	formatItem(respd);
+	colorizeTags(respd.id);
 	clearForm();
 	forceScroll("#sectionLists");
 }
@@ -260,8 +261,9 @@ function collectTags(currentTags) {
 	}
 }
 
-function colorizeTags() {
-	$(".tag").each(function(index) {
+function colorizeTags(itemId) {
+	var selector = (itemId ? "#item_" + itemId + " .tag" : ".tag"); 
+	$(selector).each(function(index) {
 		if (!$(this).hasClass("colorized")) {
 			var thisColor = getColor($(this).html().toLowerCase());
 			$(this).css("background-color", thisColor).css("border-color", thisColor).css("color", getContrastYIQ(thisColor.substring(1,7))).addClass("colorized");
