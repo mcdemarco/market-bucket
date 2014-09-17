@@ -8,6 +8,7 @@ var channelArray = {"now": {"column": "#list1", "channel": 0},
 					"archive": {"column": "#list3", "channel": 0}
 				   };
 var reverseChannelArray = {};
+var currentChannelGroup;
 var tagArray = [];
 
 /* main execution path */
@@ -85,51 +86,59 @@ function completeCreateChannels() {
 function getChannels() {
 	//Determine channels.
 	var args = {
-		channel_types: api.channel_type,
-		include_annotations: 1
+		include_annotations: 1,
+		type: api.channel_type
 	};
-	var promise = $.appnet.channel.getCreated(args);
-	promise.then(completeChannels, function (response) {failAlert('Failed to retrieve grocery channel.');}).done(colorizeTags);
+	var promise = $.appnet.channel.search(args);
+	promise.then(completeChannels, function (response) {debugger; failAlert('Failed to retrieve grocery channel.');}).done(colorizeTags);
 }
 
 function completeChannels(response) {
 	if (response.data.length > 0) {
-		var listType;
 		for (var c = 0; c < response.data.length; c++) {
 			var thisChannel = response.data[c];
-			var annotationValue = {};
-			//No longer assuming we're the only annotation.
-			for (var a = 0; a < thisChannel.annotations.length; a++) {
-				if (thisChannel.annotations[a].type == api.annotation_type) {
-					annotationValue = thisChannel.annotations[a].value;
-				}
-			}
-			//Eject if no settings annotation.
-			if (!annotationValue) continue;
-			//Eject if we've moved on to another channel set.  Deal with that later.
-			if (c > 0 && annotationValue.list_group != channelArray[listType].annotationValue.list_group) continue;
-			listType = annotationValue.list_type;
-			//Save data.
-			channelArray[listType].annotationValue = annotationValue;
-			channelArray[listType].owner = thisChannel.owner.id;
-			channelArray[listType].writers = thisChannel.writers.user_ids;
-			//Get user/group data if this is the right channel.  Change 'now' to 1.
-			if (listType == 'now')
-				processChannelSet(thisChannel, annotationValue);
-			//Rewrite to retrieve some values directly from the annotationValue?
-			$(channelArray[listType].column + " h2 span.mainTitle").html((annotationValue.title ? annotationValue.title : listType));
-			channelArray[listType].channel = thisChannel.id;
-			reverseChannelArray[thisChannel.id] = listType;
-			var args = {
-				include_annotations: 1
-			};
-			var promise = $.appnet.message.getChannel(thisChannel.id, args);
-			promise.then(completeChannel, function (response) {failAlert('Failed to retrieve items.');}).done(colorizeTags);
+			processChannel(response.data[c]);
 		}
 	} else {
 		//Ask before creating; the user may not want them.
 		//Or make a publically writeable sandbox channel set...
 		//createChannels();
+	}
+
+	function processChannel(thisChannel) {
+		var annotationValue = {};
+		//No longer assuming we're the only annotation.
+		for (var a = 0; a < thisChannel.annotations.length; a++) {
+			if (thisChannel.annotations[a].type == api.annotation_type) {
+				annotationValue = thisChannel.annotations[a].value;
+			}
+		}
+		//Eject if no settings annotation.
+		if (!annotationValue) return;
+		//Eject if we've moved on to another channel set.  Deal with that later.
+		if (currentChannelGroup && annotationValue.list_group && annotationValue.list_group != currentChannelGroup) 
+			return;
+		else 
+			currentChannelGroup = (annotationValue.list_group ? annotationValue.list_group : thisChannel.id);
+		var listType = annotationValue.list_type;
+		//Eject if user can't write to channel.
+		// ...
+		//Save data.
+		channelArray[listType].annotationValue = annotationValue;
+		channelArray[listType].owner = thisChannel.owner.id;
+		channelArray[listType].writers = thisChannel.writers.user_ids;
+		//Get user/group data if this is the right channel.  Change 'now' to 1.
+		if (listType == 'now')
+			processChannelSet(thisChannel, annotationValue);
+		//Rewrite to retrieve some values directly from the annotationValue?
+		$(channelArray[listType].column + " h2 span.mainTitle").html((annotationValue.title ? annotationValue.title : listType));
+		channelArray[listType].channel = thisChannel.id;
+		reverseChannelArray[thisChannel.id] = listType;
+		var args = {
+			include_annotations: 1
+		};
+		var promise = $.appnet.message.getChannel(thisChannel.id, args);
+		promise.then(completeChannel, function (response) {failAlert('Failed to retrieve items.');}).done(colorizeTags);
 	}
 }
 
@@ -154,7 +163,7 @@ function processChannelSet(thisChannel,annotationValue) {
 	}
 	//Ownership hath its privileges.
 	if (thisChannel.owner.id != api.userId) {
-		$("form#settingsForm a.btn").hide();
+		$("form#settingsForm a.btn.listOwner").hide();
 	} else {
 		//For list switching.
 		$("form#settingsForm a.btn").show();
