@@ -221,8 +221,10 @@ function completeItem(response) {
 function formatItem(item) {
 	var itemDate = new Date(item.created_at);
 	var formattedItem = "<a href='#' class='list-group-item' id='item_" + item.id + "'>";
-	formattedItem += "<p class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + item.user.username + "'>";
-	formattedItem += item.html + "</p></a>";
+	formattedItem += "<span class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + item.user.username + "'>";
+	formattedItem += item.html + "</span>";
+	formattedItem += "<button type='button' class='btn btn-default btn-xs pull-right' onclick='moveItem(" + item.id + ")'>";
+	formattedItem += (reverseChannelArray[item.channel_id] == "archive" ?  "<i class='fa fa-times'></i>" : "<i class='fa fa-check'></i>") + "</button></a>";
 	$(channelArray[reverseChannelArray[item.channel_id]].column + " div.list-group").append(formattedItem);
 	//Pre-format the hashtags.
 	$("#item_" + item.id + " span[itemprop='hashtag']").each(function(index) {
@@ -236,8 +238,13 @@ function formatItem(item) {
 	});
 }
 
-function moveItem(itemId, newList) {
-
+function moveItem(itemId) {
+	//For now, only one movement path.
+	if ($("#item_" + itemId).closest("div.bucketListDiv").prop("id") == channelArray["archive"].column) {
+		//delete from archive
+	} else {
+		//move to archive
+	}
 }
 
 function onClickAdd(channelName) {
