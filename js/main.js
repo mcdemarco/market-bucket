@@ -3,12 +3,7 @@
 //To force authorization: https://account.app.net/oauth/authorize etc.
 var authUrl = "https://account.app.net/oauth/authenticate?client_id=" + api['client_id'] + "&response_type=token&redirect_uri=" + encodeURIComponent(site) + "&scope=messages:" + api.channel_type;
 
-var channelArray = {"now": {"column": "#list1", "channel": 0},
-					"later": {"column": "#list2", "channel": 0},
-					"archive": {"column": "#list3", "channel": 0}
-				   };
-var reverseChannelArray = {};
-var currentChannelGroup;
+var channelArray = {};
 var tagArray = [];
 var messageTextArray = {};
 
@@ -38,50 +33,23 @@ function initialize() {
 	colorizeTags();
 }
 
-function createChannels() {
-	//Create new channels for user.
+function createChannel(listTypeObj) {
+	//Create a new placeholder default channel for the user.
+	//Later, allow the user to pick his list types and name, if any.
 	var channel = {
 		type: api.channel_type,
 		auto_subscribe: true,
 		annotations:  [{
 						  type: api.annotation_type,
-						  value: {'list_type': 'now'}
+						  value: {'default_list': 1}
 					  }]
 	};
 	var promise1 = $.appnet.channel.create(channel);
-	promise1.then(createChannel2, function (response) {failAlert('Failed to create grocery channel.');});
+	promise1.then(completeCreateChannel, function (response) {failAlert('Failed to create new list.');});
 }
 
-function createChannel2() {
-	//Create new channels for user.
-	var channel2 = {
-		type: api.channel_type,
-		auto_subscribe: true,
-		annotations:  [{
-						  type: api.annotation_type,
-						  value: {'list_type': 'later'}
-					  }]
-	};
-	var promise2 = $.appnet.channel.create(channel2);
-	promise2.then(createChannel3, function (response) {failAlert('Failed to create grocery channel.');});
-}
-
-function createChannel3() {
-	//Create new channels for user.
-	var channel3 = {
-		type: api.channel_type,
-		auto_subscribe: true,
-		annotations:  [{
-						  type: api.annotation_type,
-						  value: {'list_type': 'archive'}
-					  }]
-	};
-	var promise3 = $.appnet.channel.create(channel3);
-	promise3.then(completeCreateChannels, function (response) {failAlert('Failed to create grocery channel.');});
-}
-
-function completeCreateChannels() {
-	console.log("channels created");
+function completeCreateChannel() {
+	//console.log("channels created");
 }
 
 function getChannels() {
@@ -89,25 +57,25 @@ function getChannels() {
 	var args = {
 		include_annotations: 1,
 		include_inactive: 0,
+		order: 'activity',
 		type: api.channel_type
 	};
 	var promise = $.appnet.channel.search(args);
-	promise.then(completeChannels, function (response) {failAlert('Failed to retrieve grocery channel.');}).done(colorizeTags);
+	promise.then(completeChannels, function (response) {failAlert('Failed to retrieve your list(s).');}).done(colorizeTags);
 }
 
 function completeChannels(response) {
 	if (response.data.length > 0) {
 		for (var c = 0; c < response.data.length; c++) {
-			var thisChannel = response.data[c];
-			processChannel(response.data[c]);
+			processChannel(response.data[c], (c==0));
 		}
 	} else {
 		//Ask before creating; the user may not want them.
 		//Or make a publically writeable sandbox channel set...
-		//createChannels();
+		//createChannel();
 	}
 
-	function processChannel(thisChannel) {
+	function processChannel(thisChannel, first) {
 		var annotationValue = {};
 		//No longer assuming we're the only annotation.
 		for (var a = 0; a < thisChannel.annotations.length; a++) {
@@ -117,31 +85,55 @@ function completeChannels(response) {
 		}
 		//Eject if no settings annotation.
 		if (!annotationValue) return;
-		//Eject if we've moved on to another channel set.  Deal with that later.
-		if (currentChannelGroup && annotationValue.list_group && annotationValue.list_group != currentChannelGroup) 
-			return;
-		else 
-			currentChannelGroup = (annotationValue.list_group ? annotationValue.list_group : thisChannel.id);
-		var listType = annotationValue.list_type;
-		//Eject if user can't write to channel.
+		//Eject if user can't write to channel. (unlikely)
 		// ...
+
 		//Save data.
-		channelArray[listType].annotationValue = annotationValue;
-		channelArray[listType].owner = thisChannel.owner.id;
-		channelArray[listType].writers = thisChannel.writers.user_ids;
-		//Get user/group data if this is the right channel.  Change 'now' to 1.
-		if (listType == 'now')
-			processChannelSet(thisChannel, annotationValue);
-		//Rewrite to retrieve some values directly from the annotationValue?
-		$(channelArray[listType].column + " h2 span.mainTitle").html((annotationValue.title ? annotationValue.title : listType));
-		channelArray[listType].channel = thisChannel.id;
-		reverseChannelArray[thisChannel.id] = listType;
+		channelArray[thisChannel.id] = {"id" : thisChannel.id,
+										"owner" : thisChannel.owner.id,
+										"editors" : thisChannel.editors.user_ids,
+										"annotationValue" : annotationValue};
+		if (annotationValue.hasOwnProperty("list_types")) {
+			channelArray[thisChannel.id].listTypes = annotationValue.list_types;
+		}
+
+		//Fetch more data if this is the right channel.
+ 		if ((!api.defaultChannel && first) || (api.defaultChannel && api.defaultChannel == thisChannel.id)) {
+			displayChannel(thisChannel);
+		}
+	}
+
+	function displayChannel(thisChannel) {
+		//Users in settings panel.
+		var annotationValue = channelArray[thisChannel.id].annotationValue;
+		processChannelUsers(thisChannel, annotationValue);
+			
+		//Make more list holders for sublists.
+		if (annotationValue.list_types && annotationValue.list_types.length > 0) {
+			for (var i = 2; i <= annotationValue.list_types.length; i++) {
+				if (annotationValue.list_types.hasOwnProperty(i.toString())) {
+					listCloner(i, annotationValue);
+				}
+			}
+			if (annotationValue.list_types.hasOwnProperty("0")) {
+				listCloner(0, annotationValue);
+			}
+		}
+		//Retrieve the messages.
 		var args = {
 			include_deleted: 0,
 			include_annotations: 1
 		};
 		var promise = $.appnet.message.getChannel(thisChannel.id, args);
 		promise.then(completeChannel, function (response) {failAlert('Failed to retrieve items.');}).done(colorizeTags);
+	}
+
+	function listCloner(index, annoObj) {
+		$("div#list_1").clone().attr("id","list_" + index).data("type",index).appendTo("div#bucketListHolder");
+		$("div#list_" + index + " span.mainTitle").html(annoObj.list_types[index.toString()]);
+		if (annoObj.hasOwnProperty("list_subtitles") && annoObj.list_subtitles.hasOwnProperty(index.toString())) {
+			$("div#list_" + index + " span.subTitle").html(annoObj.list_subtitles[index.toString()]);
+		}
 	}
 }
 
@@ -155,7 +147,7 @@ function completeChannel(response) {
 	}
 }
 
-function processChannelSet(thisChannel,annotationValue) {
+function processChannelUsers(thisChannel,annotationValue) {
 	//Owner not included in the editors list, so add separately.
 	displayUserResult(thisChannel.owner, "owner");
 	//User data.
@@ -222,13 +214,24 @@ function completeItem(response) {
 }
 
 function formatItem(item) {
+	var listType, listTypes;
+	//Check for sublist annotations IF the list has official sublists.
+	if (channelArray[item.channel_id].hasOwnProperty("listTypes")) {
+		listTypes = channelArray[item.channel_id].listTypes;
+		for (var am = 0; am < item.annotations.length; am++) {
+			if (item.annotations[am].type == api.message_annotation_type) {
+				listType = item.annotations[am].list_type;
+			}
+		}
+	}
+
 	var itemDate = new Date(item.created_at);
 	var formattedItem = "<a href='#' class='list-group-item' id='item_" + item.id + "'>";
 	formattedItem += "<span class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + item.user.username + "'>";
 	formattedItem += item.html + "</span>";
 	formattedItem += "<button type='button' class='btn btn-default btn-xs pull-right' onclick='moveItem(" + item.id + ")'>";
-	formattedItem += (reverseChannelArray[item.channel_id] == "archive" ?  "<i class='fa fa-times'></i>" : "<i class='fa fa-check'></i>") + "</button></a>";
-	$(channelArray[reverseChannelArray[item.channel_id]].column + " div.list-group").append(formattedItem);
+	formattedItem += ((listType && listType == "0") ?  "<i class='fa fa-times'></i>" : "<i class='fa fa-check'></i>") + "</button></a>";
+	$("#list_" + (listType ? listType : "1") + " div.list-group").append(formattedItem);
 	//Pre-format the hashtags.
 	$("#item_" + item.id + " span[itemprop='hashtag']").each(function(index) {
 		if (!$(this).hasClass("tag")) {
@@ -475,7 +478,9 @@ function checkLocalStorage() {
 
 function checkLocalStorageUser() {
 	if (localStorage && localStorage["userId"]) {
-			try {api.userId = localStorage["userId"];} 
+			try {api.userId = localStorage["userId"];
+				// api.defaultChannel = localStorage["defaultChannel"];
+				} 
 			catch (e) {}
 	} else {
 		var promise = $.appnet.user.get("me");
@@ -485,7 +490,9 @@ function checkLocalStorageUser() {
 	function setLocalStorageUser(response) {
 		api.userId = response.data.id;
 		if (api.userId && localStorage) {
-			try {localStorage["userId"] = api.userId;} 
+			try {localStorage["userId"] = api.userId;
+				// localStorage["defaultChannel"] = api.defaultChannel;
+				} 
 			catch (e) {}
 		}
 	}
