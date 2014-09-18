@@ -401,17 +401,14 @@ function addSetting(that) {
 
 function addUser(userId) {
 
-	addUserToChannel(userId,channelArray[api.currentChannel]);
+	var newUsers = channelArray[api.currentChannel].editors.slice();
+	newUsers.push(userId);
+	var userArgs = {
+		editors: {user_ids: newUsers} 
+	};
+	var promise = $.appnet.channel.update(api.currentChannel,userArgs);
+	promise.then(completeAddUser, function (response) {failAlert('Addition of member failed.');});
 
-	function addUserToChannel(userId, channelInfo) {
-		var newUsers = channelInfo.editors.slice();
-		newUsers.push(userId);
-		var userArgs = {
-			editors: {user_ids: newUsers} 
-		};
-		var promise = $.appnet.channel.update(api.currentChannel,userArgs);
-		promise.then(completeAddUser, function (response) {failAlert('Addition of member failed.');});
-	}
 	var userRow = $("div#searchResults div#userRow_search_" + userId).detach();
 	$("div#memberResults").append(userRow);
 	$("div#memberResults div#userRow_search_" + userId + " a").remove();
@@ -419,7 +416,7 @@ function addUser(userId) {
 
 function completeAddUser(response) {
 	//Update the channel.
-	channelArray[reverseChannelArray[response.data.id]].editors = response.data.editors.user_ids;
+	channelArray[api.currentChannel].editors = response.data.editors.user_ids;
 }
 
 function removeUser(userId) {
