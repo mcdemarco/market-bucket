@@ -5,7 +5,7 @@ var authUrl = "https://account.app.net/oauth/authenticate?client_id=" + api['cli
 
 var channelArray = {};
 var tagArray = [];
-var messageTextArray = {};
+//var messageTextArray = {};
 
 /* main execution path */
 
@@ -123,18 +123,18 @@ function completeChannels(response) {
 
 	function displayChannel(thisChannel) {
 		//Users in settings panel.
-		var annotationValue = channelArray[thisChannel.id].annotationValue;
-		processChannelUsers(thisChannel, annotationValue);
-			
+		var listTypes = (channelArray[thisChannel.id].listTypes ? channelArray[thisChannel.id].listTypes : {});
+		processChannelUsers(thisChannel);
+		debugger;
 		//Make more list holders for sublists.
-		if (annotationValue.list_types && annotationValue.list_types.length > 0) {
-			for (var i = 2; i <= annotationValue.list_types.length; i++) {
-				if (annotationValue.list_types.hasOwnProperty(i.toString())) {
-					listCloner(i, annotationValue);
+		if (Object.keys(listTypes).length > 0) {
+			for (var i = 2; i <= listTypes.length; i++) {
+				if (listTypes.hasOwnProperty(i.toString())) {
+					listCloner(i, listTypes);
 				}
 			}
-			if (annotationValue.list_types.hasOwnProperty("0")) {
-				listCloner(0, annotationValue);
+			if (listTypes.hasOwnProperty("0")) {
+				listCloner(0, listTypes);
 			}
 		}
 		//Retrieve the messages.
@@ -145,6 +145,14 @@ function completeChannels(response) {
 		promise.then(completeChannel, function (response) {failAlert('Failed to retrieve items.');}).done(colorizeTags);
 	}
 
+	function listCloner(index, listTypesObj) {
+		$("div#list_1").clone().attr("id","list_" + index).data("type",index).appendTo("div#bucketListHolder");
+		$("div#list_" + index + " span.mainTitle").html(listTypesObj[index.toString()].title);
+		if (listTypesObj[index.toString()].hasOwnProperty("subtitle")) {
+			$("div#list_" + index + " span.subTitle").html(listTypesObj[index.toString()].subtitle);
+		}
+	}
+
 	function processChannelList() {
 		//Put the channel list into the settings dropdown.
 		for (var ch in channelArray) {
@@ -153,14 +161,6 @@ function completeChannels(response) {
 				$("select#listSet").append(optionString);
 			}
 		} 
-	}
-
-	function listCloner(index, annoObj) {
-		$("div#list_1").clone().attr("id","list_" + index).data("type",index).appendTo("div#bucketListHolder");
-		$("div#list_" + index + " span.mainTitle").html(annoObj.list_types[index.toString()]);
-		if (annoObj.hasOwnProperty("list_subtitles") && annoObj.list_subtitles.hasOwnProperty(index.toString())) {
-			$("div#list_" + index + " span.subTitle").html(annoObj.list_subtitles[index.toString()]);
-		}
 	}
 }
 
@@ -190,9 +190,6 @@ function processChannelUsers(thisChannel,annotationValue) {
 		//For list switching.
 		$("form#settingsForm a.btn").show();
 	}
-	//List group data.
-	if ("list_group_name" in annotationValue)
-		$("input#listSet").val(annotationValue.list_group_name);
 }
 
 function completeUsers(response) {
@@ -260,7 +257,7 @@ function formatItem(respd) {
 	}
 
 	var itemDate = new Date(respd.created_at);
-	var formattedItem = "<a href='#' class='list-group-item' id='item_" + respd.id + "'>";
+	var formattedItem = "<a href='#' class='list-group-item' id='item_" + respd.id + "' data-creator='" + respd.user.id + "'>";
 	formattedItem += "<span class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + respd.user.username + "'>";
 	formattedItem += respd.html + "</span>";
 	formattedItem += "<button type='button' class='btn btn-default btn-xs pull-right' onclick='moveItem(" + respd.id + ")'>";
@@ -277,19 +274,19 @@ function formatItem(respd) {
 		});
 	});
 	//Store the item.
-	messageTextArray[respd.id] = respd.text;
+	//messageTextArray[respd.id] = respd.text;
 }
 
 function moveItem(itemId) {
 	//For now, only one movement path.
 	thisChannelType = $("#item_" + itemId).closest("div.bucketListDiv").data("type");
 	if (thisChannelType != "archive") {
-		//repost to archive
-		createItem(channelArray["archive"].channel, messageTextArray[itemId]);
+		//move to archive
+		//createItem(channelArray["archive"].channel, messageTextArray[itemId]);
 	}
-	//delete from current list - rewrite the ids so don't need an inverse lookup for this one.
-	var promise = $.appnet.message.destroy(channelArray[thisChannelType].channel,itemId);
-	promise.then(completeDelete,  function (response) {failAlert('Failed to delete item.');});
+	//move from current list.
+	//var promise = $.appnet.message.destroy(channelArray[thisChannelType].channel,itemId);
+	//promise.then(completeDelete,  function (response) {failAlert('Failed to delete item.');});
 
 }
 
@@ -300,7 +297,6 @@ function completeDelete(response) {
 function completeMove(response) {
 	
 }
-
 
 function onClickAdd(channelName) {
 	$("input[name=bucketBucket]").prop("checked", false);
