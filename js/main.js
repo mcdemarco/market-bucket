@@ -67,39 +67,49 @@ function getChannels() {
 function completeChannels(response) {
 	if (response.data.length > 0) {
 		for (var c = 0; c < response.data.length; c++) {
-			processChannel(response.data[c], (c==0));
+			var thisChannel = response.data[c];
+			//Not assuming we're the only annotation.
+			var annotationValue = {};
+			for (var a = 0; a < thisChannel.annotations.length; a++) {
+				if (thisChannel.annotations[a].type == api.annotation_type) {
+					annotationValue = thisChannel.annotations[a].value;
+				}
+			}
+			//Eject if no settings annotation.
+			if (!annotationValue) continue;
+			//Eject if user can't write to channel. (unlikely)
+			// ...
+
+			processChannel(response.data[c], annotationValue);
+
+			if (Object.keys(channelArray).length == 1) {
+				//This channel is first in the activity ordering and will be our default if one wasn't saved.
+				checkLocalStorageChannel(thisChannel.id);
+			}
+
+			//Fetch more data if this is the right channel.
+ 			if (api.currentChannel && api.currentChannel == thisChannel.id) {
+				displayChannel(thisChannel);
+			}
 		}
+
+		processChannelList();
+
 	} else {
 		//Ask before creating; the user may not want them.
 		//Or make a publically writeable sandbox channel set...
 		//createChannel();
 	}
 
-	function processChannel(thisChannel, first) {
-		var annotationValue = {};
-		//No longer assuming we're the only annotation.
-		for (var a = 0; a < thisChannel.annotations.length; a++) {
-			if (thisChannel.annotations[a].type == api.annotation_type) {
-				annotationValue = thisChannel.annotations[a].value;
-			}
-		}
-		//Eject if no settings annotation.
-		if (!annotationValue) return;
-		//Eject if user can't write to channel. (unlikely)
-		// ...
-
-		//Save data.
+	function processChannel(thisChannel, annotationValue) {
+		//Save data for every channel.
 		channelArray[thisChannel.id] = {"id" : thisChannel.id,
+										"name" : annotationValue["name"],
 										"owner" : thisChannel.owner.id,
 										"editors" : thisChannel.editors.user_ids,
 										"annotationValue" : annotationValue};
 		if (annotationValue.hasOwnProperty("list_types")) {
 			channelArray[thisChannel.id].listTypes = annotationValue.list_types;
-		}
-
-		//Fetch more data if this is the right channel.
- 		if ((!api.defaultChannel && first) || (api.defaultChannel && api.defaultChannel == thisChannel.id)) {
-			displayChannel(thisChannel);
 		}
 	}
 
@@ -126,6 +136,16 @@ function completeChannels(response) {
 		};
 		var promise = $.appnet.message.getChannel(thisChannel.id, args);
 		promise.then(completeChannel, function (response) {failAlert('Failed to retrieve items.');}).done(colorizeTags);
+	}
+
+	function processChannelList() {
+		//Put the channel list into the settings dropdown.
+		for (var ch in channelArray) {
+			if (channelArray.hasOwnProperty(ch)) {
+				var optionString = "<option id='channel_" + ch + "' value='" + ch + "'" + ((ch == api.currentChannel) ? " selected" : "") + ">" + channelArray[ch].name + "</option>";
+				$("select#listSet").append(optionString);
+			}
+		} 
 	}
 
 	function listCloner(index, annoObj) {
@@ -464,9 +484,6 @@ function checkLocalStorage() {
 			//Retrieve the access token.
 			try {api.accessToken = localStorage["accessToken"];} 
 			catch (e) {}
-			//Retrieve the user ID.
-			try {api.userId = localStorage["userId"];} 
-			catch (e) {}
 	} else {
 		api.accessToken = window.location.hash.split("access_token=")[1];
 		if (api.accessToken && localStorage) {
@@ -476,11 +493,32 @@ function checkLocalStorage() {
 	}
 }
 
+function checkLocalStorageChannel(defaultChannel) {
+	if (localStorage && localStorage["currentChannel"]) {
+			//Retrieve the current channel.
+			try {api.currentChannel = localStorage["currentChannel"];} 
+			catch (e) {}
+	} else {
+		api.currentChannel = defaultChannel;
+		if (api.currentChannel && localStorage) {
+			try {localStorage["currentChannel"] = api.currentChannel;}
+			catch (e) {}
+		}
+	}
+}
+
+function setLocalStorageChannel(newChannel) {
+	api.currentChannel = newChannel;
+	if (api.currentChannel && localStorage) {
+		//Set the new channel.
+		try {localStorage["currentChannel"] = api.currentChannel;}
+		catch (e) {}
+	}
+}
+
 function checkLocalStorageUser() {
 	if (localStorage && localStorage["userId"]) {
-			try {api.userId = localStorage["userId"];
-				// api.defaultChannel = localStorage["defaultChannel"];
-				} 
+			try {api.userId = localStorage["userId"];} 
 			catch (e) {}
 	} else {
 		var promise = $.appnet.user.get("me");
@@ -490,9 +528,7 @@ function checkLocalStorageUser() {
 	function setLocalStorageUser(response) {
 		api.userId = response.data.id;
 		if (api.userId && localStorage) {
-			try {localStorage["userId"] = api.userId;
-				// localStorage["defaultChannel"] = api.defaultChannel;
-				} 
+			try {localStorage["userId"] = api.userId;} 
 			catch (e) {}
 		}
 	}
@@ -570,6 +606,12 @@ function updateChannels() {//manual channel repair for dev.
 
 	function completeUpdateChannels(response) {
 		//
+
+	/* Type refactoring.
+	$.appnet.channel.update(55870,{annotations:  [{ type: api.annotation_type, value: {'name': 'Kitchen Aids'}}]});
+	$.appnet.channel.update(55871,{annotations:  [{ type: api.annotation_type, value: {'name': 'Shared Grocery List', 'list_types': {0: 'archive', 1: 'now', 2: 'later'}}}]});
+	$.appnet.channel.update(55872,{annotations:  [{ type: api.annotation_type, value: {'name': 'Online Shopping List'}}]});
+	 */
 	}
 }
 

@@ -249,9 +249,7 @@
 	<div class="form-group"><!--always on -->
 	  <div class="col-xs-4 col-md-5 text-right"><label class="control-label" for="listSet">List groups:</label></div>
 	  <div class="col-xs-4 col-md-2">
-	    <select class="form-control" id="listSet">
-	      <option id="default" value="">(default set)</option>
-	    </select>
+	    <select class="form-control" id="listSet" onchange="setLocalStorageChannel($(this).val());"></select>
 	  </div>
 	  <div class="col-xs-4 col-md-5 text-left">
 	    <a class="btn btn-default btn-sm listOwner" href="#" onclick="$('#memberControl').toggle(); return false;" title="Add members"><i class="fa fa-group"></i></a>
