@@ -127,8 +127,9 @@ function completeChannels(response) {
 		processChannelUsers(thisChannel);
 
 		//Make more list holders for sublists.
-		if (Object.keys(listTypes).length > 0) {
-			for (var i = 2; i <= listTypes.length; i++) {
+		var len = Object.keys(listTypes).length;
+		if (len > 0) {
+			for (var i = 2; i <= len; i++) {
 				if (listTypes.hasOwnProperty(i.toString())) {
 					listCloner(i, listTypes);
 				}
@@ -136,7 +137,10 @@ function completeChannels(response) {
 			if (listTypes.hasOwnProperty("0")) {
 				listCloner(0, listTypes);
 			}
+			//Need to retitle the main list.
+			listNamer(1, listTypes);
 		}
+
 		//Retrieve the messages.
 		var args = {
 			include_deleted: 0
@@ -147,6 +151,10 @@ function completeChannels(response) {
 
 	function listCloner(index, listTypesObj) {
 		$("div#list_1").clone().attr("id","list_" + index).data("type",index).appendTo("div#bucketListHolder");
+		listNamer(index, listTypesObj);
+	}
+	
+	function listNamer(index, listTypesObj) {
 		$("div#list_" + index + " span.mainTitle").html(listTypesObj[index.toString()].title);
 		if (listTypesObj[index.toString()].hasOwnProperty("subtitle")) {
 			$("div#list_" + index + " span.subTitle").html(listTypesObj[index.toString()].subtitle);
@@ -613,11 +621,14 @@ function updateChannels() {//manual channel repair for dev.
 
 	/* Type refactoring.
 	$.appnet.channel.update(55870,{annotations:  [{ type: api.annotation_type, value: {'name': 'Kitchen Aids'}}]});
-	$.appnet.channel.update(55871,{annotations:  [{ type: api.annotation_type, value: {'name': 'Shared Grocery List', 'list_types': {0: {'title': 'archive', 'subtitle':'The Deep Freeze'}, 1: {'title':'now', 'subtitle':'Urgent Items'}, 2: {'title':'later'}}}},{ type: api.message_annotation_type, value: {'lists': {0:['4804034']}}} ]});
+	$.appnet.channel.update(55871,{annotations:  [{ type: api.annotation_type, value: {'name': 'Shared Grocery List', 'list_types': {0: {'title': 'archive', 'subtitle':'The Deep Freeze'}, 1: {'title':'now', 'subtitle':'Urgent Items'}, 2: {'title':'later'}}}},{ type: api.message_annotation_type, value: {'lists': {0:['4804034'], 2:[4860095,4807241,4804056]}}} ]});
 	$.appnet.channel.update(55872,{annotations:  [{ type: api.annotation_type, value: {'name': 'Online Shopping List'}}]});
 	 */
-
+	/* update just the lists lists
+	$.appnet.channel.update(55871,{annotations:  [{ type: api.message_annotation_type, value: {'lists': {0:['4804034'], 2:['4860095','4807241','4804056']}}} ]});
 	}
+	 */
+
 }
 
 
