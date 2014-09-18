@@ -125,7 +125,7 @@ function completeChannels(response) {
 		//Users in settings panel.
 		var listTypes = (channelArray[thisChannel.id].listTypes ? channelArray[thisChannel.id].listTypes : {});
 		processChannelUsers(thisChannel);
-		debugger;
+
 		//Make more list holders for sublists.
 		if (Object.keys(listTypes).length > 0) {
 			for (var i = 2; i <= listTypes.length; i++) {
@@ -178,9 +178,9 @@ function processChannelUsers(thisChannel,annotationValue) {
 	//Owner not included in the editors list, so add separately.
 	displayUserResult(thisChannel.owner, "owner");
 	//User data.
-	if (thisChannel.writers.user_ids.length > 0) {
+	if (thisChannel.editors.user_ids.length > 0) {
 		//Retrieve the user data.
-		var promise = $.appnet.user.getList(thisChannel.writers.user_ids);
+		var promise = $.appnet.user.getList(thisChannel.editors.user_ids);
 		promise.then(completeUsers, function (response) {failAlert('Failed to retrieve users.');});
 	}
 	//Ownership hath its privileges.
@@ -400,19 +400,16 @@ function addSetting(that) {
 /* user functions */
 
 function addUser(userId) {
-	for (var key in channelArray) {
-		if (channelArray.hasOwnProperty(key)) {
-			addUserToChannel(userId,channelArray[key]);
-		}
-	}
+
+	addUserToChannel(userId,channelArray[api.currentChannel]);
 
 	function addUserToChannel(userId, channelInfo) {
-		var newUsers = channelInfo.writers.slice();
+		var newUsers = channelInfo.editors.slice();
 		newUsers.push(userId);
 		var userArgs = {
-			writers: {user_ids: newUsers} 
+			editors: {user_ids: newUsers} 
 		};
-		var promise = $.appnet.channel.update(channelInfo.channel,userArgs);
+		var promise = $.appnet.channel.update(api.currentChannel,userArgs);
 		promise.then(completeAddUser, function (response) {failAlert('Addition of member failed.');});
 	}
 	var userRow = $("div#searchResults div#userRow_search_" + userId).detach();
@@ -422,7 +419,7 @@ function addUser(userId) {
 
 function completeAddUser(response) {
 	//Update the channel.
-	channelArray[reverseChannelArray[response.data.id]].writers = response.data.writers.user_ids;
+	channelArray[reverseChannelArray[response.data.id]].editors = response.data.editors.user_ids;
 }
 
 function removeUser(userId) {
@@ -434,13 +431,13 @@ function removeUser(userId) {
 	$("div#userRow_" + userId).remove();
 
 	function removeUserFromChannel(userId, channelInfo) {
-		var newUsers = channelInfo.writers.slice();
+		var newUsers = channelInfo.editors.slice();
 		//ADN's version of the array is of strings.
 		var index = newUsers.indexOf(userId.toString());
 		if (index > -1) {
 			newUsers.splice(index, 1);
 			var userArgs = {
-				writers: {user_ids: newUsers} 
+				editors: {user_ids: newUsers} 
 			};
 			var promise = $.appnet.channel.update(channelInfo.channel,userArgs);
 			promise.then(completeRemoveUser, function (response) {failAlert('Removal of member failed.');});
@@ -450,7 +447,7 @@ function removeUser(userId) {
 
 function completeRemoveUser(response) {
 	//Only update the channel.
-	channelArray[reverseChannelArray[response.data.id]].writers = response.data.writers.user_ids;
+	channelArray[reverseChannelArray[response.data.id]].editors = response.data.editors.user_ids;
 }
 
 function searchUsers() {
