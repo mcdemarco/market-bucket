@@ -70,9 +70,13 @@ function completeChannels(response) {
 			var thisChannel = response.data[c];
 			//Not assuming we're the only annotation.
 			var annotationValue = {};
+			var annotationValue2 = {};
 			for (var a = 0; a < thisChannel.annotations.length; a++) {
 				if (thisChannel.annotations[a].type == api.annotation_type) {
 					annotationValue = thisChannel.annotations[a].value;
+				}
+				if (thisChannel.annotations[a].type == api.message_annotation_type) {
+					annotationValue2 = thisChannel.annotations[a].value;
 				}
 			}
 			//Eject if no settings annotation.
@@ -80,7 +84,7 @@ function completeChannels(response) {
 			//Eject if user can't write to channel. (unlikely)
 			// ...
 
-			processChannel(response.data[c], annotationValue);
+			processChannel(response.data[c], annotationValue, annotationValue2);
 
 			if (Object.keys(channelArray).length == 1) {
 				//This channel is first in the activity ordering and will be our default if one wasn't saved.
@@ -101,7 +105,7 @@ function completeChannels(response) {
 		//createChannel();
 	}
 
-	function processChannel(thisChannel, annotationValue) {
+	function processChannel(thisChannel, annotationValue, messageAnnotationValue) {
 		//Save data for every channel.
 		channelArray[thisChannel.id] = {"id" : thisChannel.id,
 										"name" : annotationValue["name"],
@@ -110,6 +114,10 @@ function completeChannels(response) {
 										"annotationValue" : annotationValue};
 		if (annotationValue.hasOwnProperty("list_types")) {
 			channelArray[thisChannel.id].listTypes = annotationValue.list_types;
+			channelArray[thisChannel.id].lists = messageAnnotationValue.lists;
+		}
+		if (messageAnnotationValue.hasOwnProperty("deletion_queue")) {
+			channelArray[thisChannel.id].deletionQueue = messageAnnotationValue.deletion_queue;
 		}
 	}
 
@@ -131,8 +139,7 @@ function completeChannels(response) {
 		}
 		//Retrieve the messages.
 		var args = {
-			include_deleted: 0,
-			include_annotations: 1
+			include_deleted: 0
 		};
 		var promise = $.appnet.message.getChannel(thisChannel.id, args);
 		promise.then(completeChannel, function (response) {failAlert('Failed to retrieve items.');}).done(colorizeTags);
@@ -233,27 +240,34 @@ function completeItem(response) {
 	forceScroll("#sectionLists");
 }
 
-function formatItem(item) {
-	var listType, listTypes;
-	//Check for sublist annotations IF the list has official sublists.
-	if (channelArray[item.channel_id].hasOwnProperty("listTypes")) {
-		listTypes = channelArray[item.channel_id].listTypes;
-		for (var am = 0; am < item.annotations.length; am++) {
-			if (item.annotations[am].type == api.message_annotation_type) {
-				listType = item.annotations[am].list_type;
+function formatItem(respd) {
+	//Mock deletion check.
+	if (channelArray[respd.channel_id].hasOwnProperty("deletionQueue") && respd.id in channelArray[respd.channel_id].deletionQueue) {
+		//Delete if creator and
+		return;
+	}
+	//Default (sub)list.
+	var listType = 1;
+	//Check for alternate sublist IF the list has official sublists.
+	if (channelArray[respd.channel_id].hasOwnProperty("listTypes")) {
+		for (key in channelArray[respd.channel_id].listTypes) {
+			if (channelArray[respd.channel_id].listTypes.hasOwnProperty(key) && 
+				channelArray[respd.channel_id].lists.hasOwnProperty(key) &&
+				channelArray[respd.channel_id].lists[key].indexOf(respd.id) > -1) {
+				listType = key;
 			}
 		}
 	}
 
-	var itemDate = new Date(item.created_at);
-	var formattedItem = "<a href='#' class='list-group-item' id='item_" + item.id + "'>";
-	formattedItem += "<span class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + item.user.username + "'>";
-	formattedItem += item.html + "</span>";
-	formattedItem += "<button type='button' class='btn btn-default btn-xs pull-right' onclick='moveItem(" + item.id + ")'>";
-	formattedItem += ((listType && listType == "0") ?  "<i class='fa fa-times'></i>" : "<i class='fa fa-check'></i>") + "</button></a>";
-	$("#list_" + (listType ? listType : "1") + " div.list-group").append(formattedItem);
+	var itemDate = new Date(respd.created_at);
+	var formattedItem = "<a href='#' class='list-group-item' id='item_" + respd.id + "'>";
+	formattedItem += "<span class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + respd.user.username + "'>";
+	formattedItem += respd.html + "</span>";
+	formattedItem += "<button type='button' class='btn btn-default btn-xs pull-right' onclick='moveItem(" + respd.id + ")'>";
+	formattedItem += ((listType == "0") ?  "<i class='fa fa-times'></i>" : "<i class='fa fa-check'></i>") + "</button></a>";
+	$("#list_" + listType + " div.list-group").append(formattedItem);
 	//Pre-format the hashtags.
-	$("#item_" + item.id + " span[itemprop='hashtag']").each(function(index) {
+	$("#item_" + respd.id + " span[itemprop='hashtag']").each(function(index) {
 		if (!$(this).hasClass("tag")) {
 			$(this).addClass("tag").css("padding","1px 3px").css("border-radius","3px");
 		}
@@ -263,7 +277,7 @@ function formatItem(item) {
 		});
 	});
 	//Store the item.
-	messageTextArray[item.id] = item.text;
+	messageTextArray[respd.id] = respd.text;
 }
 
 function moveItem(itemId) {
@@ -609,9 +623,10 @@ function updateChannels() {//manual channel repair for dev.
 
 	/* Type refactoring.
 	$.appnet.channel.update(55870,{annotations:  [{ type: api.annotation_type, value: {'name': 'Kitchen Aids'}}]});
-	$.appnet.channel.update(55871,{annotations:  [{ type: api.annotation_type, value: {'name': 'Shared Grocery List', 'list_types': {0: 'archive', 1: 'now', 2: 'later'}}}]});
+	$.appnet.channel.update(55871,{annotations:  [{ type: api.annotation_type, value: {'name': 'Shared Grocery List', 'list_types': {0: {'title': 'archive', 'subtitle':'The Deep Freeze'}, 1: {'title':'now', 'subtitle':'Urgent Items'}, 2: {'title':'later'}}}},{ type: api.message_annotation_type, value: {'lists': {0:['4804034']}}} ]});
 	$.appnet.channel.update(55872,{annotations:  [{ type: api.annotation_type, value: {'name': 'Online Shopping List'}}]});
 	 */
+
 	}
 }
 
