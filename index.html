@@ -197,8 +197,8 @@
               <a href="#" class="list-group-item active">
                 <h2 class="list-group-item-heading"><span class="mainTitle">Your list</span>
 		  <span class="pull-right">
-		    <span data-type="addButton" data-list="now"><i class="fa fa-plus"></i></span>
-		    <span data-type="settingsButton" data-list="now"><i class="fa fa-cog"></i></span>
+		    <span data-type="addButton" onclick="onClickAdd(this);"><i class="fa fa-plus"></i></span>
+		    <span data-type="settingsButton"><i class="fa fa-cog"></i></span>
 		  </span>
 		</h2>
                 <h6><span class="subTitle"></span></h6>
@@ -222,12 +222,17 @@
     <div class="row text-center">
       <div class="col-sm-8 col-sm-offset-2">
       <form role="form" id="bucketItemEntry">
-	<div class="form-group">
-	  <label class="checkbox-inline" for="now"><input type="checkbox" name="bucketBucket" id="now" checked="checked"/> Now</label>
-	  <label class="checkbox-inline" for="later"><input type="checkbox" name="bucketBucket" id="later" /> Later</label>
-	  <label class="checkbox-inline" for="archive"><input type="checkbox" name="bucketBucket" id="archive"/> Archive</label>
+	<div class="form-group" id="itemCheckboxes">
+	  <label class="checkbox-inline" for="addToList_1" style="display:none;"><input type="radio" name="bucketBucket" data-list="1" checked="checked"/> <span id="label_1">Now</span></label>
+	  <label class="checkbox-inline" for="addToList_2" style="display:none;"><input type="radio" name="bucketBucket" data-list="2" /> <span id="label_2">Later</label>
+	  <label class="checkbox-inline" for="addToList_3" style="display:none;"><input type="radio" name="bucketBucket" data-list="3" /> <span id="label_3">Other</label>
+	  <label class="checkbox-inline" for="addToList_0" style="display:none;"><input type="radio" name="bucketBucket" data-list="0"/> <span id="label_0">Archive</label>
 	  <label class="sr-only" for="item"></label>
+	</div>
+	<div class="form-group">
 	  <textarea type="text" class="form-control" rows="2" id="item"></textarea>
+	</div>
+	<div class="form-group">
 	  <div class="btn-group form-group">
 	    <button id="addButton" type="button" class="btn btn-custom" onclick="addItem();">Add Item(s)</button>
 	    <button id="clearButton" type="button" class="btn btn-default" onclick="clearForm();">Clear Form</button>

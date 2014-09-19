@@ -140,6 +140,10 @@ function completeChannels(response) {
 			//Need to retitle the main list.
 			listNamer(1, listTypes);
 		}
+		//Layout adjustment for the big screen.
+		$("div#list_1").removeClass("col-sm-offset-4");
+		if (len == 2) $("div#list_1").addClass("col-sm-offset-2");
+		if (len == 4) $("div#list_0").addClass("col-sm-offset-4");
 
 		//Retrieve the messages.
 		var args = {
@@ -150,12 +154,15 @@ function completeChannels(response) {
 	}
 
 	function listCloner(index, listTypesObj) {
-		$("div#list_1").clone().attr("id","list_" + index).data("type",index).appendTo("div#bucketListHolder");
+		$("div#list_1").clone().attr("id","list_" + index).data("type",index).appendTo("div#bucketListHolder").removeClass("col-sm-offset-4");
 		listNamer(index, listTypesObj);
 	}
 	
 	function listNamer(index, listTypesObj) {
 		$("div#list_" + index + " span.mainTitle").html(listTypesObj[index.toString()].title);
+		$("div#itemCheckboxes span#label_" + index).html(listTypesObj[index.toString()].title);
+		$("div#itemCheckboxes span#label_" + index).closest("label").show();
+
 		if (listTypesObj[index.toString()].hasOwnProperty("subtitle")) {
 			$("div#list_" + index + " span.subTitle").html(listTypesObj[index.toString()].subtitle);
 		}
@@ -211,14 +218,11 @@ function completeUsers(response) {
 function addItem() {
 	var message = $("textarea#item").val();
 	if (message == "") return;
-	if (!$("input[name=bucketBucket]").is(":checked")) {
+	if (channelArray[api.currentChannel].hasOwnProperty("listTypes") && !$("input[name=bucketBucket]").is(":checked")) {
 		alert("No list selected for item.");
 		return;
 	}
-	$("input[name=bucketBucket]").each(function (index) {
-		if ($(this).is(":checked"))
-			createItem(channelArray[$(this).prop("id")].channel, message);
-	});
+	createItem(api.currentChannel, message);
 }
 
 function clearForm() {
@@ -226,7 +230,7 @@ function clearForm() {
 }
 
 function createItem(channel,message) {
-	if (channel == 0) {
+	if (!channel || channel == 0) {
 		failAlert('Failed to create item.');
 		return;
 	}
@@ -239,22 +243,28 @@ function createItem(channel,message) {
 
 function completeItem(response) {
 	var respd = response.data;
-	formatItem(respd);
+
+	if (channelArray[api.currentChannel].hasOwnProperty("listTypes")) {
+		formatItem(respd,$("input[name=bucketBucket]:checked").data("list"));
+	} else {
+		formatItem(respd);
+	}
 	colorizeTags(respd.id);
 	clearForm();
 	forceScroll("#sectionLists");
+	//Update the sublists!
 }
 
-function formatItem(respd) {
+function formatItem(respd, sublist) {
 	//Mock deletion check.
 	if (channelArray[respd.channel_id].hasOwnProperty("deletionQueue") && respd.id in channelArray[respd.channel_id].deletionQueue) {
 		//Delete if creator and
 		return;
 	}
 	//Default (sub)list.
-	var listType = 1;
-	//Check for alternate sublist IF the list has official sublists.
-	if (channelArray[respd.channel_id].hasOwnProperty("listTypes")) {
+	var listType = (sublist ? sublist : 1);
+	//Check for alternate sublist IF the list has official sublists and it wasn't passed in.
+	if (!sublist && channelArray[respd.channel_id].hasOwnProperty("listTypes")) {
 		for (key in channelArray[respd.channel_id].listTypes) {
 			if (channelArray[respd.channel_id].listTypes.hasOwnProperty(key) && 
 				channelArray[respd.channel_id].lists.hasOwnProperty(key) &&
@@ -306,9 +316,9 @@ function completeMove(response) {
 	
 }
 
-function onClickAdd(channelName) {
-	$("input[name=bucketBucket]").prop("checked", false);
-	$("input#" + channelName).prop("checked", true);
+function onClickAdd(that) {
+	var listType = $(that).closest("div.bucketListDiv").data("type");
+	var theList = $("input:radio[name=bucketBucket][data-list=" + listType + "]").prop('checked', true);
 	//pushHistory(site + "#sectionAdd");
 	forceScroll("#sectionAdd");
 }
@@ -559,10 +569,10 @@ function forceScroll(hash) {
 }
 
 function initializeButtons() {
-	$("span[data-type=addButton]").click(function (event) {
+/*	$("span[data-type=addButton]").click(function (event) {
 		event.preventDefault();
-		onClickAdd($(this).data("list"));
-	});
+		onClickAdd($(this).closest("div.bucketListDiv").data("type"));
+	}); */
 	$("span[data-type=settingsButton]").click(function (event) {
 		event.preventDefault();
 		forceScroll("#sectionSettings");
@@ -618,6 +628,7 @@ function updateChannels() {//manual channel repair for dev.
 
 	function completeUpdateChannels(response) {
 		//
+	}
 
 	/* Type refactoring.
 	$.appnet.channel.update(55870,{annotations:  [{ type: api.annotation_type, value: {'name': 'Kitchen Aids'}}]});
@@ -626,7 +637,6 @@ function updateChannels() {//manual channel repair for dev.
 	 */
 	/* update just the lists lists
 	$.appnet.channel.update(55871,{annotations:  [{ type: api.message_annotation_type, value: {'lists': {0:['4804034'], 2:['4860095','4807241','4804056']}}} ]});
-	}
 	 */
 
 }

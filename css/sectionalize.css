@@ -132,8 +132,9 @@ div#memberControl,
 form#settingsForm div.listControl {
   display: none; }
 
+#sectionAdd h1,
 #sectionSettings h1 {
-  padding-bottom: 20px; }
+  padding-bottom: 30px; }
 
 /* custom button */
 .btn-custom {
