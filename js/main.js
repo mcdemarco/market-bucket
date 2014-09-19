@@ -215,18 +215,19 @@ function completeUsers(response) {
 
 /* item functions */
 
+function clearForm() {
+	$("textarea#item").val("");
+}
+
 function addItem() {
 	var message = $("textarea#item").val();
 	if (message == "") return;
 	if (channelArray[api.currentChannel].hasOwnProperty("listTypes") && !$("input[name=bucketBucket]").is(":checked")) {
+		//This shouldn't be reachable anymore...
 		alert("No list selected for item.");
 		return;
 	}
 	createItem(api.currentChannel, message);
-}
-
-function clearForm() {
-	$("textarea#item").val("");
 }
 
 function createItem(channel,message) {
@@ -245,14 +246,18 @@ function completeItem(response) {
 	var respd = response.data;
 
 	if (channelArray[api.currentChannel].hasOwnProperty("listTypes")) {
-		formatItem(respd,$("input[name=bucketBucket]:checked").data("list"));
+		var listType = $("input[name=bucketBucket]:checked").data("list");
+		formatItem(respd,listType);
+		if (listType != 1) {
+			//Update the sublists!
+			addToSublist(listType, respd.id);
+		}
 	} else {
 		formatItem(respd);
 	}
 	colorizeTags(respd.id);
 	clearForm();
 	forceScroll("#sectionLists");
-	//Update the sublists!
 }
 
 function formatItem(respd, sublist) {
@@ -321,6 +326,11 @@ function onClickAdd(that) {
 	var theList = $("input:radio[name=bucketBucket][data-list=" + listType + "]").prop('checked', true);
 	//pushHistory(site + "#sectionAdd");
 	forceScroll("#sectionAdd");
+}
+
+function addToSublist(listType, messageId) {
+	//channelArray[api.currentChannel].lists[listType].push(messageId);
+	//...
 }
 
 /* tag functions */
