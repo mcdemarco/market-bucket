@@ -250,7 +250,7 @@ function completeItem(response) {
 		formatItem(respd,listType);
 		if (listType != 1) {
 			//Update the sublists!
-			addToSublist(listType, respd.id);
+			updateSublistOnAdd(respd.id, listType);
 		}
 	} else {
 		formatItem(respd);
@@ -300,25 +300,75 @@ function formatItem(respd, sublist) {
 	//messageTextArray[respd.id] = respd.text;
 }
 
-function moveItem(itemId) {
-	//For now, only one movement path.
-	thisChannelType = $("#item_" + itemId).closest("div.bucketListDiv").data("type");
-	if (thisChannelType != "archive") {
-		//move to archive
-		//createItem(channelArray["archive"].channel, messageTextArray[itemId]);
+function moveItem(itemId, targetType) {
+	var sourceType = $("#item_" + itemId).closest("div.bucketListDiv").data("type");
+	var updatedLists = JSON.parse(JSON.stringify(channelArray[api.currentChannel].lists));
+	//Movement paths: from default to non-default, from non-default to non-default, from non-default to default.
+	if (sourceType != 1) {
+		//need to debit the source list.
+		var index = updatedLists[sourceType].indexOf(itemId.toString());
+		if (index > -1) updatedLists[sourceType].splice(index, 1);
 	}
-	//move from current list.
-	//var promise = $.appnet.message.destroy(channelArray[thisChannelType].channel,itemId);
-	//promise.then(completeDelete,  function (response) {failAlert('Failed to delete item.');});
+	if (targetType != 1) {
+		//need to credit the target list
+		updatedLists[targetType].push(itemId);
+	}
+	//Send to ADN.
+	updateLists(updatedLists);
+	//Move html.
+	$("#item_" + itemId).appendTo("div#list_" + targetType + " div.list-group");
+}	
 
+function updateLists(updatedLists) {
+	//Vacuous moves should be blocked before this point, so we just update the lists.
+	var moveArgs = {
+		include_annotations: 1,
+		annotations:  [{
+			type: api.message_annotation_type,
+			value: {'lists': updatedLists}
+		}]
+	};
+	if (channelArray[api.currentChannel].hasOwnProperty("deletionQueue")) {
+		moveArgs = {
+			include_annotations: 1,
+			annotations:  [{
+				type: api.message_annotation_type,
+				value: {'lists': updatedLists,
+						'deletion_queue': channelArray[api.currentChannel].deletionQueue}
+			}]
+		};
+	}
+	var promise = $.appnet.channel.update(api.currentChannel, moveArgs);
+	promise.then(completeUpdateLists,  function (response) {failAlert('Failed to move item.');});
+}
+
+function completeUpdateLists(response) {debugger;
+	//Update the channelArray.
+	var thisChannel = response.data;
+	for (var a = 0; a < thisChannel.annotations.length; a++) {
+		if (thisChannel.annotations[a].type == api.message_annotation_type) {
+			var annotationValue = thisChannel.annotations[a].value;
+		}
+	}
+	if (annotationValue) {
+		channelArray[api.currentChannel].lists = annotationValue.lists;
+		if (annotationValue.deletion_queue) 
+			channelArray[api.currentChannel].deletionQueue = annotationValue.deletion_queue;
+	}
+}
+
+function deleteItem(itemId) {
+	//Check for ownership and delete if owned or add to queue if not.
+
+	var promise = $.appnet.message.destroy(channelArray[thisChannelType].channel,itemId);
+	promise.then(completeDelete,  function (response) {failAlert('Failed to delete item.');});
 }
 
 function completeDelete(response) {
+	//Remove HTML item.
 	$("a#item_" + response.data.id).remove();
-}
-
-function completeMove(response) {
-	
+	//Update deletion list.
+	//...
 }
 
 function onClickAdd(that) {
@@ -328,9 +378,11 @@ function onClickAdd(that) {
 	forceScroll("#sectionAdd");
 }
 
-function addToSublist(listType, messageId) {
-	//channelArray[api.currentChannel].lists[listType].push(messageId);
-	//...
+function updateSublistOnAdd(messageId, listType) {
+	//Called on creation after formatting, so the html is already located in the right spot. Just update the channel.
+	var updatedLists = JSON.parse(JSON.stringify(channelArray[api.currentChannel].lists));
+	updatedLists[listType].push(messageId);
+	updateLists(updatedLists);
 }
 
 /* tag functions */
@@ -448,11 +500,7 @@ function completeAddUser(response) {
 }
 
 function removeUser(userId) {
-	for (var key in channelArray) {
-		if (channelArray.hasOwnProperty(key)) {
-			removeUserFromChannel(userId,channelArray[key]);
-		}
-	}
+	removeUserFromChannel(userId,api.currentChannel);
 	$("div#userRow_" + userId).remove();
 
 	function removeUserFromChannel(userId, channelInfo) {
