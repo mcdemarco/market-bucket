@@ -3,9 +3,11 @@
 //To force authorization: https://account.app.net/oauth/authorize etc.
 var authUrl = "https://account.app.net/oauth/authenticate?client_id=" + api['client_id'] + "&response_type=token&redirect_uri=" + encodeURIComponent(site) + "&scope=messages:" + api.channel_type;
 
+var updateArgs = {include_annotations: 1};
+
 var channelArray = {};
 var tagArray = [];
-//var messageTextArray = {};
+var messageTextArray = {};
 
 /* main execution path */
 
@@ -283,8 +285,8 @@ function formatItem(respd, sublist) {
 	var formattedItem = "<a href='#' class='list-group-item' id='item_" + respd.id + "' data-creator='" + respd.user.id + "'>";
 	formattedItem += "<span class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + respd.user.username + "'>";
 	formattedItem += respd.html + "</span>";
-	formattedItem += "<button type='button' class='btn btn-default btn-xs pull-right' onclick='moveItem(" + respd.id + ")'>";
-	formattedItem += ((listType == "0") ?  "<i class='fa fa-times'></i>" : "<i class='fa fa-check'></i>") + "</button></a>";
+	formattedItem += "<button type='button' class='btn btn-default btn-xs pull-right' ";
+	formattedItem += ((listType == "0") ?  "onclick='deleteItem(" + respd.id + ");'><i class='fa fa-times'></i>" : "onclick='moveItem(" + respd.id + ",0)'><i class='fa fa-check'></i>") + "</button></a>";
 	$("#list_" + listType + " div.list-group").append(formattedItem);
 	//Pre-format the hashtags.
 	$("#item_" + respd.id + " span[itemprop='hashtag']").each(function(index) {
@@ -297,7 +299,7 @@ function formatItem(respd, sublist) {
 		});
 	});
 	//Store the item.
-	//messageTextArray[respd.id] = respd.text;
+	messageTextArray[respd.id] = respd.text;
 }
 
 function moveItem(itemId, targetType) {
@@ -311,26 +313,27 @@ function moveItem(itemId, targetType) {
 	}
 	if (targetType != 1) {
 		//need to credit the target list
-		updatedLists[targetType].push(itemId);
+		updatedLists[targetType].push(itemId.toString());
 	}
 	//Send to ADN.
 	updateLists(updatedLists);
 	//Move html.
 	$("#item_" + itemId).appendTo("div#list_" + targetType + " div.list-group");
+	if (targetType == 0 || sourceType == 0) {
+		//need to edit the buttons
+	}
 }	
 
 function updateLists(updatedLists) {
 	//Vacuous moves should be blocked before this point, so we just update the lists.
-	var moveArgs = {
-		include_annotations: 1,
+	var channelUpdates = {
 		annotations:  [{
 			type: api.message_annotation_type,
 			value: {'lists': updatedLists}
 		}]
 	};
 	if (channelArray[api.currentChannel].hasOwnProperty("deletionQueue")) {
-		moveArgs = {
-			include_annotations: 1,
+		channelUpdates = {
 			annotations:  [{
 				type: api.message_annotation_type,
 				value: {'lists': updatedLists,
@@ -338,12 +341,12 @@ function updateLists(updatedLists) {
 			}]
 		};
 	}
-	var promise = $.appnet.channel.update(api.currentChannel, moveArgs);
+									
+	var promise = $.appnet.channel.update(api.currentChannel, channelUpdates, updateArgs);
 	promise.then(completeUpdateLists,  function (response) {failAlert('Failed to move item.');});
 }
 
-function completeUpdateLists(response) {debugger;
-	//Update the channelArray.
+function completeUpdateLists(response) {
 	var thisChannel = response.data;
 	for (var a = 0; a < thisChannel.annotations.length; a++) {
 		if (thisChannel.annotations[a].type == api.message_annotation_type) {
@@ -359,16 +362,54 @@ function completeUpdateLists(response) {debugger;
 
 function deleteItem(itemId) {
 	//Check for ownership and delete if owned or add to queue if not.
-
-	var promise = $.appnet.message.destroy(channelArray[thisChannelType].channel,itemId);
-	promise.then(completeDelete,  function (response) {failAlert('Failed to delete item.');});
+	if ($("#item_" + itemId).data("creator") == api.userId) {
+		//Creator can delete for reals
+		var promise = $.appnet.message.destroy(channelArray[thisChannelType].channel,itemId);
+		promise.then(completeDelete,  function (response) {failAlert('Failed to delete item.');});
+	} else {
+		//Add to deleted queue
+		var updatedQueue = [];
+		if (channelArray[thisChannel.id].hasOwnProperty("deletionQueue")) {
+			updatedQueue = channelArray[thisChannel.id].deletionQueue.slice();
+		}
+		updatedQueue.push(itemId);
+		var channelUpdates = {
+			include_annotations: 1,
+			annotations:  [{
+				type: api.message_annotation_type,
+				value: {'deletion_queue': updatedQueue}
+			}]
+		};
+		if (channelArray[api.currentChannel].hasOwnProperty("lists")) {
+			channelUpdates = {
+				include_annotations: 1,
+				annotations:  [{
+					type: api.message_annotation_type,
+					value: {'lists': channelArray[api.currentChannel].lists,
+							'deletion_queue': updatedQueue}
+				}]
+			};
+		}
+		var promise = $.appnet.channel.update(api.currentChannel, channelUpdates, updateArgs);
+		promise.then(completeUpdateLists,  function (response) {failAlert('Failed to remove item.');});
+	}
 }
 
 function completeDelete(response) {
 	//Remove HTML item.
 	$("a#item_" + response.data.id).remove();
 	//Update deletion list.
-	//...
+	var thisChannel = response.data;
+	for (var a = 0; a < thisChannel.annotations.length; a++) {
+		if (thisChannel.annotations[a].type == api.message_annotation_type) {
+			var annotationValue = thisChannel.annotations[a].value;
+		}
+	}
+	if (annotationValue) {
+		channelArray[api.currentChannel].deletionQueue = annotationValue.deletion_queue;
+		if (annotationValue.lists) 
+			channelArray[api.currentChannel].lists = annotationValue.lists;
+	}
 }
 
 function onClickAdd(that) {
@@ -483,10 +524,10 @@ function addUser(userId) {
 
 	var newUsers = channelArray[api.currentChannel].editors.slice();
 	newUsers.push(userId);
-	var userArgs = {
+	var userUpdates = {
 		editors: {user_ids: newUsers} 
 	};
-	var promise = $.appnet.channel.update(api.currentChannel,userArgs);
+	var promise = $.appnet.channel.update(api.currentChannel,userUpdates);
 	promise.then(completeAddUser, function (response) {failAlert('Addition of member failed.');});
 
 	var userRow = $("div#searchResults div#userRow_search_" + userId).detach();
@@ -509,10 +550,10 @@ function removeUser(userId) {
 		var index = newUsers.indexOf(userId.toString());
 		if (index > -1) {
 			newUsers.splice(index, 1);
-			var userArgs = {
+			var userUpdates = {
 				editors: {user_ids: newUsers} 
 			};
-			var promise = $.appnet.channel.update(channelInfo.channel,userArgs);
+			var promise = $.appnet.channel.update(channelInfo.channel,userUpdates);
 			promise.then(completeRemoveUser, function (response) {failAlert('Removal of member failed.');});
 		}
 	}
