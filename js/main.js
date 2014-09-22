@@ -282,11 +282,11 @@ function formatItem(respd, sublist) {
 	}
 
 	var itemDate = new Date(respd.created_at);
-	var formattedItem = "<a href='#' class='list-group-item' id='item_" + respd.id + "' data-creator='" + respd.user.id + "'>";
+	var formattedItem = "<a href='#' class='list-group-item clearfix' id='item_" + respd.id + "' data-creator='" + respd.user.id + "'>";
 	formattedItem += "<span class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + respd.user.username + "'>";
 	formattedItem += respd.html + "</span>";
-	formattedItem += "<button type='button' class='btn btn-default btn-xs pull-right' ";
-	formattedItem += ((listType == "0") ?  "onclick='deleteItem(" + respd.id + ");'><i class='fa fa-times'></i>" : "onclick='moveItem(" + respd.id + ",0)'><i class='fa fa-check'></i>") + "</button></a>";
+	formattedItem += "<span class='pull-right'><button type='button' class='btn btn-default btn-xs' ";
+	formattedItem += ((listType == "0") ?  "onclick='deleteItem(" + respd.id + ");'><i class='fa fa-times'></i>" : "onclick='moveItem(" + respd.id + ",0)'><i class='fa fa-check'></i>") + "</button></span></a>";
 	$("#list_" + listType + " div.list-group").append(formattedItem);
 	//Pre-format the hashtags.
 	$("#item_" + respd.id + " span[itemprop='hashtag']").each(function(index) {
