@@ -222,14 +222,15 @@ function clearForm() {
 }
 
 function addItem() {
+	var channelId = api.currentChannel;
 	var message = $("textarea#item").val();
 	if (message == "") return;
-	if (channelArray[api.currentChannel].hasOwnProperty("listTypes") && !$("input[name=bucketBucket]").is(":checked")) {
+	if (channelArray[channelId].hasOwnProperty("listTypes") && !$("input[name=bucketBucket]").is(":checked")) {
 		//This shouldn't be reachable anymore...
 		alert("No list selected for item.");
 		return;
 	}
-	createItem(api.currentChannel, message);
+	createItem(channelId, message);
 }
 
 function createItem(channel,message) {
@@ -247,12 +248,12 @@ function createItem(channel,message) {
 function completeItem(response) {
 	var respd = response.data;
 
-	if (channelArray[api.currentChannel].hasOwnProperty("listTypes")) {
+	if (channelArray[response.data.channel_id].hasOwnProperty("listTypes")) {
 		var listType = $("input[name=bucketBucket]:checked").data("list");
 		formatItem(respd,listType);
 		if (listType != 1) {
 			//Update the sublists!
-			updateSublistOnAdd(respd.id, listType);
+			updateSublistOnAdd(respd.channel_id,respd.id, listType);
 		}
 	} else {
 		formatItem(respd);
@@ -264,8 +265,11 @@ function completeItem(response) {
 
 function formatItem(respd, sublist) {
 	//Mock deletion check.
-	if (channelArray[respd.channel_id].hasOwnProperty("deletionQueue") && respd.id in channelArray[respd.channel_id].deletionQueue) {
-		//Delete if creator and
+	if (respd.user.id == api.userId && channelArray[respd.channel_id].hasOwnProperty("deletionQueue") && channelArray[respd.channel_id].deletionQueue.indexOf(respd.id) > -1) {
+		//Delete if creator and remove from queue.
+		var promise = $.appnet.message.destroy(api.currentChannel,respd.user.id);
+		promise.then(completeAutoDelete,  function (response) {failAlert('Failed to delete queued item.');});
+
 		return;
 	}
 	//Default (sub)list.
@@ -303,8 +307,9 @@ function formatItem(respd, sublist) {
 }
 
 function moveItem(itemId, targetType) {
+	var currentChannel = api.currentChannel;
 	var sourceType = $("#item_" + itemId).closest("div.bucketListDiv").data("type");
-	var updatedLists = JSON.parse(JSON.stringify(channelArray[api.currentChannel].lists));
+	var updatedLists = JSON.parse(JSON.stringify(channelArray[currentChannel].lists));
 	//Movement paths: from default to non-default, from non-default to non-default, from non-default to default.
 	if (sourceType != 1) {
 		//need to debit the source list.
@@ -316,7 +321,7 @@ function moveItem(itemId, targetType) {
 		updatedLists[targetType].push(itemId.toString());
 	}
 	//Send to ADN.
-	updateLists(updatedLists);
+	updateLists(currentChannel,updatedLists);
 	//Move html.
 	$("#item_" + itemId).appendTo("div#list_" + targetType + " div.list-group");
 	if (targetType == 0 || sourceType == 0) {
@@ -324,7 +329,7 @@ function moveItem(itemId, targetType) {
 	}
 }	
 
-function updateLists(updatedLists) {
+function updateLists(channelId,updatedLists) {
 	//Vacuous moves should be blocked before this point, so we just update the lists.
 	var channelUpdates = {
 		annotations:  [{
@@ -332,21 +337,21 @@ function updateLists(updatedLists) {
 			value: {'lists': updatedLists}
 		}]
 	};
-	if (channelArray[api.currentChannel].hasOwnProperty("deletionQueue")) {
+	if (channelArray[channelId].hasOwnProperty("deletionQueue")) {
 		channelUpdates = {
 			annotations:  [{
 				type: api.message_annotation_type,
 				value: {'lists': updatedLists,
-						'deletion_queue': channelArray[api.currentChannel].deletionQueue}
+						'deletion_queue': channelArray[channelId].deletionQueue}
 			}]
 		};
-	}
-									
-	var promise = $.appnet.channel.update(api.currentChannel, channelUpdates, updateArgs);
+	}									
+	var promise = $.appnet.channel.update(channelId, channelUpdates, updateArgs);
 	promise.then(completeUpdateLists,  function (response) {failAlert('Failed to move item.');});
 }
 
 function completeUpdateLists(response) {
+	//Used for all channel sublist updates.
 	var thisChannel = response.data;
 	for (var a = 0; a < thisChannel.annotations.length; a++) {
 		if (thisChannel.annotations[a].type == api.message_annotation_type) {
@@ -354,23 +359,25 @@ function completeUpdateLists(response) {
 		}
 	}
 	if (annotationValue) {
-		channelArray[api.currentChannel].lists = annotationValue.lists;
+		if (annotationValue.lists)
+			channelArray[thisChannel.channel_id].lists = annotationValue.lists;
 		if (annotationValue.deletion_queue) 
-			channelArray[api.currentChannel].deletionQueue = annotationValue.deletion_queue;
+			channelArray[thisChannel.channel_id].deletionQueue = annotationValue.deletion_queue;
 	}
 }
 
 function deleteItem(itemId) {
-	//Check for ownership and delete if owned or add to queue if not.
+	//On active delete, check for ownership and delete if owned or add to queue if not.
+	var currentChannel = api.currentChannel;
 	if ($("#item_" + itemId).data("creator") == api.userId) {
 		//Creator can delete for reals
-		var promise = $.appnet.message.destroy(channelArray[thisChannelType].channel,itemId);
+		var promise = $.appnet.message.destroy(currentChannel,itemId);
 		promise.then(completeDelete,  function (response) {failAlert('Failed to delete item.');});
 	} else {
 		//Add to deleted queue
 		var updatedQueue = [];
-		if (channelArray[thisChannel.id].hasOwnProperty("deletionQueue")) {
-			updatedQueue = channelArray[thisChannel.id].deletionQueue.slice();
+		if (channelArray[currentChannel].hasOwnProperty("deletionQueue")) {
+			updatedQueue = channelArray[currentChannel].deletionQueue.slice();
 		}
 		updatedQueue.push(itemId);
 		var channelUpdates = {
@@ -380,25 +387,53 @@ function deleteItem(itemId) {
 				value: {'deletion_queue': updatedQueue}
 			}]
 		};
-		if (channelArray[api.currentChannel].hasOwnProperty("lists")) {
+		if (channelArray[currentChannel].hasOwnProperty("lists")) {
 			channelUpdates = {
 				include_annotations: 1,
 				annotations:  [{
 					type: api.message_annotation_type,
-					value: {'lists': channelArray[api.currentChannel].lists,
+					value: {'lists': channelArray[currentChannel].lists,
 							'deletion_queue': updatedQueue}
 				}]
 			};
 		}
-		var promise = $.appnet.channel.update(api.currentChannel, channelUpdates, updateArgs);
+		var promise = $.appnet.channel.update(currentChannel, channelUpdates, updateArgs);
 		promise.then(completeUpdateLists,  function (response) {failAlert('Failed to remove item.');});
 	}
+}
+
+function completeAutoDelete(response) {
+	//Clean up the deletion queue, which we know existed.
+	var updatedQueue = channelArray[response.data.channel_id].deletionQueue.slice();
+	var index = updatedQueue.indexOf(response.data.id);
+	if (index > -1) updatedQueue.splice(index, 1);
+
+	var channelUpdates = {
+		include_annotations: 1,
+		annotations:  [{
+			type: api.message_annotation_type,
+			value: {'deletion_queue': updatedQueue}
+		}]
+	};
+	if (channelArray[response.data.channel_id].hasOwnProperty("lists")) {
+		channelUpdates = {
+			include_annotations: 1,
+			annotations:  [{
+				type: api.message_annotation_type,
+				value: {'lists': channelArray[response.data.channel_id].lists,
+						'deletion_queue': updatedQueue}
+			}]
+		};
+	}
+	var promise = $.appnet.channel.update(api.currentChannel, channelUpdates, updateArgs);
+	promise.then(completeUpdateLists,  function (response) {failAlert('Failed to remove item.');});
 }
 
 function completeDelete(response) {
 	//Remove HTML item.
 	$("a#item_" + response.data.id).remove();
-	//Update deletion list.
+	//Clean up sublists.
+	/*
 	var thisChannel = response.data;
 	for (var a = 0; a < thisChannel.annotations.length; a++) {
 		if (thisChannel.annotations[a].type == api.message_annotation_type) {
@@ -406,11 +441,13 @@ function completeDelete(response) {
 		}
 	}
 	if (annotationValue) {
-		channelArray[api.currentChannel].deletionQueue = annotationValue.deletion_queue;
+		channelArray[response.data.channel_id].deletionQueue = annotationValue.deletion_queue;
 		if (annotationValue.lists) 
-			channelArray[api.currentChannel].lists = annotationValue.lists;
+			channelArray[response.data.channel_id].lists = annotationValue.lists;
 	}
+	 */
 }
+
 
 function onClickAdd(that) {
 	var listType = $(that).closest("div.bucketListDiv").data("type");
@@ -419,11 +456,11 @@ function onClickAdd(that) {
 	forceScroll("#sectionAdd");
 }
 
-function updateSublistOnAdd(messageId, listType) {
+function updateSublistOnAdd(channelId, messageId, listType) {
 	//Called on creation after formatting, so the html is already located in the right spot. Just update the channel.
-	var updatedLists = JSON.parse(JSON.stringify(channelArray[api.currentChannel].lists));
+	var updatedLists = JSON.parse(JSON.stringify(channelArray[channelId].lists));
 	updatedLists[listType].push(messageId);
-	updateLists(updatedLists);
+	updateLists(channelId,updatedLists);
 }
 
 /* tag functions */
@@ -521,13 +558,13 @@ function addSetting(that) {
 /* user functions */
 
 function addUser(userId) {
-
-	var newUsers = channelArray[api.currentChannel].editors.slice();
+	var currentChannel = api.currentChannel;
+	var newUsers = channelArray[currentChannel].editors.slice();
 	newUsers.push(userId);
 	var userUpdates = {
 		editors: {user_ids: newUsers} 
 	};
-	var promise = $.appnet.channel.update(api.currentChannel,userUpdates);
+	var promise = $.appnet.channel.update(currentChannel,userUpdates);
 	promise.then(completeAddUser, function (response) {failAlert('Addition of member failed.');});
 
 	var userRow = $("div#searchResults div#userRow_search_" + userId).detach();
@@ -537,7 +574,7 @@ function addUser(userId) {
 
 function completeAddUser(response) {
 	//Update the channel.
-	channelArray[api.currentChannel].editors = response.data.editors.user_ids;
+	channelArray[response.data.channel_id].editors = response.data.editors.user_ids;
 }
 
 function removeUser(userId) {
@@ -561,7 +598,7 @@ function removeUser(userId) {
 
 function completeRemoveUser(response) {
 	//Only update the channel.
-	channelArray[reverseChannelArray[response.data.id]].editors = response.data.editors.user_ids;
+	channelArray[response.data.channel_id].editors = response.data.editors.user_ids;
 }
 
 function searchUsers() {
@@ -689,6 +726,7 @@ function logout() {
 
 	$(".loggedIn").hide();
 	$(".loggedOut").show();
+//REWRITE
 	$(channelArray["now"].column).html("");
 	$(channelArray["later"].column).html("");
 	$(channelArray["archive"].column).html("");
