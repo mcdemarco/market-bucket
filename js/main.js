@@ -31,8 +31,7 @@ function initialize() {
 		$(".loggedIn").show('slow');
 		checkLocalStorageUser();
 	}
-	initializeButtons();
-	colorizeTags();
+	//colorizeTags();
 }
 
 function createChannel(listTypeObj) {
@@ -98,7 +97,6 @@ function completeChannels(response) {
 				displayChannel(thisChannel);
 			}
 		}
-
 		processChannelList();
 
 	} else {
@@ -123,7 +121,33 @@ function completeChannels(response) {
 		}
 	}
 
-	function displayChannel(thisChannel) {
+	function processChannelList() {
+		//Put the channel list into the settings dropdown.
+		for (var ch in channelArray) {
+			if (channelArray.hasOwnProperty(ch)) {
+				var optionString = "<option id='channel_" + ch + "' value='" + ch + "'" + ((ch == api.currentChannel) ? " selected" : "") + ">" + channelArray[ch].name + "</option>";
+				$("select#listSet").append(optionString);
+			}
+		} 
+	}
+}
+
+function getChannel(channelId) {
+	//Get a single channel.
+	var args = {
+		include_annotations: 1,
+		type: api.channel_type
+	};
+	var promise = $.appnet.channel.get(channelId, args);
+	promise.then(completeChannel, function (response) {failAlert('Failed to retrieve your list.');}).done(colorizeTags);
+}
+
+function completeChannel(response) {
+	if (response.data)
+		displayChannel(response.data);
+}
+
+function displayChannel(thisChannel) {
 		//Users in settings panel.
 		var listTypes = (channelArray[thisChannel.id].listTypes ? channelArray[thisChannel.id].listTypes : {});
 		processChannelUsers(thisChannel);
@@ -142,6 +166,9 @@ function completeChannels(response) {
 			//Need to retitle the main list.
 			listNamer(1, listTypes);
 		}
+	//Button activation
+	initializeButtons();
+
 		//Layout adjustment for the big screen.
 		$("div#list_1").removeClass("col-sm-offset-4");
 		if (len == 2) $("div#list_1").addClass("col-sm-offset-2");
@@ -152,8 +179,8 @@ function completeChannels(response) {
 			include_deleted: 0
 		};
 		var promise = $.appnet.message.getChannel(thisChannel.id, args);
-		promise.then(completeChannel, function (response) {failAlert('Failed to retrieve items.');}).done(colorizeTags);
-	}
+		promise.then(completeMessages, function (response) {failAlert('Failed to retrieve items.');}).done(colorizeTags);
+
 
 	function listCloner(index, listTypesObj) {
 		$("div#list_1").clone().attr("id","list_" + index).data("type",index).appendTo("div#bucketListHolder").removeClass("col-sm-offset-4");
@@ -169,19 +196,9 @@ function completeChannels(response) {
 			$("div#list_" + index + " span.subTitle").html(listTypesObj[index.toString()].subtitle);
 		}
 	}
-
-	function processChannelList() {
-		//Put the channel list into the settings dropdown.
-		for (var ch in channelArray) {
-			if (channelArray.hasOwnProperty(ch)) {
-				var optionString = "<option id='channel_" + ch + "' value='" + ch + "'" + ((ch == api.currentChannel) ? " selected" : "") + ">" + channelArray[ch].name + "</option>";
-				$("select#listSet").append(optionString);
-			}
-		} 
-	}
 }
 
-function completeChannel(response) {
+function completeMessages(response) {
 	//Populate the UI for an individual retrieved list.
 	if (response.data.length > 0) {
 		for (var i=0; i < response.data.length; i++) {
@@ -213,6 +230,38 @@ function completeUsers(response) {
 	for (u=0; u < response.data.length; u++) {
 		displayUserResult(response.data[u]);
 	}
+}
+
+function reinitialize(newChannel) {
+	if (api.currentChannel == newChannel) return;
+	if (!channelArray.hasOwnProperty(newChannel)) {
+		failAlert("Failed to change the channel.");
+		return;
+	}
+	//Now we're ready to restore to an initializable state.
+	clearPage();
+	setLocalStorageChannel(newChannel);
+	getChannel(newChannel);
+}
+
+function clearPage() {
+	//Clear the form.
+	clearForm();
+	$("div#itemCheckboxes label").hide();
+	//Nuke the sublists.
+	for (var i=0; i < api.max_sublists; i++) {
+		if (i != 1)
+			$("#list_" + i).remove();
+	}
+	//Clear the main list items.
+	$("#list_1 a.formattedItem").remove();
+	//Clear the main list subtitle.  (Assume title will be rewritten.)
+	$("#list_1 span.subTitle").html("");
+	//Clear the relevant settings.
+	$("div#memberResults").html("");
+	$("div#searchResults").html("");
+	//Clear the list controls.
+	//...
 }
 
 /* item functions */
@@ -286,7 +335,7 @@ function formatItem(respd, sublist) {
 	}
 
 	var itemDate = new Date(respd.created_at);
-	var formattedItem = "<a href='#' class='list-group-item clearfix' id='item_" + respd.id + "' data-creator='" + respd.user.id + "'>";
+	var formattedItem = "<a href='#' class='list-group-item clearfix formattedItem' id='item_" + respd.id + "' data-creator='" + respd.user.id + "'>";
 	formattedItem += "<span class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + respd.user.username + "'>";
 	formattedItem += respd.html + "</span>";
 	formattedItem += "<span class='pull-right'><button type='button' class='btn btn-default btn-xs' ";
@@ -705,10 +754,6 @@ function forceScroll(hash) {
 }
 
 function initializeButtons() {
-/*	$("span[data-type=addButton]").click(function (event) {
-		event.preventDefault();
-		onClickAdd($(this).closest("div.bucketListDiv").data("type"));
-	}); */
 	$("span[data-type=settingsButton]").click(function (event) {
 		event.preventDefault();
 		forceScroll("#sectionSettings");
