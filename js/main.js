@@ -148,38 +148,44 @@ function completeChannel(response) {
 }
 
 function displayChannel(thisChannel) {
-		//Users in settings panel.
-		var listTypes = (channelArray[thisChannel.id].listTypes ? channelArray[thisChannel.id].listTypes : {});
-		processChannelUsers(thisChannel);
+	//Users in settings panel.
+	var listTypes = (channelArray[thisChannel.id].listTypes ? channelArray[thisChannel.id].listTypes : {});
+	processChannelUsers(thisChannel);
 
-		//Make more list holders for sublists.
-		var len = Object.keys(listTypes).length;
-		if (len > 0) {
-			for (var i = 2; i <= len; i++) {
-				if (listTypes.hasOwnProperty(i.toString())) {
-					listCloner(i, listTypes);
-				}
+	//Make more list holders for sublists.
+	var len = Object.keys(listTypes).length;
+	if (len > 0) {
+		for (var i = 2; i <= len; i++) {
+			if (listTypes.hasOwnProperty(i.toString())) {
+				listCloner(i, listTypes);
 			}
-			if (listTypes.hasOwnProperty("0")) {
-				listCloner(0, listTypes);
-			}
-			//Need to retitle the main list.
-			listNamer(1, listTypes);
 		}
-	//Button activation
-	initializeButtons();
+		if (listTypes.hasOwnProperty("0")) {
+			listCloner(0, listTypes);
+		}
+		//Need to retitle the main list.
+		listNamer(1, listTypes);
 
 		//Layout adjustment for the big screen.
 		$("div#list_1").removeClass("col-sm-offset-4");
 		if (len == 2) $("div#list_1").addClass("col-sm-offset-2");
 		if (len == 4) $("div#list_0").addClass("col-sm-offset-4");
+		
+	} else {
 
-		//Retrieve the messages.
-		var args = {
-			include_deleted: 0
-		};
-		var promise = $.appnet.message.getChannel(thisChannel.id, args);
-		promise.then(completeMessages, function (response) {failAlert('Failed to retrieve items.');}).done(colorizeTags);
+		//Name main list after list group.
+		$("div#list_1 span.mainTitle").html(channelArray[thisChannel.id].name);
+
+	}
+	//Button activation
+	initializeButtons();
+
+	//Retrieve the messages.
+	var args = {
+		include_deleted: 0
+	};
+	var promise = $.appnet.message.getChannel(thisChannel.id, args);
+	promise.then(completeMessages, function (response) {failAlert('Failed to retrieve items.');}).done(colorizeTags);
 
 
 	function listCloner(index, listTypesObj) {
@@ -253,10 +259,10 @@ function clearPage() {
 		if (i != 1)
 			$("#list_" + i).remove();
 	}
-	//Clear the main list items.
+	//Clear the main list. (Assume title will be rewritten.)
 	$("#list_1 a.formattedItem").remove();
-	//Clear the main list subtitle.  (Assume title will be rewritten.)
 	$("#list_1 span.subTitle").html("");
+	$("#list_1").removeClass("col-sm-offset-2").addClass("col-sm-offset-4");
 	//Clear the relevant settings.
 	$("div#memberResults").html("");
 	$("div#searchResults").html("");
@@ -771,10 +777,8 @@ function logout() {
 
 	$(".loggedIn").hide();
 	$(".loggedOut").show();
-//REWRITE
-	$(channelArray["now"].column).html("");
-	$(channelArray["later"].column).html("");
-	$(channelArray["archive"].column).html("");
+	//Clear the lists.
+	clearPage();
 }
 
 function pushHistory(newLocation) {
