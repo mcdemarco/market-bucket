@@ -235,7 +235,7 @@ function processChannelUsers(thisChannel,annotationValue) {
 	}
 	//Ownership hath its privileges.
 	if (thisChannel.owner.id != api.userId) {
-		$("form#settingsForm a.btn.listOwner").hide();
+		$(".listOwner").hide();
 	} else {
 		//For list switching.
 		$("form#settingsForm a.btn").show();
@@ -244,7 +244,7 @@ function processChannelUsers(thisChannel,annotationValue) {
 
 function completeUsers(response) {
 	for (u=0; u < response.data.length; u++) {
-		displayUserResult(response.data[u]);
+		displayUserResult(response.data[u],"editor");
 	}
 }
 
@@ -741,7 +741,7 @@ function displayUserResult(result, type) {
 		//Should add a check for existing membership here.
 		resultString += "<a class='btn btn-default btn-sm' href='#userSearch' title='Add member' onclick='addUser(" + result.id + ")'><i class='fa fa-plus'></i></a>";
 		resultLocation = "div#searchResults";
-	} else if (!type || type != "owner") {
+	} else if ((!type || type != "owner") && (api.userId == channelArray[api.currentChannel].owner)) {
 		resultString += "<a class='btn btn-default btn-sm' href='#sectionSettings' title='Remove member' onclick='removeUser(" + result.id + ")'><i class='fa fa-times'></i></a>";
 	}
 	resultString += "</div></div>";
@@ -883,6 +883,11 @@ function updateChannels() {//manual channel repair for dev.
 	$.appnet.channel.update(55871,{annotations:  [{ type: api.message_annotation_type, value: {'lists': {0:['4804034'], 2:['4860095','4807241','4804056']}}} ]});
 	 */
 
+	/* remove old writers
+	$.appnet.channel.update(55870,{writers: {user_ids: []}});
+	$.appnet.channel.update(55871,{writers: {user_ids: []}});
+	$.appnet.channel.update(55872,{writers: {user_ids: []}});
+	 */
 }
 
 
