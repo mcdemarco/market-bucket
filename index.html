@@ -280,23 +280,14 @@
 	</div>
 	<div class="form-group listControl">
 	  <div class="col-xs-4 text-right"><label class="control-label" for="listGroupName">List group:</label></div>
-	  <div class="col-xs-4"><input type="text" id="listGroupName" class="form-control" value="(default)" /></div>
-	  <div class="col-xs-4 text-left"><button type="button" class="btn btn-custom" onclick="rename(this);">(Re)name</button></div>
+	  <div class="col-xs-7"><input type="text" id="listGroupName" class="form-control" value="(default)" /></div>
+	</div>
+	<div id="sublistControls">
 	</div>
 	<div class="form-group listControl">
-	  <div class="col-xs-4 text-right"><label class="control-label" for="list1name">List 1:</label></div>
-	  <div class="col-xs-4"><input type="text" id="list1name" class="form-control" value="(now)" /></div>
-	  <div class="col-xs-4 text-left"><button type="button" class="btn btn-custom" onclick="rename(this);">(Re)name</button></div>
-	</div>
-	<div class="form-group listControl">
-	  <div class="col-xs-4 text-right"><label class="control-label" for="list2name">List 2:</label></div>
-	  <div class="col-xs-4"><input type="text" id="list2name" class="form-control" value="(later)" /></div>
-	  <div class="col-xs-4 text-left"><button type="button" class="btn btn-custom" onclick="rename(this);">(Re)name</button></div>
-	</div>
-	<div class="form-group listControl">
-	  <div class="col-xs-4 text-right"><label class="control-label" for="archiveName">Archive:</label></div>
-	  <div class="col-xs-4"><input type="text" id="archiveName" class="form-control" value="(archive)" /></div>
-	  <div class="col-xs-4 text-left"><button type="button" class="btn btn-custom" onclick="rename(this);">(Re)name</button></div>
+	  <div class="col-sm-4 col-sm-offset-4 text-center">
+	    <button class="btn btn-custom btn-xs form-control" href="#" onclick="saveSettings(this);return false;">Save Changes</button>
+	  </div>
 	</div>
     </div>
   </form>

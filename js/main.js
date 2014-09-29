@@ -152,9 +152,15 @@ function displayChannel(thisChannel) {
 	var listTypes = (channelArray[thisChannel.id].listTypes ? channelArray[thisChannel.id].listTypes : {});
 	processChannelUsers(thisChannel);
 
+	//Process the channel name itself.
+	$("input#listGroupName").val(channelArray[thisChannel.id].name);
+
 	//Make more list holders for sublists.
 	var len = Object.keys(listTypes).length;
 	if (len > 0) {
+		//Editor for first list name.
+		editCloner(1, listTypes);
+
 		for (var i = 2; i <= len; i++) {
 			if (listTypes.hasOwnProperty(i.toString())) {
 				listCloner(i, listTypes);
@@ -191,6 +197,11 @@ function displayChannel(thisChannel) {
 	function listCloner(index, listTypesObj) {
 		$("div#list_1").clone().attr("id","list_" + index).data("type",index).appendTo("div#bucketListHolder").removeClass("col-sm-offset-4");
 		listNamer(index, listTypesObj);
+		editCloner(index, listTypesObj);
+	}
+
+	function editCloner(index, listTypesObj) {
+		$("#sublistControls").append("<div class='form-group listControl'><div class='col-xs-4 text-right'><label class='control-label' for='sublistEdit_" + index + "'>" + (index == 0 ? "Archive" : "List " + index) + ":</label></div><div class='col-xs-3'><input type='text' id='sublistEdit_" + index + "' class='form-control' value='" + listTypesObj[index.toString()].title + "' /></div><div class='col-xs-4'><input type='text' id='sublistSubtitle_" + index + "' class='form-control' value='" + (listTypesObj[index.toString()].subtitle ? listTypesObj[index.toString()].subtitle : "") + "' /></div></div>");
 	}
 	
 	function listNamer(index, listTypesObj) {
@@ -413,7 +424,7 @@ function updateLists(channelId,updatedLists) {
 	promise.then(completeUpdateLists,  function (response) {failAlert('Failed to move item.');});
 }
 
-function completeUpdateLists(response) {debugger;
+function completeUpdateLists(response) {
 	//Used for all channel sublist updates.
 	var thisChannel = response.data;
 	for (var a = 0; a < thisChannel.annotations.length; a++) {
