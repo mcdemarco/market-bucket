@@ -274,6 +274,11 @@ function clearPage() {
 
 function clearForm() {
 	$("textarea#item").val("");
+	/*
+	$("#addButton").show();
+	$("#editButton").hide();
+	$("#editItemId").val("");
+	 */
 }
 
 function addItem() {
@@ -345,7 +350,9 @@ function formatItem(respd, sublist) {
 	formattedItem += "<span class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + respd.user.username + "'>";
 	formattedItem += respd.html + "</span>";
 	formattedItem += "<span class='pull-right'><button type='button' class='btn btn-default btn-xs' ";
-	formattedItem += ((listType == "0") ?  "onclick='deleteItem(" + respd.id + ");'><i class='fa fa-times'></i>" : "onclick='moveItem(" + respd.id + ",0)'><i class='fa fa-check'></i>") + "</button></span></a>";
+	formattedItem += ((listType == "0" || !channelArray[respd.channel_id].hasOwnProperty("listTypes")) ?  "onclick='deleteItem(" + respd.id + ");'><i class='fa fa-times'></i>" : "onclick='moveItem(" + respd.id + ",0)'><i class='fa fa-check'></i>") + "</button>";
+	//formattedItem += " <button type='button' class='btn btn-default btn-xs' onclick='editItem(" + respd.id + ")'><i class='fa fa-pencil'></i></button>";
+	formattedItem += "</span></a>";
 	$("#list_" + listType + " div.list-group").append(formattedItem);
 	//Pre-format the hashtags.
 	$("#item_" + respd.id + " span[itemprop='hashtag']").each(function(index) {
@@ -380,7 +387,8 @@ function moveItem(itemId, targetType) {
 	//Move html.
 	$("#item_" + itemId).appendTo("div#list_" + targetType + " div.list-group");
 	if (targetType == 0 || sourceType == 0) {
-		//need to edit the buttons
+		//need to edit the buttons -- just remove it for now
+		$("#item_" + itemId + " button").remove();
 	}
 }	
 
@@ -405,7 +413,7 @@ function updateLists(channelId,updatedLists) {
 	promise.then(completeUpdateLists,  function (response) {failAlert('Failed to move item.');});
 }
 
-function completeUpdateLists(response) {
+function completeUpdateLists(response) {debugger;
 	//Used for all channel sublist updates.
 	var thisChannel = response.data;
 	for (var a = 0; a < thisChannel.annotations.length; a++) {
@@ -415,9 +423,9 @@ function completeUpdateLists(response) {
 	}
 	if (annotationValue) {
 		if (annotationValue.lists)
-			channelArray[thisChannel.channel_id].lists = annotationValue.lists;
+			channelArray[thisChannel.id].lists = annotationValue.lists;
 		if (annotationValue.deletion_queue) 
-			channelArray[thisChannel.channel_id].deletionQueue = annotationValue.deletion_queue;
+			channelArray[thisChannel.id].deletionQueue = annotationValue.deletion_queue;
 	}
 }
 
@@ -456,6 +464,24 @@ function deleteItem(itemId) {
 		promise.then(completeUpdateLists,  function (response) {failAlert('Failed to remove item.');});
 	}
 }
+
+/*
+function editItem(itemId) {
+	//Populate the form with the stored data, change the buttons, and scroll to it.
+	$("textarea#item").val(messageTextArray[itemId]);
+	var listType = $("#item_" + itemId).closest("div.bucketListDiv").data("type");
+	$("input:radio[name=bucketBucket][data-list=" + listType + "]").prop('checked', true);
+	$("#addButton").hide();
+	$("#editButton").show();
+	$("#editItemId").val(itemId);
+	forceScroll("#sectionAdd");
+	//On save, check for text changes.  If no changes, do a move (or nothing).
+
+	//If text changes, do a new item and a delete of the old item.
+
+	//Reset the form.
+}
+*/
 
 function completeAutoDelete(response) {
 	//Clean up the deletion queue, which we know existed.
