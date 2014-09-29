@@ -336,13 +336,15 @@ function completeItem(response) {
 
 function formatItem(respd, sublist) {
 	//Mock deletion check.
-	if (respd.user.id == api.userId && channelArray[respd.channel_id].hasOwnProperty("deletionQueue") && channelArray[respd.channel_id].deletionQueue.indexOf(respd.id) > -1) {
-		//Delete if creator and remove from queue.
-		var promise = $.appnet.message.destroy(api.currentChannel,respd.user.id);
-		promise.then(completeAutoDelete,  function (response) {failAlert('Failed to delete queued item.');});
-
+	if (channelArray[respd.channel_id].hasOwnProperty("deletionQueue") && channelArray[respd.channel_id].deletionQueue.indexOf(respd.id) > -1) {
+		if (respd.user.id == api.userId) {
+			//Delete if creator and remove from queue.
+			var promise = $.appnet.message.destroy(api.currentChannel,respd.id);
+			promise.then(completeAutoDelete,  function (response) {failAlert('Failed to delete queued item.');});
+		}
+		//In either case, don't display "deleted" item.
 		return;
-	}
+	} 
 	//Default (sub)list.
 	var listType = (sublist ? sublist : 1);
 	//Check for alternate sublist IF the list has official sublists and it wasn't passed in.
@@ -453,7 +455,7 @@ function deleteItem(itemId) {
 		if (channelArray[currentChannel].hasOwnProperty("deletionQueue")) {
 			updatedQueue = channelArray[currentChannel].deletionQueue.slice();
 		}
-		updatedQueue.push(itemId);
+		updatedQueue.push(itemId.toString());
 		var channelUpdates = {
 			include_annotations: 1,
 			annotations:  [{
@@ -474,6 +476,8 @@ function deleteItem(itemId) {
 		var promise = $.appnet.channel.update(currentChannel, channelUpdates, updateArgs);
 		promise.then(completeUpdateLists,  function (response) {failAlert('Failed to remove item.');});
 	}
+	//In either case, remove item.
+	$("#item_" + itemId).remove();
 }
 
 /*
