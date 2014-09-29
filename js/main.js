@@ -6,7 +6,6 @@ var authUrl = "https://account.app.net/oauth/authenticate?client_id=" + api['cli
 var updateArgs = {include_annotations: 1};
 
 var channelArray = {};
-var tagArray = [];
 var messageTextArray = {};
 
 /* main execution path */
@@ -191,7 +190,7 @@ function displayChannel(thisChannel) {
 		include_deleted: 0
 	};
 	var promise = $.appnet.message.getChannel(thisChannel.id, args);
-	promise.then(completeMessages, function (response) {failAlert('Failed to retrieve items.');}).done(colorizeTags);
+	promise.then(completeMessages, function (response) {failAlert('Failed to retrieve items.');}).done(displayTags);
 
 
 	function listCloner(index, listTypesObj) {
@@ -220,7 +219,7 @@ function completeMessages(response) {
 	if (response.data.length > 0) {
 		for (var i=0; i < response.data.length; i++) {
 			formatItem(response.data[i]);
-			collectTags(response.data[i].entities.hashtags);
+			collectTags(response.data[i].entities.hashtags,response.data[i].channel_id);
 		}
 	}
 }
@@ -259,6 +258,7 @@ function reinitialize(newChannel) {
 	clearPage();
 	setLocalStorageChannel(newChannel);
 	getChannel(newChannel);
+	forceScroll("#sectionLists");
 }
 
 function clearPage() {
@@ -274,11 +274,13 @@ function clearPage() {
 	$("#list_1 a.formattedItem").remove();
 	$("#list_1 span.subTitle").html("");
 	$("#list_1").removeClass("col-sm-offset-2").addClass("col-sm-offset-4");
+	$(".tagBucket").html("");
 	//Clear the relevant settings.
 	$("div#memberResults").html("");
 	$("div#searchResults").html("");
 	//Clear the list controls.
 	//...
+
 }
 
 /* item functions */
@@ -561,14 +563,14 @@ function updateSublistOnAdd(channelId, messageId, listType) {
 
 /* tag functions */
 
-function collectTags(currentTags) {
-	//Populate the tag list.
+function collectTags(currentTags,channelId) {
+	//Populate the tag list with unique tags.
 	var tag;
+	if (!channelArray[channelId].hasOwnProperty("tagArray")) channelArray[channelId].tagArray = [];
 	for (var t=0; t < currentTags.length; t++) {
 		tag = currentTags[t].name;
-		if (tagArray.indexOf(tag) < 0) {
-			tagArray.push(tag);
-			displayTags(tag);
+		if (channelArray[channelId].tagArray.indexOf(tag) < 0) {
+			channelArray[channelId].tagArray.push(tag);
 		}
 	}
 }
@@ -583,7 +585,22 @@ function colorizeTags(itemId) {
 	});
 }
 
-function displayTags(unhashedTag) {
+function displayTags(channelId) {
+	if (!channelId) 
+		channelId = api.currentChannel;
+	//Display unique tags.
+	if (channelArray[channelId].tagArray.length == 0) {
+		$("#tagSearchRow").hide();
+	} else {
+		for (var ut=0; ut < channelArray[channelId].tagArray.length; ut++) {
+			displayTag(channelArray[channelId].tagArray[ut]);
+		}
+		colorizeTags();
+		$("#tagSearchRow").show();
+	}
+}
+
+function displayTag(unhashedTag) {
 	//Display tags individually as part of the tag collection process.
 	var tagString = "<button type='button' class='btn btn-default btn-sm tag' onclick='onClickTagButton(this);' value='" + unhashedTag + "'>#" + unhashedTag + "</button> ";
 	$(".tagBucket").append(tagString);
