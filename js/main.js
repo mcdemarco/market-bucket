@@ -218,8 +218,19 @@ function completeMessages(response) {
 	//Populate the UI for an individual retrieved list.
 	if (response.data.length > 0) {
 		for (var i=0; i < response.data.length; i++) {
-			formatItem(response.data[i]);
-			collectTags(response.data[i].entities.hashtags,response.data[i].channel_id);
+			var respd = response.data[i];
+			//Mock deletion check.
+			if (channelArray[respd.channel_id].hasOwnProperty("deletionQueue") && channelArray[respd.channel_id].deletionQueue.indexOf(respd.id) > -1) {
+				if (respd.user.id == api.userId) {
+					//Delete if creator and remove from queue.
+					var promise = $.appnet.message.destroy(api.currentChannel,respd.id);
+					promise.then(completeAutoDelete,  function (response) {failAlert('Failed to delete queued item.');});
+				}
+				//In either case, don't display "deleted" item or retrieve its tags.
+				continue;
+			}
+			formatItem(respd);
+			collectTags(respd.entities.hashtags,respd.channel_id);
 		}
 	}
 }
@@ -272,7 +283,7 @@ function clearPage() {
 			$("#list_" + i).remove();
 	}
 	//Clear the main list. (Assume title will be rewritten.)
-	$("#list_1 a.formattedItem").remove();
+	$("#list_1 div.formattedItem").remove();
 	$("#list_1 span.subTitle").html("");
 	$("#list_1").removeClass("col-sm-offset-2").addClass("col-sm-offset-4");
 	$(".tagBucket").html("");
@@ -338,16 +349,6 @@ function completeItem(response) {
 }
 
 function formatItem(respd, sublist) {
-	//Mock deletion check.
-	if (channelArray[respd.channel_id].hasOwnProperty("deletionQueue") && channelArray[respd.channel_id].deletionQueue.indexOf(respd.id) > -1) {
-		if (respd.user.id == api.userId) {
-			//Delete if creator and remove from queue.
-			var promise = $.appnet.message.destroy(api.currentChannel,respd.id);
-			promise.then(completeAutoDelete,  function (response) {failAlert('Failed to delete queued item.');});
-		}
-		//In either case, don't display "deleted" item.
-		return;
-	} 
 	//Default (sub)list.
 	var listType = (sublist ? sublist : 1);
 	//Check for alternate sublist IF the list has official sublists and it wasn't passed in.
@@ -563,7 +564,7 @@ function completeAutoDelete(response) {
 
 function completeDelete(response) {
 	//Remove HTML item.
-	$("a#item_" + response.data.id).remove();
+	$("#item_" + response.data.id).remove();
 	//Clean up sublists.
 	/*
 	var thisChannel = response.data;
@@ -651,6 +652,7 @@ function filterListsByTag(unhashedTag) {
 				$(this).hide();
 		});
 	}
+	forceScroll("#sectionLists");
 }
 
 function getColor(str) {
@@ -852,10 +854,12 @@ function forceScroll(hash) {
 }
 
 function initializeButtons() {
-	$("span[data-type=settingsButton]").click(function (event) {
+	$("span.settingsButton").click(function (event) {
 		event.preventDefault();
 		//forceScroll("#sectionSettings");
 		$(event.target).closest("div.bucketListDiv").find(".settingsToggle").toggle();
+		if ($(event.target).closest("div.bucketListDiv").find(".settingsToggle").length == 0)
+			forceScroll("#sectionSettings");
 	});
 }
 
