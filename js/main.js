@@ -315,6 +315,8 @@ function addItem() {
 		alert("No list selected for item.");
 		return;
 	}
+	//Don't want the new buttons starting out of sync.
+	$(".settingsToggle").hide();
 	createItem(channelId, message);
 }
 
@@ -439,6 +441,8 @@ function moveItem(itemId, targetType) {
 	$("#item_" + itemId).appendTo("div#list_" + targetType + " div.list-group");
 	//Need to update the buttons.
 	$("div#buttons_" + itemId).remove();
+	//Don't want the new buttons starting out of sync.
+	$("div#list_" + targetType + " .settingsToggle").hide();
 	$("#item_" + itemId).append(formatButtons(itemId,currentChannel,targetType));
 }	
 
