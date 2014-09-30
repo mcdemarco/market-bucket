@@ -235,6 +235,7 @@ function processChannelUsers(thisChannel,annotationValue) {
 	}
 	//Ownership hath its privileges.
 	if (thisChannel.owner.id != api.userId) {
+		//There's nothing in this category right now, but deleting the list would qualify.
 		$(".listOwner").hide();
 	} else {
 		//For list switching.
@@ -741,7 +742,7 @@ function displayUserResult(result, type) {
 		//Should add a check for existing membership here.
 		resultString += "<a class='btn btn-default btn-sm' href='#userSearch' title='Add member' onclick='addUser(" + result.id + ")'><i class='fa fa-plus'></i></a>";
 		resultLocation = "div#searchResults";
-	} else if ((!type || type != "owner") && (api.userId == channelArray[api.currentChannel].owner)) {
+	} else if (!type || type != "owner") {
 		resultString += "<a class='btn btn-default btn-sm' href='#sectionSettings' title='Remove member' onclick='removeUser(" + result.id + ")'><i class='fa fa-times'></i></a>";
 	}
 	resultString += "</div></div>";

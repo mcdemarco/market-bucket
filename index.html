@@ -259,8 +259,8 @@
 	  </div>
 	  <div class="col-xs-4 col-md-5 text-left">
 	    <a class="btn btn-default btn-sm" href="#" onclick="$('#memberControl').toggle(); return false;" title="View/add members"><i class="fa fa-group"></i></a>
-	    <a class="btn btn-default btn-sm listOwner" href="#" onclick="$('#settingsForm div.listControl').toggle(); return false;" title="(Re)name current lists/group"><i class="fa fa-pencil"></i></a>
-	    <a class="btn btn-default btn-sm" href="#" onclick="//addSetting(this);" title="Add new list groups" disabled><i class="fa fa-plus"></i></a>
+	    <a class="btn btn-default btn-sm" href="#" onclick="$('#settingsForm div.listControl').toggle(); return false;" title="(Re)name current lists/group"><i class="fa fa-pencil"></i></a>
+	    <a class="btn btn-default btn-sm" href="#" onclick="addSetting(this);" title="Add new list groups" disabled><i class="fa fa-plus"></i></a>
 	  </div>
 	</div>
 	<div class="form-group" id="memberControl">
@@ -268,7 +268,7 @@
 	  <div class="col-xs-12 text-left" id="memberResults"></div>
 	  <div class="col-xs-4 text-right"></div>
 	  <div class="col-xs-4 text-center">
-	    <button class="btn btn-custom btn-xs form-control listOwner" href="#" onclick="addSetting(this);return false;">Add A Member</button>
+	    <button class="btn btn-custom btn-xs form-control" href="#" onclick="addSetting(this);return false;">Add A Member</button>
 	  </div>
 	  <div class="col-xs-4 text-left"></div>
 	</div>
