@@ -365,9 +365,12 @@ function formatItem(respd, sublist) {
 	var formattedItem = "<a href='#' class='list-group-item clearfix formattedItem' id='item_" + respd.id + "' data-creator='" + respd.user.id + "'>";
 	formattedItem += "<span class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + respd.user.username + "'>";
 	formattedItem += respd.html + "</span>";
-	formattedItem += "<span class='pull-right'><button type='button' class='btn btn-default btn-xs' ";
-	formattedItem += ((listType == "0" || !channelArray[respd.channel_id].hasOwnProperty("listTypes")) ?  "onclick='deleteItem(" + respd.id + ");'><i class='fa fa-times'></i>" : "onclick='moveItem(" + respd.id + ",0)'><i class='fa fa-check'></i>") + "</button>";
-	//formattedItem += " <button type='button' class='btn btn-default btn-xs' onclick='editItem(" + respd.id + ")'><i class='fa fa-pencil'></i></button>";
+	formattedItem += "<span class='pull-right'>";
+	if (listType != "0")
+		formattedItem += "<button type='button' class='btn btn-default btn-xs' onclick='moveItem(" + respd.id + ",0)'><i class='fa fa-check'></i></button>";
+	if (listType == "0" || !channelArray[respd.channel_id].hasOwnProperty("listTypes"))
+		formattedItem += "<button type='button' class='btn btn-default btn-xs settingsToggle' onclick='deleteItem(" + respd.id + ");'><i class='fa fa-times'></i></button>";
+	//formattedItem += " <button type='button' class='btn btn-default btn-xs settingsToggle' onclick='editItem(" + respd.id + ")'><i class='fa fa-pencil'></i></button>";
 	formattedItem += "</span></a>";
 	$("#list_" + listType + " div.list-group").append(formattedItem);
 	//Pre-format the hashtags.
@@ -821,7 +824,8 @@ function forceScroll(hash) {
 function initializeButtons() {
 	$("span[data-type=settingsButton]").click(function (event) {
 		event.preventDefault();
-		forceScroll("#sectionSettings");
+		//forceScroll("#sectionSettings");
+		$(event.target).closest("div.bucketListDiv").find("button.settingsToggle").toggle();
 	});
 }
 
