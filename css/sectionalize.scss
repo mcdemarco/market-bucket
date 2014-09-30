@@ -154,14 +154,14 @@ h1, .font-brand {
     font-family: $sub-stack;
 }
 
-a.list-group-item.active {
+div.list-group-item.active {
     background-color: $primary-bgcolor;
     color:#fff;
     border-color: $primary-bg-darker;
 }
 
-.list-group-item.active:hover, 
-.list-group-item.active:focus {
+div.list-group-item.active:hover, 
+div.list-group-item.active:focus {
     background-color: $primary-highlight;
     border-color: $primary-highlight;
 }
@@ -200,8 +200,18 @@ form#settingsForm div.listControl {
     padding-bottom:30px;
 }
 
-button.settingsToggle {
+.settingsToggle {
     display:none;		      
+}
+
+div.list-group-item {
+    color: #333;
+}
+
+div.list-group-item:hover, 
+div.list-group-item:focus {
+    color: #555;
+    background-color: #F1F6CE;
 }
 
 /* custom button */

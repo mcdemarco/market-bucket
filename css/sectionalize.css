@@ -99,13 +99,13 @@ h1, .font-brand {
 .font-sub {
   font-family: "Open Sans", sans-serif; }
 
-a.list-group-item.active {
+div.list-group-item.active {
   background-color: #7E8250;
   color: #fff;
   border-color: #526036; }
 
-.list-group-item.active:hover,
-.list-group-item.active:focus {
+div.list-group-item.active:hover,
+div.list-group-item.active:focus {
   background-color: #91C133;
   border-color: #91C133; }
 
@@ -136,8 +136,16 @@ form#settingsForm div.listControl {
 #sectionSettings h1 {
   padding-bottom: 30px; }
 
-button.settingsToggle {
+.settingsToggle {
   display: none; }
+
+div.list-group-item {
+  color: #333; }
+
+div.list-group-item:hover,
+div.list-group-item:focus {
+  color: #555;
+  background-color: #F1F6CE; }
 
 /* custom button */
 .btn-custom {

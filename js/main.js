@@ -352,7 +352,7 @@ function formatItem(respd, sublist) {
 	var listType = (sublist ? sublist : 1);
 	//Check for alternate sublist IF the list has official sublists and it wasn't passed in.
 	if (!sublist && channelArray[respd.channel_id].hasOwnProperty("listTypes")) {
-		for (key in channelArray[respd.channel_id].listTypes) {
+		for (var key in channelArray[respd.channel_id].listTypes) {
 			if (channelArray[respd.channel_id].listTypes.hasOwnProperty(key) && 
 				channelArray[respd.channel_id].lists.hasOwnProperty(key) &&
 				channelArray[respd.channel_id].lists[key].indexOf(respd.id) > -1) {
@@ -362,16 +362,11 @@ function formatItem(respd, sublist) {
 	}
 
 	var itemDate = new Date(respd.created_at);
-	var formattedItem = "<a href='#' class='list-group-item clearfix formattedItem' id='item_" + respd.id + "' data-creator='" + respd.user.id + "'>";
+	var formattedItem = "<div class='list-group-item clearfix formattedItem' id='item_" + respd.id + "' data-creator='" + respd.user.id + "'>";
 	formattedItem += "<span class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + respd.user.username + "'>";
 	formattedItem += respd.html + "</span>";
-	formattedItem += "<span class='pull-right'>";
-	if (listType != "0")
-		formattedItem += "<button type='button' class='btn btn-default btn-xs' onclick='moveItem(" + respd.id + ",0)'><i class='fa fa-check'></i></button>";
-	if (listType == "0" || !channelArray[respd.channel_id].hasOwnProperty("listTypes"))
-		formattedItem += "<button type='button' class='btn btn-default btn-xs settingsToggle' onclick='deleteItem(" + respd.id + ");'><i class='fa fa-times'></i></button>";
-	//formattedItem += " <button type='button' class='btn btn-default btn-xs settingsToggle' onclick='editItem(" + respd.id + ")'><i class='fa fa-pencil'></i></button>";
-	formattedItem += "</span></a>";
+	formattedItem += formatButtons(respd.id, respd.channel_id, listType); 
+	formattedItem += "</div>";
 	$("#list_" + listType + " div.list-group").append(formattedItem);
 	//Pre-format the hashtags.
 	$("#item_" + respd.id + " span[itemprop='hashtag']").each(function(index) {
@@ -386,6 +381,42 @@ function formatItem(respd, sublist) {
 	//Store the item.
 	messageTextArray[respd.id] = respd.text;
 }
+
+function formatButtons(itemId, channelId, listType) {
+	if (!channelId) channelId = api.currentChannel;
+	var formattedItem = "<div id='buttons_" + itemId + "' class='pull-right'>";
+	if (listType != "0") {
+		//Add the main checkbox.
+		formattedItem += "<button type='button' class='btn btn-default btn-xs' ";
+		if (!channelArray[channelId].hasOwnProperty("listTypes"))
+			formattedItem += " onclick='deleteItem(" + itemId + ")";
+		else
+			formattedItem += " onclick='moveItem(" + itemId + ",0)";
+		formattedItem += "'><i class='fa fa-check'></i></button>";
+	}
+	if (channelArray[channelId].hasOwnProperty("listTypes")) {
+		//Add the move options
+		formattedItem += "<div class='btn-group dropdown settingsToggle pull-right'>";
+		formattedItem += "<button type='button' class='btn btn-default btn-xs dropdown-toggle' data-toggle='dropdown'>";
+		formattedItem += "<i class='fa fa-cog'></i> <span class='caret'></span></button>";
+		formattedItem += "<ul class='dropdown-menu' role='menu'>";
+		for (var li in channelArray[channelId].listTypes) {
+			if (li != listType && li != 0) 
+				formattedItem += "<li><a href='#' onclick='moveItem(" + itemId + "," + li + ")'><i class='fa fa-arrows'></i> Move to " + channelArray[channelId].listTypes[li].title + "</a></li>";
+		}
+		//TODO: edit button
+		//formattedItem += " <button type='button' class='btn btn-default btn-xs settingsToggle' onclick='editItem(" + itemId + ")'><i class='fa fa-pencil'></i> Edit</button>";
+		if (listType == "0") {
+			//Add the deletion option
+			formattedItem += "<li class='divider'></li>";
+			formattedItem += "<li><a href='#' onclick='deleteItem(" + itemId + ");'><i class='fa fa-times'></i> Delete</a></li>";
+		}
+		formattedItem += "</ul></div>";
+	}
+	formattedItem += "</div>";
+	return formattedItem;
+}
+
 
 function moveItem(itemId, targetType) {
 	var currentChannel = api.currentChannel;
@@ -405,10 +436,9 @@ function moveItem(itemId, targetType) {
 	updateLists(currentChannel,updatedLists);
 	//Move html.
 	$("#item_" + itemId).appendTo("div#list_" + targetType + " div.list-group");
-	if (targetType == 0 || sourceType == 0) {
-		//need to edit the buttons -- just remove it for now
-		$("#item_" + itemId + " button").remove();
-	}
+	//Need to update the buttons.
+	$("div#buttons_" + itemId).remove();
+	$("#item_" + itemId).append(formatButtons(itemId,currentChannel,targetType));
 }	
 
 function updateLists(channelId,updatedLists) {
@@ -613,10 +643,10 @@ function displayTag(unhashedTag) {
 function filterListsByTag(unhashedTag) {
 	if (!unhashedTag) {
 		//Reset filtration.
-		$("#sectionLists").find("a.list-group-item").show();
+		$("#sectionLists").find("div.list-group-item").show();
 	} else {
 		//Filter further.
-		$("#sectionLists").find("a.list-group-item").each(function(index) {
+		$("#sectionLists").find("div.list-group-item").each(function(index) {
 			if ($(this).find("span[data-hashtag-name='" + unhashedTag + "']").length == 0 && (!$(this).hasClass("active")))
 				$(this).hide();
 		});
@@ -825,7 +855,7 @@ function initializeButtons() {
 	$("span[data-type=settingsButton]").click(function (event) {
 		event.preventDefault();
 		//forceScroll("#sectionSettings");
-		$(event.target).closest("div.bucketListDiv").find("button.settingsToggle").toggle();
+		$(event.target).closest("div.bucketListDiv").find(".settingsToggle").toggle();
 	});
 }
 
