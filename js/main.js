@@ -299,21 +299,32 @@ function clearPage() {
 
 function clearForm() {
 	$("textarea#item").val("");
-	/*
-	$("#addButton").show();
-	$("#editButton").hide();
+	$("button#addButton").html("Add Item");
 	$("#editItemId").val("");
-	 */
 }
 
 function addItem() {
 	var channelId = api.currentChannel;
 	var message = $("textarea#item").val();
-	if (message == "") return;
+	if (message == "") {
+		alert("No item text entered.");
+		return;
+	}
 	if (channelArray[channelId].hasOwnProperty("listTypes") && !$("input[name=bucketBucket]").is(":checked")) {
 		//This shouldn't be reachable anymore...
 		alert("No list selected for item.");
 		return;
+	}
+	//The edit case.
+	if ($("#editItemId").val() != "") {
+		if (message == messageTextArray) {
+			alert("Message was not changed.");
+			return;
+		} else {
+			deleteItem($("#editItemId").val());
+			//There's a clearForm() later on, but do this to be extra safe:
+			$("#editItemId").val("");
+		}
 	}
 	//Don't want the new buttons starting out of sync.
 	$(".settingsToggle").hide();
@@ -407,11 +418,11 @@ function formatButtons(itemId, channelId, listType) {
 			if (li != listType && li != 0) 
 				formattedItem += "<li><a href='#' onclick='moveItem(" + itemId + "," + li + ")'><i class='fa fa-arrows'></i> Move to " + channelArray[channelId].listTypes[li].title + "</a></li>";
 		}
-		//TODO: edit button
-		//formattedItem += " <button type='button' class='btn btn-default btn-xs settingsToggle' onclick='editItem(" + itemId + ")'><i class='fa fa-pencil'></i> Edit</button>";
+		//Edit option
+		formattedItem += "<li class='divider'></li>";
+		formattedItem += "<li><a href='#' onclick='editItem(" + itemId + ")'><i class='fa fa-pencil'></i> Edit</a></li>";
 		if (listType == "0") {
 			//Add the deletion option
-			formattedItem += "<li class='divider'></li>";
 			formattedItem += "<li><a href='#' onclick='deleteItem(" + itemId + ");'><i class='fa fa-times'></i> Delete</a></li>";
 		}
 		formattedItem += "</ul></div>";
@@ -521,23 +532,15 @@ function deleteItem(itemId) {
 	$("#item_" + itemId).remove();
 }
 
-/*
 function editItem(itemId) {
 	//Populate the form with the stored data, change the buttons, and scroll to it.
 	$("textarea#item").val(messageTextArray[itemId]);
 	var listType = $("#item_" + itemId).closest("div.bucketListDiv").data("type");
 	$("input:radio[name=bucketBucket][data-list=" + listType + "]").prop('checked', true);
-	$("#addButton").hide();
-	$("#editButton").show();
-	$("#editItemId").val(itemId);
+	$("button#addButton").html("Edit Item");
+	$("#editItemId").val(itemId.toString());
 	forceScroll("#sectionAdd");
-	//On save, check for text changes.  If no changes, do a move (or nothing).
-
-	//If text changes, do a new item and a delete of the old item.
-
-	//Reset the form.
 }
-*/
 
 function completeAutoDelete(response) {
 	//Clean up the deletion queue, which we know existed.
