@@ -635,8 +635,10 @@ function displayTags(channelId) {
 	if (channelArray[channelId].tagArray.length == 0) {
 		$("#tagSearchRow").hide();
 	} else {
-		for (var ut=0; ut < channelArray[channelId].tagArray.length; ut++) {
-			displayTag(channelArray[channelId].tagArray[ut]);
+		//Note this sorts the original array.
+		var sortedArray = channelArray[channelId].tagArray.sort();
+		for (var ut=0; ut < sortedArray.length; ut++) {
+			displayTag(sortedArray[ut]);
 		}
 		colorizeTags();
 		$("#tagSearchRow").show();
