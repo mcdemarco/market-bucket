@@ -13,6 +13,7 @@ var messageTextArray = {};
 function initialize() {
 	$("a.adn-button").attr('href',authUrl);
 	$("a.h1-link").attr('href',site);
+	$("a#fontBrandLink").click(function(){navbarSetter();});
 	checkLocalStorage();
 	if (!api.accessToken) {
 		logout();
@@ -857,6 +858,7 @@ function failAlert(msg) {
 function forceScroll(hash) {
 	var target = $(hash);
 	$('html,body').animate({scrollTop: target.offset().top - 50}, 1000);
+	//navbarSetter(hash);
 	return false;
 }
 
@@ -883,6 +885,13 @@ function logout() {
 	$(".loggedOut").show();
 	//Clear the lists.
 	clearPage();
+}
+
+function navbarSetter(hashSectionName) {
+	$("div#navbar-collapsible ul li").removeClass("active");
+	//Not sure I need this.
+	//if (hashSectionName) 
+	//	$("div#navbar-collapsible ul li a[href = hashSectionName]").addClass("active");
 }
 
 function pushHistory(newLocation) {
