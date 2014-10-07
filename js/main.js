@@ -293,8 +293,8 @@ function clearPage() {
 	$("div#memberResults").html("");
 	$("div#searchResults").html("");
 	//Clear the list controls.
+	$("div#sublistControls").html("");
 	//...
-
 }
 
 /* item functions */
@@ -702,10 +702,6 @@ function onClickTagButton(that) {
 
 /* settings functions */
 
-function getUser() {
-	//We need this to check whether the user can edit his channels.
-}
-
 function addSetting(that) {
 	var theSetting = $(that).closest("div.form-group").prop("id");
 	switch (theSetting) {
@@ -876,7 +872,7 @@ function initializeButtons() {
 }
 
 function logout() {
-	//Erase token and post list.
+	//Erase token and lists.
 	api.accessToken = '';
 	if (localStorage) {
 		try {
@@ -888,6 +884,8 @@ function logout() {
 	$(".loggedOut").show();
 	//Clear the lists.
 	clearPage();
+	//Erase the channel array.
+	//...
 }
 
 function navbarSetter(hashSectionName) {
