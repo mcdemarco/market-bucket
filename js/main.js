@@ -188,7 +188,8 @@ function displayChannel(thisChannel) {
 
 	//Retrieve the messages.
 	var args = {
-		include_deleted: 0
+		include_deleted: 0,
+		count: api.message_count
 	};
 	var promise = $.appnet.message.getChannel(thisChannel.id, args);
 	promise.then(completeMessages, function (response) {failAlert('Failed to retrieve items.');}).done(displayTags);
@@ -635,8 +636,10 @@ function displayTags(channelId) {
 	if (channelArray[channelId].tagArray.length == 0) {
 		$("#tagSearchRow").hide();
 	} else {
-		for (var ut=0; ut < channelArray[channelId].tagArray.length; ut++) {
-			displayTag(channelArray[channelId].tagArray[ut]);
+		//Note this sorts the original array.
+		var sortedArray = channelArray[channelId].tagArray.sort();
+		for (var ut=0; ut < sortedArray.length; ut++) {
+			displayTag(sortedArray[ut]);
 		}
 		colorizeTags();
 		$("#tagSearchRow").show();
