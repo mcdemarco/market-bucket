@@ -4,6 +4,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, minimal-ui, initial-scale=1">
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="Shopping lists powered by app.net">
   <meta name="author" content="@mcdemarco">
   <link rel="icon" href="images/favicon.ico">
@@ -50,7 +51,7 @@
 
     .navbar {
         border-radius: 4px;
-        min-width: 400px;
+        min-width: 300px;
     }
 
     .nav-tabs-justified > li > a {
@@ -235,17 +236,16 @@
         <li class="loggedOut"><a href="#sectionBlurb"><i class="fa fa-lightbulb-o"></i></a></li>
         <li class="loggedOut"><a href="#sectionFakeLists"><span class="hidden-xs">Lists</span><span class="visible-xs-block" title="Lists"><i class="fa fa-list"></i></span></a></li>
         <li class="loggedIn"><a href="#sectionLists"><span class="hidden-xs">Lists</span><span class="visible-xs-block" title="Lists"><i class="fa fa-list"></i></span></a></li>
-        <!--li class="loggedIn"><a href="#col1"><i class="fa fa-clock-o"></i></a></li>
-        <li class="loggedIn"><a href="#col2"><i class="fa fa-calendar"></i></a></li-->
-        <li class="loggedIn visible-xs-block" title="archive"><a href="#list_0"><i class="fa fa-archive"></i></a></li>
-        <li class="loggedIn visible-xs-block" title="tag search"><a href="#tagSearchRow"><i class="fa fa-search"></i></a></li>
-        <li class="loggedIn"><a href="#sectionAdd"><span class="hidden-xs">Add</span><span class="visible-xs-block" title="Add"><i class="fa fa-plus"></i></a></li>
+        <!--li class="loggedIn" title="archive"><a href="#list_0"><i class="fa fa-archive"></i></a></li-->
+        <li class="loggedIn" title="tag search"><a href="#tagSearchRow"><i class="fa fa-search"></i></a></li>
+        <li class="loggedIn"><a href="#sectionAdd"><span class="hidden-xs">Add</span><span class="visible-xs-block" title="Add"><i class="fa fa-plus"></i></span></a></li>
         <li class="loggedIn"><a href="#sectionSettings"><span class="hidden-xs">Settings</span><span class="visible-xs-block" title="Settings"><i class="fa fa-cogs"></i></span></a></li>
-        <li><a href="#sectionAbout"><span class="hidden-xs">About</span><span class="visible-xs-block"><i class="fa fa-info"></i></span></a></li>
+        <li class="loggedOut"><a href="#sectionAbout"><span class="hidden-xs">About</span><span class="visible-xs-block"><i class="fa fa-info"></i></span></a></li>
+        <li class="loggedIn"><a class="hidden-xs" href="#sectionAbout">About</a></li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li class="loggedOut"><a href="#sectionLogin" class="navbar-link" id="logInPreButton"><span class="hidden-xs">Log In</span><span class="visible-xs-block"><i class="fa fa-sign-in" title="Log In"></i></span></a></li>
-        <li class="loggedIn" style="display:none;"><a href="#" class="navbar-link" id="logOutButton" onclick="logout();"><span class="hidden-xs">Log Out</span><span class="visible-xs-block" title="Log Out"><i class="fa fa-sign-out"></i></span></a></li>
+        <li class="loggedIn"><a href="#" class="navbar-link" id="logOutButton" onclick="logout();"><span class="hidden-xs">Log Out</span><span class="visible-xs-block" title="Log Out"><i class="fa fa-sign-out"></i></span></a></li>
       </ul>
     </div>
   </div>
