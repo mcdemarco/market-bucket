@@ -342,7 +342,7 @@ context.channel = (function () {
 			event.preventDefault();
 			$(event.target).closest("div.bucketListDiv").find(".settingsToggle").toggle();
 			if ($(event.target).closest("div.bucketListDiv").find(".settingsToggle").length == 0)
-				context.init.forceScroll("#sectionSettings");
+				context.ui.forceScroll("#sectionSettings");
 		});
 	}
 
