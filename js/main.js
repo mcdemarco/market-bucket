@@ -65,7 +65,7 @@ context.init = (function () {
 			$(".loggedIn").show('slow');
 			checkLocalStorageUser();
 		}
-		//context.tags.colorize();
+		context.ui.buttons();
 	}
 
 	function logout() {
@@ -720,7 +720,8 @@ context.tags = (function () {
 		collect: collect,
 		colorize: colorize,
 		display: display,
-		filter: filter
+		filter: filter,
+		unfilter: unfilter
 		};
 
 	//public
@@ -766,8 +767,7 @@ context.tags = (function () {
 	
 	function filter(unhashedTag) {
 		if (!unhashedTag) {
-			//Reset filtration.
-			$("#sectionLists").find("div.list-group-item").show();
+			unfilter();
 		} else {
 			//Filter further.
 			$("#sectionLists").find("div.list-group-item").each(function(index) {
@@ -776,6 +776,11 @@ context.tags = (function () {
 			});
 		}
 		context.ui.forceScroll("#sectionLists");
+	}
+	
+	function unfilter() {
+		//Reset filtration.
+		$("#sectionLists").find("div.list-group-item").show();
 	}
 
 	//private
@@ -905,6 +910,7 @@ context.ui = (function () {
 	return {
 		add: add,
 		addSetting: addSetting,
+		buttons: buttons,
 		failAlert: failAlert,
 		forceScroll: forceScroll,
 		itemTag: itemTag,
@@ -927,6 +933,16 @@ context.ui = (function () {
 			$("#addMember").show();
 			break;
 		}
+	}
+
+	function buttons() {
+		$("#addButton").click(context.item.add);
+		$("#clearButton").click(context.item.clearForm);
+		$("#list_1 span[data-type='addButton']").click(context.ui.add);
+		$("#logOutButton").click(context.init.logout);
+		$("#searchUsers").click(context.user.search);
+		$("#tagSearchClearButton").click(context.tags.unfilter);
+		//save settings needs a stop propagation?
 	}
 
 	function failAlert(msg) {
@@ -970,48 +986,6 @@ context.ui = (function () {
 })();
 
 })(marketBucket);
-
-
-
-
-
-//function updateChannels() {//manual channel repair for dev.
-	/* Delete old annotation type
-	$.appnet.channel.update(55870,{annotations:  [{ type: api.channel_type }] });
-	$.appnet.channel.update(55871,{annotations:  [{ type: api.channel_type }] });
-	$.appnet.channel.update(55872,{annotations:  [{ type: api.channel_type }] });
-	 */
-	/* add new annotation type
-	$.appnet.channel.update(55870,{annotations:  [{ type: api.annotation_type, value: {'list_type': 'now'}}]});
-	$.appnet.channel.update(55871,{annotations:  [{ type: api.annotation_type, value: {'list_type': 'later'}}]});
-	$.appnet.channel.update(55872,{annotations:  [{ type: api.annotation_type, value: {'list_type': 'archive'}}]});
-	 */
-	/* insure list groups */
-//	var promise = $.appnet.channel.update(55870,{annotations:  [{ type: api.annotation_type, value: {'list_type': 'now', 'list_group': '55870'}}]});
-//	promise.then(completeUpdateChannels,  function (response) {failAlert('Failed to create grocery channel.');});
-//	$.appnet.channel.update(55871,{annotations:  [{ type: api.annotation_type, value: {'list_type': 'later', 'list_group': '55870'}}]});
-//	$.appnet.channel.update(55872,{annotations:  [{ type: api.annotation_type, value: {'list_type': 'archive', 'list_group': '55870'}}]});
-
-/*	function completeUpdateChannels(response) {
-		//
-	}
-*/
-	/* Type refactoring.
-	$.appnet.channel.update(55870,{annotations:  [{ type: api.annotation_type, value: {'name': 'Kitchen Aids'}}]});
-	$.appnet.channel.update(55871,{annotations:  [{ type: api.annotation_type, value: {'name': 'Shared Grocery List', 'list_types': {0: {'title': 'archive', 'subtitle':'The Deep Freeze'}, 1: {'title':'now', 'subtitle':'Urgent Items'}, 2: {'title':'later'}}}},{ type: api.message_annotation_type, value: {'lists': {0:['4804034'], 2:[4860095,4807241,4804056]}}} ]});
-	$.appnet.channel.update(55872,{annotations:  [{ type: api.annotation_type, value: {'name': 'Online Shopping List'}}]});
-	 */
-	/* update just the lists lists
-	$.appnet.channel.update(55871,{annotations:  [{ type: api.message_annotation_type, value: {'lists': {0:['4804034'], 2:['4860095','4807241','4804056']}}} ]});
-	 */
-
-	/* remove old writers
-	$.appnet.channel.update(55870,{writers: {user_ids: []}});
-	$.appnet.channel.update(55871,{writers: {user_ids: []}});
-	$.appnet.channel.update(55872,{writers: {user_ids: []}});
-	 */
-//}
-
 
 
 /* eof */
