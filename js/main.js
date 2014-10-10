@@ -1,16 +1,28 @@
 //main.js for Market Bucket by @mcdemarco.
 
-//To force authorization: https://account.app.net/oauth/authorize etc.
-var authUrl = "https://account.app.net/oauth/authenticate?client_id=" + api['client_id'] + "&response_type=token&redirect_uri=" + encodeURIComponent(api.site) + "&scope=messages:" + api.channel_type;
+var marketBucket = {};
 
-var updateArgs = {include_annotations: 1};
+(function(context) { 
 
-var channelArray = {};
-var messageTextArray = {};
+	var api = {
+		client_id: 'hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr',
+		channel_type: 'net.mcdemarco.market-bucket.list',
+		annotation_type: 'net.mcdemarco.market-bucket.settings',
+		message_annotation_type: 'net.mcdemarco.market-bucket.lists',
+		max_sublists: 3,
+		message_count: 200,
+		site: 'http://market-bucket.mcdemarco.net'
+	};
 
-/* init functions */
+	//To force authorization: https://account.app.net/oauth/authorize etc.
+	var authUrl = "https://account.app.net/oauth/authenticate?client_id=" + api['client_id'] + "&response_type=token&redirect_uri=" + encodeURIComponent(api.site) + "&scope=messages:" + api.channel_type;
+	
+	var updateArgs = {include_annotations: 1};
+	
+	var channelArray = {};
+	var messageTextArray = {};
 
-var mb_init = (function () {
+context.init = (function () {
 
 	return {
 		checkLocalStorageChannel: checkLocalStorageChannel,
@@ -37,7 +49,7 @@ var mb_init = (function () {
 		//The initialization function called on document ready.
 		$("a.adn-button").attr('href',authUrl);
 		$("a.h1-link").attr('href',api.site);
-		$("a#fontBrandLink").click(function(){mb_ui.navbarSetter();});
+		$("a#fontBrandLink").click(function(){context.ui.navbarSetter();});
 		checkLocalStorage();
 		if (!api.accessToken) {
 			logout();
@@ -49,13 +61,13 @@ var mb_init = (function () {
 			logout();
 			return;
 		} else {
-			mb_ui.pushHistory(api.site);
+			context.ui.pushHistory(api.site);
 			$(".loggedOut").hide();
-			mb_channel.get();
+			context.channel.get();
 			$(".loggedIn").show('slow');
 			checkLocalStorageUser();
 		}
-		//mb_tags.colorize();
+		//context.tags.colorize();
 	}
 
 	function logout() {
@@ -78,20 +90,20 @@ var mb_init = (function () {
 	function reload(newChannel) {
 		if (api.currentChannel == newChannel) return;
 		if (!channelArray.hasOwnProperty(newChannel)) {
-			mb_ui.failAlert("Failed to change the channel.");
+			context.ui.failAlert("Failed to change the channel.");
 			return;
 		}
 		//Now we're ready to restore to an initializable state.
 		clearPage();
 		setLocalStorageChannel(newChannel);
-		mb_channel.getMessages(newChannel);
-		mb_ui.forceScroll("#sectionLists");
+		context.channel.getMessages(newChannel);
+		context.ui.forceScroll("#sectionLists");
 	}
 
 	//private
 	function clearPage() {
 		//Clear the form.
-		mb_item.clearForm();
+		context.item.clearForm();
 		$("div#itemCheckboxes label").hide();
 		//Nuke the sublists.
 		for (var i=0; i < api.max_sublists; i++) {
@@ -140,7 +152,7 @@ var mb_init = (function () {
 			catch (e) {}
 		} else {
 			var promise = $.appnet.user.get("me");
-			promise.then(setLocalStorageUser, function (response) {mb_ui.failAlert('Failed to retrieve user ID.');});
+			promise.then(setLocalStorageUser, function (response) {context.ui.failAlert('Failed to retrieve user ID.');});
 		}
 	}
 
@@ -154,9 +166,7 @@ var mb_init = (function () {
 
 })();
 
-/* channel functions */
-
-var mb_channel = (function () {
+context.channel = (function () {
 
 	return {
 		add: add,
@@ -177,7 +187,7 @@ var mb_channel = (function () {
 			}]
 		};
 		var promise1 = $.appnet.channel.create(channel);
-		promise1.then(completeCreateChannel, function (response) {mb_ui.failAlert('Failed to create new list.');});
+		promise1.then(completeCreateChannel, function (response) {context.ui.failAlert('Failed to create new list.');});
 	}
 
 	function get() {
@@ -189,7 +199,7 @@ var mb_channel = (function () {
 			type: api.channel_type
 		};
 		var promise = $.appnet.channel.search(args);
-		promise.then(completeChannels, function (response) {mb_ui.failAlert('Failed to retrieve your list(s).');}).done(mb_tags.colorize);
+		promise.then(completeChannels, function (response) {context.ui.failAlert('Failed to retrieve your list(s).');}).done(context.tags.colorize);
 	}
 
 	function getMessages(channelId) {
@@ -199,7 +209,7 @@ var mb_channel = (function () {
 			type: api.channel_type
 		};
 		var promise = $.appnet.channel.get(channelId, args);
-		promise.then(completeChannel, function (response) {mb_ui.failAlert('Failed to retrieve your list.');}).done(mb_tags.colorize);
+		promise.then(completeChannel, function (response) {context.ui.failAlert('Failed to retrieve your list.');}).done(context.tags.colorize);
 	}
 	
 	//private
@@ -231,7 +241,7 @@ var mb_channel = (function () {
 				
 				if (Object.keys(channelArray).length == 1) {
 					//This channel is first in the activity ordering and will be our default if one wasn't saved.
-					mb_init.checkLocalStorageChannel(thisChannel.id);
+					context.init.checkLocalStorageChannel(thisChannel.id);
 				}
 				
 				//Fetch more data if this is the right channel.
@@ -324,7 +334,7 @@ var mb_channel = (function () {
 			count: api.message_count
 		};
 		var promise = $.appnet.message.getChannel(thisChannel.id, args);
-		promise.then(completeMessages, function (response) {mb_ui.failAlert('Failed to retrieve items.');}).done(mb_tags.display);
+		promise.then(completeMessages, function (response) {context.ui.failAlert('Failed to retrieve items.');}).done(context.tags.display);
 	}
 	
 	function initializeButtons() {
@@ -332,7 +342,7 @@ var mb_channel = (function () {
 			event.preventDefault();
 			$(event.target).closest("div.bucketListDiv").find(".settingsToggle").toggle();
 			if ($(event.target).closest("div.bucketListDiv").find(".settingsToggle").length == 0)
-				mb_init.forceScroll("#sectionSettings");
+				context.init.forceScroll("#sectionSettings");
 		});
 	}
 
@@ -366,25 +376,25 @@ var mb_channel = (function () {
 					if (respd.user.id == api.userId) {
 						//Delete if creator and remove from queue.
 						var promise = $.appnet.message.destroy(api.currentChannel,respd.id);
-						promise.then(completeAutoDelete,  function (response) {mb_ui.failAlert('Failed to delete queued item.');});
+						promise.then(completeAutoDelete,  function (response) {context.ui.failAlert('Failed to delete queued item.');});
 					}
 					//In either case, don't display "deleted" item or retrieve its tags.
 					continue;
 				}
-				mb_item.format(respd);
-				mb_tags.collect(respd.entities.hashtags,respd.channel_id);
+				context.item.format(respd);
+				context.tags.collect(respd.entities.hashtags,respd.channel_id);
 			}
 		}
 	}
 
 	function processChannelUsers(thisChannel,annotationValue) {
 		//Owner not included in the editors list, so add separately.
-		mb_user.display(thisChannel.owner, "owner");
+		context.user.display(thisChannel.owner, "owner");
 		//User data.
 		if (thisChannel.editors.user_ids.length > 0) {
 			//Retrieve the user data.
 			var promise = $.appnet.user.getList(thisChannel.editors.user_ids);
-			promise.then(completeUsers, function (response) {mb_ui.failAlert('Failed to retrieve users.');});
+			promise.then(completeUsers, function (response) {context.ui.failAlert('Failed to retrieve users.');});
 		}
 		//Ownership hath its privileges.
 		if (thisChannel.owner.id != api.userId) {
@@ -398,16 +408,13 @@ var mb_channel = (function () {
 
 	function completeUsers(response) {
 		for (u=0; u < response.data.length; u++) {
-			mb_user.display(response.data[u],"editor");
+			context.user.display(response.data[u],"editor");
 		}
 	}
 
 })();
 
-
-/* item functions */
-
-var mb_item = (function () {
+context.item = (function () {
 
 	return {
 		add: add,
@@ -459,7 +466,7 @@ var mb_item = (function () {
 		if ($("#item_" + itemId).data("creator") == api.userId) {
 			//Creator can delete for reals
 			var promise = $.appnet.message.destroy(currentChannel,itemId);
-			promise.then(completeDelete,  function (response) {mb_ui.failAlert('Failed to delete item.');});
+			promise.then(completeDelete,  function (response) {context.ui.failAlert('Failed to delete item.');});
 		} else {
 			//Add to deleted queue
 			var updatedQueue = [];
@@ -485,7 +492,7 @@ var mb_item = (function () {
 				};
 			}
 			var promise = $.appnet.channel.update(currentChannel, channelUpdates, updateArgs);
-			promise.then(completeUpdateLists,  function (response) {mb_ui.failAlert('Failed to remove item.');});
+			promise.then(completeUpdateLists,  function (response) {context.ui.failAlert('Failed to remove item.');});
 		}
 		//In either case, remove item.
 		$("#item_" + itemId).remove();
@@ -498,7 +505,7 @@ var mb_item = (function () {
 		$("input:radio[name=bucketBucket][data-list=" + listType + "]").prop('checked', true);
 		$("button#addButton").html("Edit Item");
 		$("#editItemId").val(itemId.toString());
-		mb_ui.forceScroll("#sectionAdd");
+		context.ui.forceScroll("#sectionAdd");
 	}
 
 	function format(respd, sublist) {
@@ -529,7 +536,7 @@ var mb_item = (function () {
 			}
 			$(this).click(function(event) {
 				event.preventDefault();
-				mb_ui.itemTag($(this).data("hashtagName"));
+				context.ui.itemTag($(this).data("hashtagName"));
 			});
 		});
 		//Store the item.
@@ -564,14 +571,14 @@ var mb_item = (function () {
 	//private
 	function createItem(channel,message) {
 		if (!channel || channel == 0) {
-			mb_ui.failAlert('Failed to create item.');
+			context.ui.failAlert('Failed to create item.');
 			return;
 		}
 		var newMessage = {
 			text: message
 		};
 		var promise = $.appnet.message.create(channel, newMessage);
-		promise.then(completeItem, function (response) {mb_ui.failAlert('Failed to create item.');});
+		promise.then(completeItem, function (response) {context.ui.failAlert('Failed to create item.');});
 	}
 	
 	function completeItem(response) {
@@ -587,9 +594,9 @@ var mb_item = (function () {
 		} else {
 			format(respd);
 		}
-		mb_tags.colorize(respd.id);
+		context.tags.colorize(respd.id);
 		clearForm();
-		mb_ui.forceScroll("#sectionLists");
+		context.ui.forceScroll("#sectionLists");
 	}
 
 	function formatButtons(itemId, channelId, listType) {
@@ -599,9 +606,9 @@ var mb_item = (function () {
 			//Add the main checkbox.
 			formattedItem += "<button type='button' class='btn btn-default btn-xs' ";
 			if (!channelArray[channelId].hasOwnProperty("listTypes"))
-				formattedItem += " onclick='mb_item.deleteIt(" + itemId + ")";
+				formattedItem += " onclick='marketBucket.item.deleteIt(" + itemId + ")";
 			else
-			formattedItem += " onclick='mb_item.move(" + itemId + ",0)";
+			formattedItem += " onclick='marketBucket.item.move(" + itemId + ",0)";
 			formattedItem += "'><i class='fa fa-check'></i></button>";
 		}
 		if (channelArray[channelId].hasOwnProperty("listTypes")) {
@@ -612,14 +619,14 @@ var mb_item = (function () {
 			formattedItem += "<ul class='dropdown-menu' role='menu'>";
 			for (var li in channelArray[channelId].listTypes) {
 				if (li != listType && li != 0) 
-					formattedItem += "<li><a href='#' onclick='mb_item.move(" + itemId + "," + li + ")'><i class='fa fa-arrows'></i> Move to " + channelArray[channelId].listTypes[li].title + "</a></li>";
+					formattedItem += "<li><a href='#' onclick='marketBucket.item.move(" + itemId + "," + li + ")'><i class='fa fa-arrows'></i> Move to " + channelArray[channelId].listTypes[li].title + "</a></li>";
 			}
 			//Edit option
 			formattedItem += "<li class='divider'></li>";
-			formattedItem += "<li><a href='#' onclick='mb_item.edit(" + itemId + ")'><i class='fa fa-pencil'></i> Edit</a></li>";
+			formattedItem += "<li><a href='#' onclick='marketBucket.item.edit(" + itemId + ")'><i class='fa fa-pencil'></i> Edit</a></li>";
 			if (listType == "0") {
 				//Add the deletion option
-				formattedItem += "<li><a href='#' onclick='mb_item.deleteIt(" + itemId + ");'><i class='fa fa-times'></i> Delete</a></li>";
+				formattedItem += "<li><a href='#' onclick='marketBucket.item.deleteIt(" + itemId + ");'><i class='fa fa-times'></i> Delete</a></li>";
 			}
 			formattedItem += "</ul></div>";
 		}
@@ -645,7 +652,7 @@ var mb_item = (function () {
 			};
 		}									
 		var promise = $.appnet.channel.update(channelId, channelUpdates, updateArgs);
-		promise.then(completeUpdateLists,  function (response) {mb_ui.failAlert('Failed to move item.');});
+		promise.then(completeUpdateLists,  function (response) {context.ui.failAlert('Failed to move item.');});
 	}
 
 	function completeUpdateLists(response) {
@@ -688,7 +695,7 @@ var mb_item = (function () {
 			};
 		}
 		var promise = $.appnet.channel.update(api.currentChannel, channelUpdates, updateArgs);
-		promise.then(completeUpdateLists,  function (response) {mb_ui.failAlert('Failed to remove item.');});
+		promise.then(completeUpdateLists,  function (response) {context.ui.failAlert('Failed to remove item.');});
 	}
 
 	function completeDelete(response) {
@@ -707,9 +714,7 @@ var mb_item = (function () {
 })();
 
 
-/* tag functions */
-
-var mb_tags = (function () {
+context.tags = (function () {
 
 	return {
 		collect: collect,
@@ -754,7 +759,7 @@ var mb_tags = (function () {
 			for (var ut=0; ut < sortedArray.length; ut++) {
 				displayTag(sortedArray[ut]);
 			}
-			mb_tags.colorize();
+			context.tags.colorize();
 			$("#tagSearchRow").show();
 		}
 	}
@@ -770,13 +775,13 @@ var mb_tags = (function () {
 					$(this).hide();
 			});
 		}
-		mb_ui.forceScroll("#sectionLists");
+		context.ui.forceScroll("#sectionLists");
 	}
 
 	//private
 	function displayTag(unhashedTag) {
 		//Display tags individually as part of the tag collection process.
-		var tagString = "<button type='button' class='btn btn-default btn-sm tag' onclick='mb_ui.tagButton(this);' value='" + unhashedTag + "'>#" + unhashedTag + "</button> ";
+		var tagString = "<button type='button' class='btn btn-default btn-sm tag' onclick='marketBucket.ui.tagButton(this);' value='" + unhashedTag + "'>#" + unhashedTag + "</button> ";
 		$(".tagBucket").append(tagString);
 	}
 
@@ -802,9 +807,7 @@ var mb_tags = (function () {
 })();
 
 
-/* user functions */
-
-var mb_user = (function () {
+context.user = (function () {
 
 	return {
 		add: add,
@@ -822,7 +825,7 @@ var mb_user = (function () {
 			editors: {user_ids: newUsers} 
 		};
 		var promise = $.appnet.channel.update(currentChannel,userUpdates);
-		promise.then(completeAddUser, function (response) {mb_ui.failAlert('Addition of member failed.');});
+		promise.then(completeAddUser, function (response) {context.ui.failAlert('Addition of member failed.');});
 		
 		var userRow = $("div#searchResults div#userRow_search_" + userId).detach();
 		$("div#memberResults").append(userRow);
@@ -837,10 +840,10 @@ var mb_user = (function () {
 		resultString += "<div class='col-xs-4 col-md-5 text-left'>";
 		if (type && type=="search") {
 			//Should add a check for existing membership here.
-			resultString += "<a class='btn btn-default btn-sm' href='#userSearch' title='Add member' onclick='mb_user.add(" + result.id + ")'><i class='fa fa-plus'></i></a>";
+			resultString += "<a class='btn btn-default btn-sm' href='#userSearch' title='Add member' onclick='marketBucket.user.add(" + result.id + ")'><i class='fa fa-plus'></i></a>";
 			resultLocation = "div#searchResults";
 		} else if (!type || type != "owner") {
-			resultString += "<a class='btn btn-default btn-sm' href='#sectionSettings' title='Remove member' onclick='mb_user.remove(" + result.id + ")'><i class='fa fa-times'></i></a>";
+			resultString += "<a class='btn btn-default btn-sm' href='#sectionSettings' title='Remove member' onclick='marketBucket.user.remove(" + result.id + ")'><i class='fa fa-times'></i></a>";
 		}
 		resultString += "</div></div>";
 		$(resultLocation).append(resultString);
@@ -855,7 +858,7 @@ var mb_user = (function () {
 		$("div#searchResults").html("");
 		var searchArgs = {q: $("input#userSearch").val(), count: 10};
 		var promise = $.appnet.user.search(searchArgs);
-		promise.then(completeSearch, function (response) {mb_ui.failAlert('Search request failed.');});
+		promise.then(completeSearch, function (response) {context.ui.failAlert('Search request failed.');});
 	}
 
 	//private
@@ -874,7 +877,7 @@ var mb_user = (function () {
 				editors: {user_ids: newUsers} 
 			};
 			var promise = $.appnet.channel.update(channelInfo.channel,userUpdates);
-			promise.then(completeRemoveUser, function (response) {mb_ui.failAlert('Removal of member failed.');});
+			promise.then(completeRemoveUser, function (response) {context.ui.failAlert('Removal of member failed.');});
 		}
 	}
 
@@ -895,10 +898,9 @@ var mb_user = (function () {
 
 })();
 
-/* ui and miscellaneous functions */
 //needs cleanup
 
-var mb_ui = (function () {
+context.ui = (function () {
 
 	return {
 		add: add,
@@ -942,7 +944,7 @@ var mb_ui = (function () {
 
 	function itemTag(unhashedTag) {
 		//Clicking a tag in the lists restricts the lists to that tag.
-		mb_tags.filter(unhashedTag);
+		context.tags.filter(unhashedTag);
 	}
 	
 	function navbarSetter(hashSectionName) {
@@ -962,13 +964,18 @@ var mb_ui = (function () {
 		if ($(that).closest("form").attr("id") == "bucketItemEntry")
 			$("#item").val($("#item").val() + " #" + $(that).val());
 		else
-			mb_tags.filter($(that).val());
+			context.tags.filter($(that).val());
 	}
 	
 })();
 
+})(marketBucket);
 
-function updateChannels() {//manual channel repair for dev.
+
+
+
+
+//function updateChannels() {//manual channel repair for dev.
 	/* Delete old annotation type
 	$.appnet.channel.update(55870,{annotations:  [{ type: api.channel_type }] });
 	$.appnet.channel.update(55871,{annotations:  [{ type: api.channel_type }] });
@@ -985,10 +992,10 @@ function updateChannels() {//manual channel repair for dev.
 //	$.appnet.channel.update(55871,{annotations:  [{ type: api.annotation_type, value: {'list_type': 'later', 'list_group': '55870'}}]});
 //	$.appnet.channel.update(55872,{annotations:  [{ type: api.annotation_type, value: {'list_type': 'archive', 'list_group': '55870'}}]});
 
-	function completeUpdateChannels(response) {
+/*	function completeUpdateChannels(response) {
 		//
 	}
-
+*/
 	/* Type refactoring.
 	$.appnet.channel.update(55870,{annotations:  [{ type: api.annotation_type, value: {'name': 'Kitchen Aids'}}]});
 	$.appnet.channel.update(55871,{annotations:  [{ type: api.annotation_type, value: {'name': 'Shared Grocery List', 'list_types': {0: {'title': 'archive', 'subtitle':'The Deep Freeze'}, 1: {'title':'now', 'subtitle':'Urgent Items'}, 2: {'title':'later'}}}},{ type: api.message_annotation_type, value: {'lists': {0:['4804034'], 2:[4860095,4807241,4804056]}}} ]});
@@ -1003,7 +1010,7 @@ function updateChannels() {//manual channel repair for dev.
 	$.appnet.channel.update(55871,{writers: {user_ids: []}});
 	$.appnet.channel.update(55872,{writers: {user_ids: []}});
 	 */
-}
+//}
 
 
 
