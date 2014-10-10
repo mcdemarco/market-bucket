@@ -7,6 +7,7 @@ var api = {
 	annotation_type: 'net.mcdemarco.market-bucket.settings',
 	message_annotation_type: 'net.mcdemarco.market-bucket.lists',
 	max_sublists: 3,
-	message_count: 200
+	message_count: 200,
+	site: 'http://market-bucket.mcdemarco.net'
 };
-var site = "http://market-bucket.mcdemarco.net";
+

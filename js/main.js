@@ -1,7 +1,7 @@
 //main.js for Market Bucket by @mcdemarco.
 
 //To force authorization: https://account.app.net/oauth/authorize etc.
-var authUrl = "https://account.app.net/oauth/authenticate?client_id=" + api['client_id'] + "&response_type=token&redirect_uri=" + encodeURIComponent(site) + "&scope=messages:" + api.channel_type;
+var authUrl = "https://account.app.net/oauth/authenticate?client_id=" + api['client_id'] + "&response_type=token&redirect_uri=" + encodeURIComponent(api.site) + "&scope=messages:" + api.channel_type;
 
 var updateArgs = {include_annotations: 1};
 
@@ -12,7 +12,7 @@ var messageTextArray = {};
 
 function initialize() {
 	$("a.adn-button").attr('href',authUrl);
-	$("a.h1-link").attr('href',site);
+	$("a.h1-link").attr('href',api.site);
 	$("a#fontBrandLink").click(function(){navbarSetter();});
 	checkLocalStorage();
 	if (!api.accessToken) {
@@ -25,7 +25,7 @@ function initialize() {
 			logout();
 			return;
 	} else {
-		pushHistory(site);
+		pushHistory(api.site);
 		$(".loggedOut").hide();
 		getChannels();
 		$(".loggedIn").show('slow');
@@ -231,7 +231,7 @@ function completeMessages(response) {
 				//In either case, don't display "deleted" item or retrieve its tags.
 				continue;
 			}
-			formatItem(respd);
+			mb_item.format(respd);
 			mb_tags.collect(respd.entities.hashtags,respd.channel_id);
 		}
 	}
@@ -299,217 +299,269 @@ function clearPage() {
 
 /* item functions */
 
-function clearForm() {
-	$("textarea#item").val("");
-	$("button#addButton").html("Add Item");
-	$("#editItemId").val("");
-}
+var mb_item = (function () {
 
-function addItem() {
-	var channelId = api.currentChannel;
-	var message = $("textarea#item").val();
-	if (message == "") {
-		alert("No item text entered.");
-		return;
-	}
-	if (channelArray[channelId].hasOwnProperty("listTypes") && !$("input[name=bucketBucket]").is(":checked")) {
-		//This shouldn't be reachable anymore...
-		alert("No list selected for item.");
-		return;
-	}
-	//The edit case.
-	if ($("#editItemId").val() != "") {
-		if (message == messageTextArray) {
-			alert("Message was not changed.");
-			return;
-		} else {
-			deleteItem($("#editItemId").val());
-			//There's a clearForm() later on, but do this to be extra safe:
-			$("#editItemId").val("");
-		}
-	}
-	//Don't want the new buttons starting out of sync.
-	$(".settingsToggle").hide();
-	createItem(channelId, message);
-}
-
-function createItem(channel,message) {
-	if (!channel || channel == 0) {
-		failAlert('Failed to create item.');
-		return;
-	}
-	var newMessage = {
-		text: message
+	return {
+		add: add,
+		clearForm: clearForm,
+		deleteIt: deleteIt,
+		edit: edit,
+		format: format,
+		move: move
 	};
-	var promise = $.appnet.message.create(channel, newMessage);
-	promise.then(completeItem, function (response) {failAlert('Failed to create item.');});
-}
 
-function completeItem(response) {
-	var respd = response.data;
-
-	if (channelArray[response.data.channel_id].hasOwnProperty("listTypes")) {
-		var listType = $("input[name=bucketBucket]:checked").data("list");
-		formatItem(respd,listType);
-		if (listType != 1) {
-			//Update the sublists!
-			updateSublistOnAdd(respd.channel_id,respd.id, listType);
+	//public
+	function add() {
+		var channelId = api.currentChannel;
+		var message = $("textarea#item").val();
+		if (message == "") {
+			alert("No item text entered.");
+			return;
 		}
-	} else {
-		formatItem(respd);
-	}
-	mb_tags.colorize(respd.id);
-	clearForm();
-	forceScroll("#sectionLists");
-}
-
-function formatItem(respd, sublist) {
-	//Default (sub)list.
-	var listType = (sublist ? sublist : 1);
-	//Check for alternate sublist IF the list has official sublists and it wasn't passed in.
-	if (!sublist && channelArray[respd.channel_id].hasOwnProperty("listTypes")) {
-		for (var key in channelArray[respd.channel_id].listTypes) {
-			if (channelArray[respd.channel_id].listTypes.hasOwnProperty(key) && 
-				channelArray[respd.channel_id].lists.hasOwnProperty(key) &&
-				channelArray[respd.channel_id].lists[key].indexOf(respd.id) > -1) {
-				listType = key;
+		if (channelArray[channelId].hasOwnProperty("listTypes") && !$("input[name=bucketBucket]").is(":checked")) {
+			//This shouldn't be reachable anymore...
+			alert("No list selected for item.");
+			return;
+		}
+		//The edit case.
+		if ($("#editItemId").val() != "") {
+			if (message == messageTextArray) {
+				alert("Message was not changed.");
+				return;
+			} else {
+				deleteIt($("#editItemId").val());
+				//There's a clearForm() later on, but do this to be extra safe:
+				$("#editItemId").val("");
 			}
 		}
+		//Don't want the new buttons starting out of sync.
+		$(".settingsToggle").hide();
+		createItem(channelId, message);
 	}
 
-	var itemDate = new Date(respd.created_at);
-	var formattedItem = "<div class='list-group-item clearfix formattedItem' id='item_" + respd.id + "' data-creator='" + respd.user.id + "'>";
-	formattedItem += "<span class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + respd.user.username + "'>";
-	formattedItem += respd.html + "</span>";
-	formattedItem += formatButtons(respd.id, respd.channel_id, listType); 
-	formattedItem += "</div>";
-	$("#list_" + listType + " div.list-group").append(formattedItem);
-	//Pre-format the hashtags.
-	$("#item_" + respd.id + " span[itemprop='hashtag']").each(function(index) {
-		if (!$(this).hasClass("tag")) {
-			$(this).addClass("tag").css("padding","1px 3px").css("border-radius","3px");
+	function clearForm() {
+		$("textarea#item").val("");
+		$("button#addButton").html("Add Item");
+		$("#editItemId").val("");
+	}
+
+	function deleteIt(itemId) {
+		//On active delete, check for ownership and delete if owned or add to queue if not.
+		var currentChannel = api.currentChannel;
+		if ($("#item_" + itemId).data("creator") == api.userId) {
+			//Creator can delete for reals
+			var promise = $.appnet.message.destroy(currentChannel,itemId);
+			promise.then(completeDelete,  function (response) {failAlert('Failed to delete item.');});
+		} else {
+			//Add to deleted queue
+			var updatedQueue = [];
+			if (channelArray[currentChannel].hasOwnProperty("deletionQueue")) {
+				updatedQueue = channelArray[currentChannel].deletionQueue.slice();
+			}
+			updatedQueue.push(itemId.toString());
+			var channelUpdates = {
+				include_annotations: 1,
+				annotations:  [{
+					type: api.message_annotation_type,
+					value: {'deletion_queue': updatedQueue}
+				}]
+			};
+			if (channelArray[currentChannel].hasOwnProperty("lists")) {
+				channelUpdates = {
+					include_annotations: 1,
+					annotations:  [{
+						type: api.message_annotation_type,
+						value: {'lists': channelArray[currentChannel].lists,
+								'deletion_queue': updatedQueue}
+					}]
+				};
+			}
+			var promise = $.appnet.channel.update(currentChannel, channelUpdates, updateArgs);
+			promise.then(completeUpdateLists,  function (response) {failAlert('Failed to remove item.');});
 		}
-		$(this).click(function(event) {
-			event.preventDefault();
-			onClickItemTag($(this).data("hashtagName"));
+		//In either case, remove item.
+		$("#item_" + itemId).remove();
+	}
+
+	function edit(itemId) {
+		//Populate the form with the stored data, change the buttons, and scroll to it.
+		$("textarea#item").val(messageTextArray[itemId]);
+		var listType = $("#item_" + itemId).closest("div.bucketListDiv").data("type");
+		$("input:radio[name=bucketBucket][data-list=" + listType + "]").prop('checked', true);
+		$("button#addButton").html("Edit Item");
+		$("#editItemId").val(itemId.toString());
+		forceScroll("#sectionAdd");
+	}
+
+	function format(respd, sublist) {
+		//Default (sub)list.
+		var listType = (sublist ? sublist : 1);
+		//Check for alternate sublist IF the list has official sublists and it wasn't passed in.
+		if (!sublist && channelArray[respd.channel_id].hasOwnProperty("listTypes")) {
+			for (var key in channelArray[respd.channel_id].listTypes) {
+				if (channelArray[respd.channel_id].listTypes.hasOwnProperty(key) && 
+					channelArray[respd.channel_id].lists.hasOwnProperty(key) &&
+					channelArray[respd.channel_id].lists[key].indexOf(respd.id) > -1) {
+					listType = key;
+				}
+			}
+		}
+		
+		var itemDate = new Date(respd.created_at);
+		var formattedItem = "<div class='list-group-item clearfix formattedItem' id='item_" + respd.id + "' data-creator='" + respd.user.id + "'>";
+		formattedItem += "<span class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + respd.user.username + "'>";
+		formattedItem += respd.html + "</span>";
+		formattedItem += formatButtons(respd.id, respd.channel_id, listType); 
+		formattedItem += "</div>";
+		$("#list_" + listType + " div.list-group").append(formattedItem);
+		//Pre-format the hashtags.
+		$("#item_" + respd.id + " span[itemprop='hashtag']").each(function(index) {
+			if (!$(this).hasClass("tag")) {
+				$(this).addClass("tag").css("padding","1px 3px").css("border-radius","3px");
+			}
+			$(this).click(function(event) {
+				event.preventDefault();
+				onClickItemTag($(this).data("hashtagName"));
+			});
 		});
-	});
-	//Store the item.
-	messageTextArray[respd.id] = respd.text;
-}
+		//Store the item.
+		messageTextArray[respd.id] = respd.text;
+	}
 
-function formatButtons(itemId, channelId, listType) {
-	if (!channelId) channelId = api.currentChannel;
-	var formattedItem = "<div id='buttons_" + itemId + "' class='pull-right'>";
-	if (listType != "0") {
-		//Add the main checkbox.
-		formattedItem += "<button type='button' class='btn btn-default btn-xs' ";
-		if (!channelArray[channelId].hasOwnProperty("listTypes"))
-			formattedItem += " onclick='deleteItem(" + itemId + ")";
-		else
+	function move(itemId, targetType) {
+		var currentChannel = api.currentChannel;
+		var sourceType = $("#item_" + itemId).closest("div.bucketListDiv").data("type");
+		var updatedLists = JSON.parse(JSON.stringify(channelArray[currentChannel].lists));
+		//Movement paths: from default to non-default, from non-default to non-default, from non-default to default.
+		if (sourceType != 1) {
+			//need to debit the source list.
+			var index = updatedLists[sourceType].indexOf(itemId.toString());
+			if (index > -1) updatedLists[sourceType].splice(index, 1);
+		}
+		if (targetType != 1) {
+			//need to credit the target list
+			updatedLists[targetType].push(itemId.toString());
+		}
+		//Send to ADN.
+		updateLists(currentChannel,updatedLists);
+		//Move html.
+		$("#item_" + itemId).appendTo("div#list_" + targetType + " div.list-group");
+		//Need to update the buttons.
+		$("div#buttons_" + itemId).remove();
+		//Don't want the new buttons starting out of sync.
+		$("div#list_" + targetType + " .settingsToggle").hide();
+		$("#item_" + itemId).append(formatButtons(itemId,currentChannel,targetType));
+	}
+
+	//private
+	function create(channel,message) {
+		if (!channel || channel == 0) {
+			failAlert('Failed to create item.');
+			return;
+		}
+		var newMessage = {
+			text: message
+		};
+		var promise = $.appnet.message.create(channel, newMessage);
+		promise.then(completeItem, function (response) {failAlert('Failed to create item.');});
+	}
+	
+	function completeItem(response) {
+		var respd = response.data;
+		
+		if (channelArray[response.data.channel_id].hasOwnProperty("listTypes")) {
+			var listType = $("input[name=bucketBucket]:checked").data("list");
+			format(respd,listType);
+			if (listType != 1) {
+				//Update the sublists!
+				updateSublistOnAdd(respd.channel_id,respd.id, listType);
+			}
+		} else {
+			format(respd);
+		}
+		mb_tags.colorize(respd.id);
+		clearForm();
+		forceScroll("#sectionLists");
+	}
+
+	function formatButtons(itemId, channelId, listType) {
+		if (!channelId) channelId = api.currentChannel;
+		var formattedItem = "<div id='buttons_" + itemId + "' class='pull-right'>";
+		if (listType != "0") {
+			//Add the main checkbox.
+			formattedItem += "<button type='button' class='btn btn-default btn-xs' ";
+			if (!channelArray[channelId].hasOwnProperty("listTypes"))
+				formattedItem += " onclick='deleteItem(" + itemId + ")";
+			else
 			formattedItem += " onclick='moveItem(" + itemId + ",0)";
-		formattedItem += "'><i class='fa fa-check'></i></button>";
-	}
-	if (channelArray[channelId].hasOwnProperty("listTypes")) {
-		//Add the move options
-		formattedItem += "<div class='btn-group dropdown settingsToggle pull-right'>";
-		formattedItem += "<button type='button' class='btn btn-default btn-xs dropdown-toggle' data-toggle='dropdown'>";
-		formattedItem += "<i class='fa fa-cog'></i> <span class='caret'></span></button>";
-		formattedItem += "<ul class='dropdown-menu' role='menu'>";
-		for (var li in channelArray[channelId].listTypes) {
-			if (li != listType && li != 0) 
-				formattedItem += "<li><a href='#' onclick='moveItem(" + itemId + "," + li + ")'><i class='fa fa-arrows'></i> Move to " + channelArray[channelId].listTypes[li].title + "</a></li>";
+			formattedItem += "'><i class='fa fa-check'></i></button>";
 		}
-		//Edit option
-		formattedItem += "<li class='divider'></li>";
-		formattedItem += "<li><a href='#' onclick='editItem(" + itemId + ")'><i class='fa fa-pencil'></i> Edit</a></li>";
-		if (listType == "0") {
-			//Add the deletion option
-			formattedItem += "<li><a href='#' onclick='deleteItem(" + itemId + ");'><i class='fa fa-times'></i> Delete</a></li>";
+		if (channelArray[channelId].hasOwnProperty("listTypes")) {
+			//Add the move options
+			formattedItem += "<div class='btn-group dropdown settingsToggle pull-right'>";
+			formattedItem += "<button type='button' class='btn btn-default btn-xs dropdown-toggle' data-toggle='dropdown'>";
+			formattedItem += "<i class='fa fa-cog'></i> <span class='caret'></span></button>";
+			formattedItem += "<ul class='dropdown-menu' role='menu'>";
+			for (var li in channelArray[channelId].listTypes) {
+				if (li != listType && li != 0) 
+					formattedItem += "<li><a href='#' onclick='mb_item.move(" + itemId + "," + li + ")'><i class='fa fa-arrows'></i> Move to " + channelArray[channelId].listTypes[li].title + "</a></li>";
+			}
+			//Edit option
+			formattedItem += "<li class='divider'></li>";
+			formattedItem += "<li><a href='#' onclick='mb_item.edit(" + itemId + ")'><i class='fa fa-pencil'></i> Edit</a></li>";
+			if (listType == "0") {
+				//Add the deletion option
+				formattedItem += "<li><a href='#' onclick='mb_item.deleteIt(" + itemId + ");'><i class='fa fa-times'></i> Delete</a></li>";
+			}
+			formattedItem += "</ul></div>";
 		}
-		formattedItem += "</ul></div>";
+		formattedItem += "</div>";
+		return formattedItem;
 	}
-	formattedItem += "</div>";
-	return formattedItem;
-}
 
-
-function moveItem(itemId, targetType) {
-	var currentChannel = api.currentChannel;
-	var sourceType = $("#item_" + itemId).closest("div.bucketListDiv").data("type");
-	var updatedLists = JSON.parse(JSON.stringify(channelArray[currentChannel].lists));
-	//Movement paths: from default to non-default, from non-default to non-default, from non-default to default.
-	if (sourceType != 1) {
-		//need to debit the source list.
-		var index = updatedLists[sourceType].indexOf(itemId.toString());
-		if (index > -1) updatedLists[sourceType].splice(index, 1);
-	}
-	if (targetType != 1) {
-		//need to credit the target list
-		updatedLists[targetType].push(itemId.toString());
-	}
-	//Send to ADN.
-	updateLists(currentChannel,updatedLists);
-	//Move html.
-	$("#item_" + itemId).appendTo("div#list_" + targetType + " div.list-group");
-	//Need to update the buttons.
-	$("div#buttons_" + itemId).remove();
-	//Don't want the new buttons starting out of sync.
-	$("div#list_" + targetType + " .settingsToggle").hide();
-	$("#item_" + itemId).append(formatButtons(itemId,currentChannel,targetType));
-}	
-
-function updateLists(channelId,updatedLists) {
-	//Vacuous moves should be blocked before this point, so we just update the lists.
-	var channelUpdates = {
-		annotations:  [{
-			type: api.message_annotation_type,
-			value: {'lists': updatedLists}
-		}]
-	};
-	if (channelArray[channelId].hasOwnProperty("deletionQueue")) {
-		channelUpdates = {
+	function updateLists(channelId,updatedLists) {
+		//Vacuous moves should be blocked before this point, so we just update the lists.
+		var channelUpdates = {
 			annotations:  [{
 				type: api.message_annotation_type,
-				value: {'lists': updatedLists,
-						'deletion_queue': channelArray[channelId].deletionQueue}
+				value: {'lists': updatedLists}
 			}]
 		};
-	}									
-	var promise = $.appnet.channel.update(channelId, channelUpdates, updateArgs);
-	promise.then(completeUpdateLists,  function (response) {failAlert('Failed to move item.');});
-}
+		if (channelArray[channelId].hasOwnProperty("deletionQueue")) {
+			channelUpdates = {
+				annotations:  [{
+					type: api.message_annotation_type,
+					value: {'lists': updatedLists,
+							'deletion_queue': channelArray[channelId].deletionQueue}
+				}]
+			};
+		}									
+		var promise = $.appnet.channel.update(channelId, channelUpdates, updateArgs);
+		promise.then(completeUpdateLists,  function (response) {failAlert('Failed to move item.');});
+	}
 
-function completeUpdateLists(response) {
-	//Used for all channel sublist updates.
-	var thisChannel = response.data;
-	for (var a = 0; a < thisChannel.annotations.length; a++) {
-		if (thisChannel.annotations[a].type == api.message_annotation_type) {
-			var annotationValue = thisChannel.annotations[a].value;
+	function completeUpdateLists(response) {
+		//Used for all channel sublist updates.
+		var thisChannel = response.data;
+		for (var a = 0; a < thisChannel.annotations.length; a++) {
+			if (thisChannel.annotations[a].type == api.message_annotation_type) {
+				var annotationValue = thisChannel.annotations[a].value;
+			}
+		}
+		if (annotationValue) {
+			if (annotationValue.lists)
+				channelArray[thisChannel.id].lists = annotationValue.lists;
+			if (annotationValue.deletion_queue) 
+				channelArray[thisChannel.id].deletionQueue = annotationValue.deletion_queue;
 		}
 	}
-	if (annotationValue) {
-		if (annotationValue.lists)
-			channelArray[thisChannel.id].lists = annotationValue.lists;
-		if (annotationValue.deletion_queue) 
-			channelArray[thisChannel.id].deletionQueue = annotationValue.deletion_queue;
-	}
-}
 
-function deleteItem(itemId) {
-	//On active delete, check for ownership and delete if owned or add to queue if not.
-	var currentChannel = api.currentChannel;
-	if ($("#item_" + itemId).data("creator") == api.userId) {
-		//Creator can delete for reals
-		var promise = $.appnet.message.destroy(currentChannel,itemId);
-		promise.then(completeDelete,  function (response) {failAlert('Failed to delete item.');});
-	} else {
-		//Add to deleted queue
-		var updatedQueue = [];
-		if (channelArray[currentChannel].hasOwnProperty("deletionQueue")) {
-			updatedQueue = channelArray[currentChannel].deletionQueue.slice();
-		}
-		updatedQueue.push(itemId.toString());
+	function completeAutoDelete(response) {
+		//Clean up the deletion queue, which we know existed.
+		var updatedQueue = channelArray[response.data.channel_id].deletionQueue.slice();
+		var index = updatedQueue.indexOf(response.data.id);
+		if (index > -1) updatedQueue.splice(index, 1);
+		
 		var channelUpdates = {
 			include_annotations: 1,
 			annotations:  [{
@@ -517,93 +569,44 @@ function deleteItem(itemId) {
 				value: {'deletion_queue': updatedQueue}
 			}]
 		};
-		if (channelArray[currentChannel].hasOwnProperty("lists")) {
+		if (channelArray[response.data.channel_id].hasOwnProperty("lists")) {
 			channelUpdates = {
 				include_annotations: 1,
 				annotations:  [{
 					type: api.message_annotation_type,
-					value: {'lists': channelArray[currentChannel].lists,
+					value: {'lists': channelArray[response.data.channel_id].lists,
 							'deletion_queue': updatedQueue}
 				}]
 			};
 		}
-		var promise = $.appnet.channel.update(currentChannel, channelUpdates, updateArgs);
+		var promise = $.appnet.channel.update(api.currentChannel, channelUpdates, updateArgs);
 		promise.then(completeUpdateLists,  function (response) {failAlert('Failed to remove item.');});
 	}
-	//In either case, remove item.
-	$("#item_" + itemId).remove();
-}
 
-function editItem(itemId) {
-	//Populate the form with the stored data, change the buttons, and scroll to it.
-	$("textarea#item").val(messageTextArray[itemId]);
-	var listType = $("#item_" + itemId).closest("div.bucketListDiv").data("type");
-	$("input:radio[name=bucketBucket][data-list=" + listType + "]").prop('checked', true);
-	$("button#addButton").html("Edit Item");
-	$("#editItemId").val(itemId.toString());
-	forceScroll("#sectionAdd");
-}
-
-function completeAutoDelete(response) {
-	//Clean up the deletion queue, which we know existed.
-	var updatedQueue = channelArray[response.data.channel_id].deletionQueue.slice();
-	var index = updatedQueue.indexOf(response.data.id);
-	if (index > -1) updatedQueue.splice(index, 1);
-
-	var channelUpdates = {
-		include_annotations: 1,
-		annotations:  [{
-			type: api.message_annotation_type,
-			value: {'deletion_queue': updatedQueue}
-		}]
-	};
-	if (channelArray[response.data.channel_id].hasOwnProperty("lists")) {
-		channelUpdates = {
-			include_annotations: 1,
-			annotations:  [{
-				type: api.message_annotation_type,
-				value: {'lists': channelArray[response.data.channel_id].lists,
-						'deletion_queue': updatedQueue}
-			}]
-		};
+	function completeDelete(response) {
+		//Remove HTML item.
+		$("#item_" + response.data.id).remove();
+		//Clean up sublists?
 	}
-	var promise = $.appnet.channel.update(api.currentChannel, channelUpdates, updateArgs);
-	promise.then(completeUpdateLists,  function (response) {failAlert('Failed to remove item.');});
-}
 
-function completeDelete(response) {
-	//Remove HTML item.
-	$("#item_" + response.data.id).remove();
-	//Clean up sublists.
-	/*
-	var thisChannel = response.data;
-	for (var a = 0; a < thisChannel.annotations.length; a++) {
-		if (thisChannel.annotations[a].type == api.message_annotation_type) {
-			var annotationValue = thisChannel.annotations[a].value;
-		}
+	function updateSublistOnAdd(channelId, messageId, listType) {
+		//Called on creation after formatting, so the html is already located in the right spot. Just update the channel.
+		var updatedLists = JSON.parse(JSON.stringify(channelArray[channelId].lists));
+		updatedLists[listType].push(messageId);
+		updateLists(channelId,updatedLists);
 	}
-	if (annotationValue) {
-		channelArray[response.data.channel_id].deletionQueue = annotationValue.deletion_queue;
-		if (annotationValue.lists) 
-			channelArray[response.data.channel_id].lists = annotationValue.lists;
-	}
-	 */
-}
 
+})();
+
+//needs cleanup
 
 function onClickAdd(that) {
 	var listType = $(that).closest("div.bucketListDiv").data("type");
 	var theList = $("input:radio[name=bucketBucket][data-list=" + listType + "]").prop('checked', true);
-	//pushHistory(site + "#sectionAdd");
 	forceScroll("#sectionAdd");
 }
 
-function updateSublistOnAdd(channelId, messageId, listType) {
-	//Called on creation after formatting, so the html is already located in the right spot. Just update the channel.
-	var updatedLists = JSON.parse(JSON.stringify(channelArray[channelId].lists));
-	updatedLists[listType].push(messageId);
-	updateLists(channelId,updatedLists);
-}
+
 
 /* tag functions */
 
