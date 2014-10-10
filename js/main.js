@@ -8,7 +8,7 @@ var updateArgs = {include_annotations: 1};
 var channelArray = {};
 var messageTextArray = {};
 
-/* main execution path */
+/* init functions */
 
 function initialize() {
 	$("a.adn-button").attr('href',authUrl);
@@ -27,84 +27,142 @@ function initialize() {
 	} else {
 		pushHistory(api.site);
 		$(".loggedOut").hide();
-		getChannels();
+		mb_channel.get();
 		$(".loggedIn").show('slow');
 		checkLocalStorageUser();
 	}
 	//mb_tags.colorize();
 }
 
-function createChannel(listTypeObj) {
-	//Create a new placeholder default channel for the user.
-	//Later, allow the user to pick his list types and name, if any.
-	var channel = {
-		type: api.channel_type,
-		auto_subscribe: true,
-		annotations:  [{
-						  type: api.annotation_type,
-						  value: {'default_list': 1}
-					  }]
+function reinitialize(newChannel) {
+	if (api.currentChannel == newChannel) return;
+	if (!channelArray.hasOwnProperty(newChannel)) {
+		failAlert("Failed to change the channel.");
+		return;
+	}
+	//Now we're ready to restore to an initializable state.
+	clearPage();
+	setLocalStorageChannel(newChannel);
+	mb_channel.getMessages(newChannel);
+	forceScroll("#sectionLists");
+}
+
+function clearPage() {
+	//Clear the form.
+	clearForm();
+	$("div#itemCheckboxes label").hide();
+	//Nuke the sublists.
+	for (var i=0; i < api.max_sublists; i++) {
+		if (i != 1)
+			$("#list_" + i).remove();
+	}
+	//Clear the main list. (Assume title will be rewritten.)
+	$("#list_1 div.formattedItem").remove();
+	$("#list_1 span.subTitle").html("");
+	$("#list_1").removeClass("col-sm-offset-2").addClass("col-sm-offset-4");
+	$(".tagBucket").html("");
+	//Clear the relevant settings.
+	$("div#memberResults").html("");
+	$("div#searchResults").html("");
+	//Clear the list controls.
+	$("div#sublistControls").html("");
+	//...
+}
+
+/* channel functions */
+
+var mb_channel = (function () {
+
+	return {
+		add: add,
+		get: get,
+		getMessages: getMessages
 	};
-	var promise1 = $.appnet.channel.create(channel);
-	promise1.then(completeCreateChannel, function (response) {failAlert('Failed to create new list.');});
-}
 
-function completeCreateChannel() {
-	//console.log("channels created");
-}
-
-function getChannels() {
-	//Determine channels.
-	var args = {
-		include_annotations: 1,
-		include_inactive: 0,
-		order: 'activity',
-		type: api.channel_type
-	};
-	var promise = $.appnet.channel.search(args);
-	promise.then(completeChannels, function (response) {failAlert('Failed to retrieve your list(s).');}).done(mb_tags.colorize);
-}
-
-function completeChannels(response) {
-	if (response.data.length > 0) {
-		for (var c = 0; c < response.data.length; c++) {
-			var thisChannel = response.data[c];
-			//Not assuming we're the only annotation.
-			var annotationValue = {};
-			var annotationValue2 = {};
-			for (var a = 0; a < thisChannel.annotations.length; a++) {
-				if (thisChannel.annotations[a].type == api.annotation_type) {
-					annotationValue = thisChannel.annotations[a].value;
-				}
-				if (thisChannel.annotations[a].type == api.message_annotation_type) {
-					annotationValue2 = thisChannel.annotations[a].value;
-				}
-			}
-			//Eject if no settings annotation.
-			if (!annotationValue) continue;
-			//Eject if user can't write to channel. (unlikely)
-			// ...
-
-			processChannel(response.data[c], annotationValue, annotationValue2);
-
-			if (Object.keys(channelArray).length == 1) {
-				//This channel is first in the activity ordering and will be our default if one wasn't saved.
-				checkLocalStorageChannel(thisChannel.id);
-			}
-
-			//Fetch more data if this is the right channel.
- 			if (api.currentChannel && api.currentChannel == thisChannel.id) {
-				displayChannel(thisChannel);
-			}
-		}
-		processChannelList();
-
-	} else {
-		//Ask before creating; the user may not want them.
-		//Or make a publically writeable sandbox channel set...
-		//createChannel();
+	function add(listTypeObj) {
+		//TODO (not called)
+		//Create a new placeholder default channel for the user.
+		//Later, allow the user to pick his list types and name, if any.
+		var channel = {
+			type: api.channel_type,
+			auto_subscribe: true,
+			annotations:  [{
+				type: api.annotation_type,
+				value: {'default_list': 1}
+			}]
+		};
+		var promise1 = $.appnet.channel.create(channel);
+		promise1.then(completeCreateChannel, function (response) {failAlert('Failed to create new list.');});
 	}
 
+	function get() {
+		//Determine channels.
+		var args = {
+			include_annotations: 1,
+			include_inactive: 0,
+			order: 'activity',
+			type: api.channel_type
+		};
+		var promise = $.appnet.channel.search(args);
+		promise.then(completeChannels, function (response) {failAlert('Failed to retrieve your list(s).');}).done(mb_tags.colorize);
+	}
+
+	function getMessages(channelId) {
+		//Get a single channel with its messages.
+		var args = {
+			include_annotations: 1,
+			type: api.channel_type
+		};
+		var promise = $.appnet.channel.get(channelId, args);
+		promise.then(completeChannel, function (response) {failAlert('Failed to retrieve your list.');}).done(mb_tags.colorize);
+	}
+	
+	//private
+	function completeCreateChannel() {
+		//console.log("channels created");
+	}
+
+	function completeChannels(response) {
+		if (response.data.length > 0) {
+			for (var c = 0; c < response.data.length; c++) {
+				var thisChannel = response.data[c];
+				//Not assuming we're the only annotation.
+				var annotationValue = {};
+				var annotationValue2 = {};
+				for (var a = 0; a < thisChannel.annotations.length; a++) {
+					if (thisChannel.annotations[a].type == api.annotation_type) {
+						annotationValue = thisChannel.annotations[a].value;
+					}
+					if (thisChannel.annotations[a].type == api.message_annotation_type) {
+					annotationValue2 = thisChannel.annotations[a].value;
+					}
+				}
+				//Eject if no settings annotation.
+				if (!annotationValue) continue;
+				//Eject if user can't write to channel. (unlikely)
+				// ...
+				
+				processChannel(response.data[c], annotationValue, annotationValue2);
+				
+				if (Object.keys(channelArray).length == 1) {
+					//This channel is first in the activity ordering and will be our default if one wasn't saved.
+					checkLocalStorageChannel(thisChannel.id);
+				}
+				
+				//Fetch more data if this is the right channel.
+ 				if (api.currentChannel && api.currentChannel == thisChannel.id) {
+					displayChannel(thisChannel);
+			}
+			}
+			processChannelList();
+
+		} else {
+			//Ask before creating; the user may not want them.
+			//Or make a publically writeable sandbox channel set...
+			//createChannel();
+		}
+	}
+		
 	function processChannel(thisChannel, annotationValue, messageAnnotationValue) {
 		//Save data for every channel.
 		channelArray[thisChannel.id] = {"id" : thisChannel.id,
@@ -130,77 +188,66 @@ function completeChannels(response) {
 			}
 		} 
 	}
-}
 
-function getChannel(channelId) {
-	//Get a single channel.
-	var args = {
-		include_annotations: 1,
-		type: api.channel_type
-	};
-	var promise = $.appnet.channel.get(channelId, args);
-	promise.then(completeChannel, function (response) {failAlert('Failed to retrieve your list.');}).done(mb_tags.colorize);
-}
-
-function completeChannel(response) {
-	if (response.data)
-		displayChannel(response.data);
-}
-
-function displayChannel(thisChannel) {
-	//Users in settings panel.
-	var listTypes = (channelArray[thisChannel.id].listTypes ? channelArray[thisChannel.id].listTypes : {});
-	processChannelUsers(thisChannel);
-
-	//Process the channel name itself.
-	$("input#listGroupName").val(channelArray[thisChannel.id].name);
-
-	//Make more list holders for sublists.
-	var len = Object.keys(listTypes).length;
-	if (len > 0) {
-		//Editor for first list name.
-		editCloner(1, listTypes);
-
-		for (var i = 2; i <= len; i++) {
-			if (listTypes.hasOwnProperty(i.toString())) {
-				listCloner(i, listTypes);
-			}
-		}
-		if (listTypes.hasOwnProperty("0")) {
-			listCloner(0, listTypes);
-		}
-		//Need to retitle the main list.
-		listNamer(1, listTypes);
-
-		//Layout adjustment for the big screen.
-		$("div#list_1").removeClass("col-sm-offset-4");
-		if (len == 2) $("div#list_1").addClass("col-sm-offset-2");
-		if (len == 4) $("div#list_0").addClass("col-sm-offset-4");
-		
-	} else {
-
-		//Name main list after list group.
-		$("div#list_1 span.mainTitle").html(channelArray[thisChannel.id].name);
-
+	function completeChannel(response) {
+		if (response.data)
+			displayChannel(response.data);
 	}
-	//Button activation
-	initializeButtons();
 
-	//Retrieve the messages.
-	var args = {
-		include_deleted: 0,
-		count: api.message_count
-	};
-	var promise = $.appnet.message.getChannel(thisChannel.id, args);
-	promise.then(completeMessages, function (response) {failAlert('Failed to retrieve items.');}).done(mb_tags.display);
-
-
+	function displayChannel(thisChannel) {
+		//Users in settings panel.
+		var listTypes = (channelArray[thisChannel.id].listTypes ? channelArray[thisChannel.id].listTypes : {});
+		processChannelUsers(thisChannel);
+		
+		//Process the channel name itself.
+		$("input#listGroupName").val(channelArray[thisChannel.id].name);
+		
+		//Make more list holders for sublists.
+		var len = Object.keys(listTypes).length;
+		if (len > 0) {
+			//Editor for first list name.
+			editCloner(1, listTypes);
+			
+			for (var i = 2; i <= len; i++) {
+				if (listTypes.hasOwnProperty(i.toString())) {
+					listCloner(i, listTypes);
+				}
+			}
+			if (listTypes.hasOwnProperty("0")) {
+				listCloner(0, listTypes);
+			}
+			//Need to retitle the main list.
+			listNamer(1, listTypes);
+			
+			//Layout adjustment for the big screen.
+			$("div#list_1").removeClass("col-sm-offset-4");
+			if (len == 2) $("div#list_1").addClass("col-sm-offset-2");
+			if (len == 4) $("div#list_0").addClass("col-sm-offset-4");
+			
+		} else {
+			
+			//Name main list after list group.
+			$("div#list_1 span.mainTitle").html(channelArray[thisChannel.id].name);
+			
+		}
+		//Button activation
+		initializeButtons();
+		
+		//Retrieve the messages.
+		var args = {
+			include_deleted: 0,
+			count: api.message_count
+		};
+		var promise = $.appnet.message.getChannel(thisChannel.id, args);
+		promise.then(completeMessages, function (response) {failAlert('Failed to retrieve items.');}).done(mb_tags.display);
+	}
+		
 	function listCloner(index, listTypesObj) {
 		$("div#list_1").clone().attr("id","list_" + index).data("type",index).appendTo("div#bucketListHolder").removeClass("col-sm-offset-4");
 		listNamer(index, listTypesObj);
 		editCloner(index, listTypesObj);
 	}
-
+		
 	function editCloner(index, listTypesObj) {
 		$("#sublistControls").append("<div class='form-group listControl'><div class='col-xs-4 text-right'><label class='control-label' for='sublistEdit_" + index + "'>" + (index == 0 ? "Archive" : "List " + index) + ":</label></div><div class='col-xs-3'><input type='text' id='sublistEdit_" + index + "' class='form-control' value='" + listTypesObj[index.toString()].title + "' /></div><div class='col-xs-4'><input type='text' id='sublistSubtitle_" + index + "' class='form-control' value='" + (listTypesObj[index.toString()].subtitle ? listTypesObj[index.toString()].subtitle : "") + "' /></div></div>");
 	}
@@ -214,88 +261,55 @@ function displayChannel(thisChannel) {
 			$("div#list_" + index + " span.subTitle").html(listTypesObj[index.toString()].subtitle);
 		}
 	}
-}
 
-function completeMessages(response) {
-	//Populate the UI for an individual retrieved list.
-	if (response.data.length > 0) {
-		for (var i=0; i < response.data.length; i++) {
-			var respd = response.data[i];
-			//Mock deletion check.
-			if (channelArray[respd.channel_id].hasOwnProperty("deletionQueue") && channelArray[respd.channel_id].deletionQueue.indexOf(respd.id) > -1) {
-				if (respd.user.id == api.userId) {
-					//Delete if creator and remove from queue.
-					var promise = $.appnet.message.destroy(api.currentChannel,respd.id);
-					promise.then(completeAutoDelete,  function (response) {failAlert('Failed to delete queued item.');});
+	function completeMessages(response) {
+		//Populate the UI for an individual retrieved list.
+		if (response.data.length > 0) {
+			for (var i=0; i < response.data.length; i++) {
+				var respd = response.data[i];
+				//Mock deletion check.
+				if (channelArray[respd.channel_id].hasOwnProperty("deletionQueue") && channelArray[respd.channel_id].deletionQueue.indexOf(respd.id) > -1) {
+					if (respd.user.id == api.userId) {
+						//Delete if creator and remove from queue.
+						var promise = $.appnet.message.destroy(api.currentChannel,respd.id);
+						promise.then(completeAutoDelete,  function (response) {failAlert('Failed to delete queued item.');});
+					}
+					//In either case, don't display "deleted" item or retrieve its tags.
+					continue;
 				}
-				//In either case, don't display "deleted" item or retrieve its tags.
-				continue;
+				mb_item.format(respd);
+				mb_tags.collect(respd.entities.hashtags,respd.channel_id);
 			}
-			mb_item.format(respd);
-			mb_tags.collect(respd.entities.hashtags,respd.channel_id);
 		}
 	}
-}
 
-function processChannelUsers(thisChannel,annotationValue) {
-	//Owner not included in the editors list, so add separately.
-	mb_user.display(thisChannel.owner, "owner");
-	//User data.
-	if (thisChannel.editors.user_ids.length > 0) {
-		//Retrieve the user data.
-		var promise = $.appnet.user.getList(thisChannel.editors.user_ids);
-		promise.then(completeUsers, function (response) {failAlert('Failed to retrieve users.');});
+	function processChannelUsers(thisChannel,annotationValue) {
+		//Owner not included in the editors list, so add separately.
+		mb_user.display(thisChannel.owner, "owner");
+		//User data.
+		if (thisChannel.editors.user_ids.length > 0) {
+			//Retrieve the user data.
+			var promise = $.appnet.user.getList(thisChannel.editors.user_ids);
+			promise.then(completeUsers, function (response) {failAlert('Failed to retrieve users.');});
+		}
+		//Ownership hath its privileges.
+		if (thisChannel.owner.id != api.userId) {
+			//There's nothing in this category right now, but deleting the list would qualify.
+			$(".listOwner").hide();
+		} else {
+			//For list switching.
+			$("form#settingsForm a.btn").show();
+		}
 	}
-	//Ownership hath its privileges.
-	if (thisChannel.owner.id != api.userId) {
-		//There's nothing in this category right now, but deleting the list would qualify.
-		$(".listOwner").hide();
-	} else {
-		//For list switching.
-		$("form#settingsForm a.btn").show();
-	}
-}
 
-function completeUsers(response) {
-	for (u=0; u < response.data.length; u++) {
-		mb_user.display(response.data[u],"editor");
+	function completeUsers(response) {
+		for (u=0; u < response.data.length; u++) {
+			mb_user.display(response.data[u],"editor");
+		}
 	}
-}
 
-function reinitialize(newChannel) {
-	if (api.currentChannel == newChannel) return;
-	if (!channelArray.hasOwnProperty(newChannel)) {
-		failAlert("Failed to change the channel.");
-		return;
-	}
-	//Now we're ready to restore to an initializable state.
-	clearPage();
-	setLocalStorageChannel(newChannel);
-	getChannel(newChannel);
-	forceScroll("#sectionLists");
-}
+})();
 
-function clearPage() {
-	//Clear the form.
-	clearForm();
-	$("div#itemCheckboxes label").hide();
-	//Nuke the sublists.
-	for (var i=0; i < api.max_sublists; i++) {
-		if (i != 1)
-			$("#list_" + i).remove();
-	}
-	//Clear the main list. (Assume title will be rewritten.)
-	$("#list_1 div.formattedItem").remove();
-	$("#list_1 span.subTitle").html("");
-	$("#list_1").removeClass("col-sm-offset-2").addClass("col-sm-offset-4");
-	$(".tagBucket").html("");
-	//Clear the relevant settings.
-	$("div#memberResults").html("");
-	$("div#searchResults").html("");
-	//Clear the list controls.
-	$("div#sublistControls").html("");
-	//...
-}
 
 /* item functions */
 
@@ -454,7 +468,7 @@ var mb_item = (function () {
 	}
 
 	//private
-	function create(channel,message) {
+	function createItem(channel,message) {
 		if (!channel || channel == 0) {
 			failAlert('Failed to create item.');
 			return;
