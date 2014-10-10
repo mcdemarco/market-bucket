@@ -14,11 +14,6 @@ var marketBucket = {};
 		site: 'http://market-bucket.mcdemarco.net'
 	};
 
-	//To force authorization: https://account.app.net/oauth/authorize etc.
-	var authUrl = "https://account.app.net/oauth/authenticate?client_id=" + api['client_id'] + "&response_type=token&redirect_uri=" + encodeURIComponent(api.site) + "&scope=messages:" + api.channel_type;
-	
-	var updateArgs = {include_annotations: 1};
-	
 	var channelArray = {};
 	var messageTextArray = {};
 
@@ -47,6 +42,9 @@ context.init = (function () {
 
 	function load() {
 		//The initialization function called on document ready.
+		var authUrl = "https://account.app.net/oauth/authenticate?client_id=" + api['client_id'] + "&response_type=token&redirect_uri=" + encodeURIComponent(api.site) + "&scope=messages:" + api.channel_type;
+
+
 		$("a.adn-button").attr('href',authUrl);
 		$("a.h1-link").attr('href',api.site);
 		$("a#fontBrandLink").click(function(){context.ui.navbarSetter();});
@@ -425,6 +423,8 @@ context.item = (function () {
 		move: move
 	};
 
+	var updateArgs = {include_annotations: 1};
+	
 	//public
 	function add() {
 		var channelId = api.currentChannel;
