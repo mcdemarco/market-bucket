@@ -31,7 +31,7 @@ function initialize() {
 		$(".loggedIn").show('slow');
 		checkLocalStorageUser();
 	}
-	//colorizeTags();
+	//mb_tags.colorize();
 }
 
 function createChannel(listTypeObj) {
@@ -62,7 +62,7 @@ function getChannels() {
 		type: api.channel_type
 	};
 	var promise = $.appnet.channel.search(args);
-	promise.then(completeChannels, function (response) {failAlert('Failed to retrieve your list(s).');}).done(colorizeTags);
+	promise.then(completeChannels, function (response) {failAlert('Failed to retrieve your list(s).');}).done(mb_tags.colorize);
 }
 
 function completeChannels(response) {
@@ -139,7 +139,7 @@ function getChannel(channelId) {
 		type: api.channel_type
 	};
 	var promise = $.appnet.channel.get(channelId, args);
-	promise.then(completeChannel, function (response) {failAlert('Failed to retrieve your list.');}).done(colorizeTags);
+	promise.then(completeChannel, function (response) {failAlert('Failed to retrieve your list.');}).done(mb_tags.colorize);
 }
 
 function completeChannel(response) {
@@ -192,7 +192,7 @@ function displayChannel(thisChannel) {
 		count: api.message_count
 	};
 	var promise = $.appnet.message.getChannel(thisChannel.id, args);
-	promise.then(completeMessages, function (response) {failAlert('Failed to retrieve items.');}).done(displayTags);
+	promise.then(completeMessages, function (response) {failAlert('Failed to retrieve items.');}).done(mb_tags.display);
 
 
 	function listCloner(index, listTypesObj) {
@@ -232,7 +232,7 @@ function completeMessages(response) {
 				continue;
 			}
 			formatItem(respd);
-			collectTags(respd.entities.hashtags,respd.channel_id);
+			mb_tags.collect(respd.entities.hashtags,respd.channel_id);
 		}
 	}
 }
@@ -358,7 +358,7 @@ function completeItem(response) {
 	} else {
 		formatItem(respd);
 	}
-	colorizeTags(respd.id);
+	mb_tags.colorize(respd.id);
 	clearForm();
 	forceScroll("#sectionLists");
 }
@@ -607,88 +607,103 @@ function updateSublistOnAdd(channelId, messageId, listType) {
 
 /* tag functions */
 
-function collectTags(currentTags,channelId) {
-	//Populate the tag list with unique tags.
-	var tag;
-	if (!channelArray[channelId].hasOwnProperty("tagArray")) channelArray[channelId].tagArray = [];
-	for (var t=0; t < currentTags.length; t++) {
-		tag = currentTags[t].name;
-		if (channelArray[channelId].tagArray.indexOf(tag) < 0) {
-			channelArray[channelId].tagArray.push(tag);
+var mb_tags = (function () {
+
+	return {
+		collect: collect,
+		colorize: colorize,
+		display: display,
+		filter: filter
+		};
+
+	//public
+
+	function collect(currentTags,channelId) {
+		//Populate the tag list with unique tags.
+		var tag;
+		if (!channelArray[channelId].hasOwnProperty("tagArray")) channelArray[channelId].tagArray = [];
+		for (var t=0; t < currentTags.length; t++) {
+			tag = currentTags[t].name;
+			if (channelArray[channelId].tagArray.indexOf(tag) < 0) {
+				channelArray[channelId].tagArray.push(tag);
+			}
 		}
 	}
-}
 
-function colorizeTags(itemId) {
-	var selector = (itemId ? "#item_" + itemId + " .tag" : ".tag"); 
-	$(selector).each(function(index) {
-		if (!$(this).hasClass("colorized")) {
-			var thisColor = getColor($(this).html().toLowerCase());
-			$(this).css("background-color", thisColor).css("border-color", thisColor).css("color", getContrastYIQ(thisColor.substring(1,7))).addClass("colorized");
-		}
-	});
-}
-
-function displayTags(channelId) {
-	if (!channelId) 
-		channelId = api.currentChannel;
-	//Display unique tags.
-	if (channelArray[channelId].tagArray.length == 0) {
-		$("#tagSearchRow").hide();
-	} else {
-		//Note this sorts the original array.
-		var sortedArray = channelArray[channelId].tagArray.sort();
-		for (var ut=0; ut < sortedArray.length; ut++) {
-			displayTag(sortedArray[ut]);
-		}
-		colorizeTags();
-		$("#tagSearchRow").show();
-	}
-}
-
-function displayTag(unhashedTag) {
-	//Display tags individually as part of the tag collection process.
-	var tagString = "<button type='button' class='btn btn-default btn-sm tag' onclick='onClickTagButton(this);' value='" + unhashedTag + "'>#" + unhashedTag + "</button> ";
-	$(".tagBucket").append(tagString);
-}
-
-function filterListsByTag(unhashedTag) {
-	if (!unhashedTag) {
-		//Reset filtration.
-		$("#sectionLists").find("div.list-group-item").show();
-	} else {
-		//Filter further.
-		$("#sectionLists").find("div.list-group-item").each(function(index) {
-			if ($(this).find("span[data-hashtag-name='" + unhashedTag + "']").length == 0 && (!$(this).hasClass("active")))
-				$(this).hide();
+	function colorize(itemId) {
+		var selector = (itemId ? "#item_" + itemId + " .tag" : ".tag"); 
+		$(selector).each(function(index) {
+			if (!$(this).hasClass("colorized")) {
+				var thisColor = getColor($(this).html().toLowerCase());
+				$(this).css("background-color", thisColor).css("border-color", thisColor).css("color", getContrastYIQ(thisColor.substring(1,7))).addClass("colorized");
+			}
 		});
 	}
-	forceScroll("#sectionLists");
-}
 
-function getColor(str) {
-	//Get a random color from the tag text.
-	for (var i = 0, hash = 0; i < str.length; hash = str.charCodeAt(i++) + ((hash << 5) - hash));
-	color = Math.floor(Math.abs((Math.sin(hash) * 10000) % 1 * 16777216)).toString(16);
-	var paddedColor = '#' + Array(6 - color.length + 1).join('0') + color;
-    // mix the color with white (255, 255, 255) or our green 229, 245, 222 a la
-	// http://stackoverflow.com/questions/43044/algorithm-to-randomly-generate-an-aesthetically-pleasing-color-palette
-	var pastelColor = "#" + Math.floor((parseInt(paddedColor.substring(1,3), 16) + 229)/2).toString(16) + Math.floor((parseInt(paddedColor.substring(3,5), 16) + 245)/2).toString(16) + Math.floor((parseInt(paddedColor.substring(5,7), 16) + 222)/2).toString(16);
-	return pastelColor;
-}
+	function display(channelId) {
+		if (!channelId) 
+			channelId = api.currentChannel;
+		//Display unique tags.
+		if (channelArray[channelId].tagArray.length == 0) {
+			$("#tagSearchRow").hide();
+		} else {
+			//Note this sorts the original array.
+			var sortedArray = channelArray[channelId].tagArray.sort();
+			for (var ut=0; ut < sortedArray.length; ut++) {
+				displayTag(sortedArray[ut]);
+			}
+			mb_tags.colorize();
+			$("#tagSearchRow").show();
+		}
+	}
+	
+	function filter(unhashedTag) {
+		if (!unhashedTag) {
+			//Reset filtration.
+			$("#sectionLists").find("div.list-group-item").show();
+		} else {
+			//Filter further.
+			$("#sectionLists").find("div.list-group-item").each(function(index) {
+				if ($(this).find("span[data-hashtag-name='" + unhashedTag + "']").length == 0 && (!$(this).hasClass("active")))
+					$(this).hide();
+			});
+		}
+		forceScroll("#sectionLists");
+	}
 
-function getContrastYIQ(hexcolor){
-	//Get the contrast color for user-defined tag colors using the YIQ formula.
-	var r = parseInt(hexcolor.substr(0,2),16);
-	var g = parseInt(hexcolor.substr(2,2),16);
-	var b = parseInt(hexcolor.substr(4,2),16);
-	var yiq = ((r*299)+(g*587)+(b*114))/1000;
-	return (yiq >= 128) ? 'black' : 'white';
-}
+	//private
+	function displayTag(unhashedTag) {
+		//Display tags individually as part of the tag collection process.
+		var tagString = "<button type='button' class='btn btn-default btn-sm tag' onclick='onClickTagButton(this);' value='" + unhashedTag + "'>#" + unhashedTag + "</button> ";
+		$(".tagBucket").append(tagString);
+	}
+
+	function getColor(str) {
+		//Get a random color from the tag text.
+		for (var i = 0, hash = 0; i < str.length; hash = str.charCodeAt(i++) + ((hash << 5) - hash));
+		color = Math.floor(Math.abs((Math.sin(hash) * 10000) % 1 * 16777216)).toString(16);
+		var paddedColor = '#' + Array(6 - color.length + 1).join('0') + color;
+		// mix the color with white (255, 255, 255) or our green 229, 245, 222 a la
+		// http://stackoverflow.com/questions/43044/algorithm-to-randomly-generate-an-aesthetically-pleasing-color-palette
+		var pastelColor = "#" + Math.floor((parseInt(paddedColor.substring(1,3), 16) + 229)/2).toString(16) + Math.floor((parseInt(paddedColor.substring(3,5), 16) + 245)/2).toString(16) + Math.floor((parseInt(paddedColor.substring(5,7), 16) + 222)/2).toString(16);
+		return pastelColor;
+	}
+	
+	function getContrastYIQ(hexcolor){
+		//Get the contrast color for user-defined tag colors using the YIQ formula.
+		var r = parseInt(hexcolor.substr(0,2),16);
+		var g = parseInt(hexcolor.substr(2,2),16);
+		var b = parseInt(hexcolor.substr(4,2),16);
+		var yiq = ((r*299)+(g*587)+(b*114))/1000;
+		return (yiq >= 128) ? 'black' : 'white';
+	}
+})();
+
+//needs cleanup
 
 function onClickItemTag(unhashedTag) {
 	//Clicking a tag in the lists restricts the lists to that tag.
-	filterListsByTag(unhashedTag);
+	mb_tags.filter(unhashedTag);
 }
 
 function onClickTagButton(that) {
@@ -696,7 +711,7 @@ function onClickTagButton(that) {
 	if ($(that).closest("form").attr("id") == "bucketItemEntry")
 		$("#item").val($("#item").val() + " #" + $(that).val());
 	else
-		filterListsByTag($(that).val());
+		mb_tags.filter($(that).val());
 }
 
 
