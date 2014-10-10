@@ -10,64 +10,149 @@ var messageTextArray = {};
 
 /* init functions */
 
-function initialize() {
-	$("a.adn-button").attr('href',authUrl);
-	$("a.h1-link").attr('href',api.site);
-	$("a#fontBrandLink").click(function(){navbarSetter();});
-	checkLocalStorage();
-	if (!api.accessToken) {
-		logout();
-		return;
+var mb_init = (function () {
+
+	return {
+		checkLocalStorageChannel: checkLocalStorageChannel,
+		load: load,
+		logout: logout,
+		reload: reload
+	};
+
+	function checkLocalStorageChannel(defaultChannel) {
+		if (localStorage && localStorage["currentChannel"]) {
+			//Retrieve the current channel.
+			try {api.currentChannel = localStorage["currentChannel"];} 
+			catch (e) {}
+		} else {
+			api.currentChannel = defaultChannel;
+			if (api.currentChannel && localStorage) {
+				try {localStorage["currentChannel"] = api.currentChannel;}
+				catch (e) {}
+			}
+		}
 	}
-	$.appnet.authorize(api.accessToken,api.client_id);
-	if (!$.appnet.token.get()) {
+
+	function load() {
+		//The initialization function called on document ready.
+		$("a.adn-button").attr('href',authUrl);
+		$("a.h1-link").attr('href',api.site);
+		$("a#fontBrandLink").click(function(){mb_ui.navbarSetter();});
+		checkLocalStorage();
+		if (!api.accessToken) {
+			logout();
+			return;
+		}
+		$.appnet.authorize(api.accessToken,api.client_id);
+		if (!$.appnet.token.get()) {
 			api.accessToken = '';
 			logout();
 			return;
-	} else {
-		pushHistory(api.site);
-		$(".loggedOut").hide();
-		mb_channel.get();
-		$(".loggedIn").show('slow');
-		checkLocalStorageUser();
+		} else {
+			mb_ui.pushHistory(api.site);
+			$(".loggedOut").hide();
+			mb_channel.get();
+			$(".loggedIn").show('slow');
+			checkLocalStorageUser();
+		}
+		//mb_tags.colorize();
 	}
-	//mb_tags.colorize();
-}
 
-function reinitialize(newChannel) {
-	if (api.currentChannel == newChannel) return;
-	if (!channelArray.hasOwnProperty(newChannel)) {
-		failAlert("Failed to change the channel.");
-		return;
+	function logout() {
+		//Erase token and lists.
+		api.accessToken = '';
+		if (localStorage) {
+			try {
+				localStorage.removeItem("accessToken");
+			} catch (e) {}
+		}
+		
+		$(".loggedIn").hide();
+		$(".loggedOut").show();
+		//Clear the lists.
+		clearPage();
+		//Erase the channel array.
+		//...
 	}
-	//Now we're ready to restore to an initializable state.
-	clearPage();
-	setLocalStorageChannel(newChannel);
-	mb_channel.getMessages(newChannel);
-	forceScroll("#sectionLists");
-}
 
-function clearPage() {
-	//Clear the form.
-	clearForm();
-	$("div#itemCheckboxes label").hide();
-	//Nuke the sublists.
-	for (var i=0; i < api.max_sublists; i++) {
-		if (i != 1)
-			$("#list_" + i).remove();
+	function reload(newChannel) {
+		if (api.currentChannel == newChannel) return;
+		if (!channelArray.hasOwnProperty(newChannel)) {
+			mb_ui.failAlert("Failed to change the channel.");
+			return;
+		}
+		//Now we're ready to restore to an initializable state.
+		clearPage();
+		setLocalStorageChannel(newChannel);
+		mb_channel.getMessages(newChannel);
+		mb_ui.forceScroll("#sectionLists");
 	}
-	//Clear the main list. (Assume title will be rewritten.)
-	$("#list_1 div.formattedItem").remove();
-	$("#list_1 span.subTitle").html("");
-	$("#list_1").removeClass("col-sm-offset-2").addClass("col-sm-offset-4");
-	$(".tagBucket").html("");
-	//Clear the relevant settings.
-	$("div#memberResults").html("");
-	$("div#searchResults").html("");
-	//Clear the list controls.
-	$("div#sublistControls").html("");
-	//...
-}
+
+	//private
+	function clearPage() {
+		//Clear the form.
+		mb_item.clearForm();
+		$("div#itemCheckboxes label").hide();
+		//Nuke the sublists.
+		for (var i=0; i < api.max_sublists; i++) {
+			if (i != 1)
+				$("#list_" + i).remove();
+		}
+		//Clear the main list. (Assume title will be rewritten.)
+		$("#list_1 div.formattedItem").remove();
+		$("#list_1 span.subTitle").html("");
+		$("#list_1").removeClass("col-sm-offset-2").addClass("col-sm-offset-4");
+		$(".tagBucket").html("");
+		//Clear the relevant settings.
+		$("div#memberResults").html("");
+		$("div#searchResults").html("");
+		//Clear the list controls.
+		$("div#sublistControls").html("");
+		//...
+	}
+
+	function checkLocalStorage() {
+		if (localStorage && localStorage["accessToken"]) {
+			//Retrieve the access token.
+			try {api.accessToken = localStorage["accessToken"];} 
+			catch (e) {}
+		} else {
+			api.accessToken = window.location.hash.split("access_token=")[1];
+			if (api.accessToken && localStorage) {
+				try {localStorage["accessToken"] = api.accessToken;} 
+				catch (e) {}
+			}
+		}
+	}
+	
+	function setLocalStorageChannel(newChannel) {
+		api.currentChannel = newChannel;
+		if (api.currentChannel && localStorage) {
+			//Set the new channel.
+			try {localStorage["currentChannel"] = api.currentChannel;}
+			catch (e) {}
+		}
+	}
+
+	function checkLocalStorageUser() {
+		if (localStorage && localStorage["userId"]) {
+			try {api.userId = localStorage["userId"];} 
+			catch (e) {}
+		} else {
+			var promise = $.appnet.user.get("me");
+			promise.then(setLocalStorageUser, function (response) {mb_ui.failAlert('Failed to retrieve user ID.');});
+		}
+	}
+
+	function setLocalStorageUser(response) {
+		api.userId = response.data.id;
+		if (api.userId && localStorage) {
+			try {localStorage["userId"] = api.userId;} 
+			catch (e) {}
+		}
+	}
+
+})();
 
 /* channel functions */
 
@@ -92,7 +177,7 @@ var mb_channel = (function () {
 			}]
 		};
 		var promise1 = $.appnet.channel.create(channel);
-		promise1.then(completeCreateChannel, function (response) {failAlert('Failed to create new list.');});
+		promise1.then(completeCreateChannel, function (response) {mb_ui.failAlert('Failed to create new list.');});
 	}
 
 	function get() {
@@ -104,7 +189,7 @@ var mb_channel = (function () {
 			type: api.channel_type
 		};
 		var promise = $.appnet.channel.search(args);
-		promise.then(completeChannels, function (response) {failAlert('Failed to retrieve your list(s).');}).done(mb_tags.colorize);
+		promise.then(completeChannels, function (response) {mb_ui.failAlert('Failed to retrieve your list(s).');}).done(mb_tags.colorize);
 	}
 
 	function getMessages(channelId) {
@@ -114,7 +199,7 @@ var mb_channel = (function () {
 			type: api.channel_type
 		};
 		var promise = $.appnet.channel.get(channelId, args);
-		promise.then(completeChannel, function (response) {failAlert('Failed to retrieve your list.');}).done(mb_tags.colorize);
+		promise.then(completeChannel, function (response) {mb_ui.failAlert('Failed to retrieve your list.');}).done(mb_tags.colorize);
 	}
 	
 	//private
@@ -146,7 +231,7 @@ var mb_channel = (function () {
 				
 				if (Object.keys(channelArray).length == 1) {
 					//This channel is first in the activity ordering and will be our default if one wasn't saved.
-					checkLocalStorageChannel(thisChannel.id);
+					mb_init.checkLocalStorageChannel(thisChannel.id);
 				}
 				
 				//Fetch more data if this is the right channel.
@@ -239,9 +324,18 @@ var mb_channel = (function () {
 			count: api.message_count
 		};
 		var promise = $.appnet.message.getChannel(thisChannel.id, args);
-		promise.then(completeMessages, function (response) {failAlert('Failed to retrieve items.');}).done(mb_tags.display);
+		promise.then(completeMessages, function (response) {mb_ui.failAlert('Failed to retrieve items.');}).done(mb_tags.display);
 	}
-		
+	
+	function initializeButtons() {
+		$("span.settingsButton").click(function (event) {
+			event.preventDefault();
+			$(event.target).closest("div.bucketListDiv").find(".settingsToggle").toggle();
+			if ($(event.target).closest("div.bucketListDiv").find(".settingsToggle").length == 0)
+				mb_init.forceScroll("#sectionSettings");
+		});
+	}
+
 	function listCloner(index, listTypesObj) {
 		$("div#list_1").clone().attr("id","list_" + index).data("type",index).appendTo("div#bucketListHolder").removeClass("col-sm-offset-4");
 		listNamer(index, listTypesObj);
@@ -272,7 +366,7 @@ var mb_channel = (function () {
 					if (respd.user.id == api.userId) {
 						//Delete if creator and remove from queue.
 						var promise = $.appnet.message.destroy(api.currentChannel,respd.id);
-						promise.then(completeAutoDelete,  function (response) {failAlert('Failed to delete queued item.');});
+						promise.then(completeAutoDelete,  function (response) {mb_ui.failAlert('Failed to delete queued item.');});
 					}
 					//In either case, don't display "deleted" item or retrieve its tags.
 					continue;
@@ -290,7 +384,7 @@ var mb_channel = (function () {
 		if (thisChannel.editors.user_ids.length > 0) {
 			//Retrieve the user data.
 			var promise = $.appnet.user.getList(thisChannel.editors.user_ids);
-			promise.then(completeUsers, function (response) {failAlert('Failed to retrieve users.');});
+			promise.then(completeUsers, function (response) {mb_ui.failAlert('Failed to retrieve users.');});
 		}
 		//Ownership hath its privileges.
 		if (thisChannel.owner.id != api.userId) {
@@ -365,7 +459,7 @@ var mb_item = (function () {
 		if ($("#item_" + itemId).data("creator") == api.userId) {
 			//Creator can delete for reals
 			var promise = $.appnet.message.destroy(currentChannel,itemId);
-			promise.then(completeDelete,  function (response) {failAlert('Failed to delete item.');});
+			promise.then(completeDelete,  function (response) {mb_ui.failAlert('Failed to delete item.');});
 		} else {
 			//Add to deleted queue
 			var updatedQueue = [];
@@ -391,7 +485,7 @@ var mb_item = (function () {
 				};
 			}
 			var promise = $.appnet.channel.update(currentChannel, channelUpdates, updateArgs);
-			promise.then(completeUpdateLists,  function (response) {failAlert('Failed to remove item.');});
+			promise.then(completeUpdateLists,  function (response) {mb_ui.failAlert('Failed to remove item.');});
 		}
 		//In either case, remove item.
 		$("#item_" + itemId).remove();
@@ -404,7 +498,7 @@ var mb_item = (function () {
 		$("input:radio[name=bucketBucket][data-list=" + listType + "]").prop('checked', true);
 		$("button#addButton").html("Edit Item");
 		$("#editItemId").val(itemId.toString());
-		forceScroll("#sectionAdd");
+		mb_ui.forceScroll("#sectionAdd");
 	}
 
 	function format(respd, sublist) {
@@ -435,7 +529,7 @@ var mb_item = (function () {
 			}
 			$(this).click(function(event) {
 				event.preventDefault();
-				onClickItemTag($(this).data("hashtagName"));
+				mb_ui.itemTag($(this).data("hashtagName"));
 			});
 		});
 		//Store the item.
@@ -470,14 +564,14 @@ var mb_item = (function () {
 	//private
 	function createItem(channel,message) {
 		if (!channel || channel == 0) {
-			failAlert('Failed to create item.');
+			mb_ui.failAlert('Failed to create item.');
 			return;
 		}
 		var newMessage = {
 			text: message
 		};
 		var promise = $.appnet.message.create(channel, newMessage);
-		promise.then(completeItem, function (response) {failAlert('Failed to create item.');});
+		promise.then(completeItem, function (response) {mb_ui.failAlert('Failed to create item.');});
 	}
 	
 	function completeItem(response) {
@@ -495,7 +589,7 @@ var mb_item = (function () {
 		}
 		mb_tags.colorize(respd.id);
 		clearForm();
-		forceScroll("#sectionLists");
+		mb_ui.forceScroll("#sectionLists");
 	}
 
 	function formatButtons(itemId, channelId, listType) {
@@ -505,9 +599,9 @@ var mb_item = (function () {
 			//Add the main checkbox.
 			formattedItem += "<button type='button' class='btn btn-default btn-xs' ";
 			if (!channelArray[channelId].hasOwnProperty("listTypes"))
-				formattedItem += " onclick='deleteItem(" + itemId + ")";
+				formattedItem += " onclick='mb_item.deleteIt(" + itemId + ")";
 			else
-			formattedItem += " onclick='moveItem(" + itemId + ",0)";
+			formattedItem += " onclick='mb_item.move(" + itemId + ",0)";
 			formattedItem += "'><i class='fa fa-check'></i></button>";
 		}
 		if (channelArray[channelId].hasOwnProperty("listTypes")) {
@@ -551,7 +645,7 @@ var mb_item = (function () {
 			};
 		}									
 		var promise = $.appnet.channel.update(channelId, channelUpdates, updateArgs);
-		promise.then(completeUpdateLists,  function (response) {failAlert('Failed to move item.');});
+		promise.then(completeUpdateLists,  function (response) {mb_ui.failAlert('Failed to move item.');});
 	}
 
 	function completeUpdateLists(response) {
@@ -594,7 +688,7 @@ var mb_item = (function () {
 			};
 		}
 		var promise = $.appnet.channel.update(api.currentChannel, channelUpdates, updateArgs);
-		promise.then(completeUpdateLists,  function (response) {failAlert('Failed to remove item.');});
+		promise.then(completeUpdateLists,  function (response) {mb_ui.failAlert('Failed to remove item.');});
 	}
 
 	function completeDelete(response) {
@@ -676,13 +770,13 @@ var mb_tags = (function () {
 					$(this).hide();
 			});
 		}
-		forceScroll("#sectionLists");
+		mb_ui.forceScroll("#sectionLists");
 	}
 
 	//private
 	function displayTag(unhashedTag) {
 		//Display tags individually as part of the tag collection process.
-		var tagString = "<button type='button' class='btn btn-default btn-sm tag' onclick='onClickTagButton(this);' value='" + unhashedTag + "'>#" + unhashedTag + "</button> ";
+		var tagString = "<button type='button' class='btn btn-default btn-sm tag' onclick='mb_ui.tagButton(this);' value='" + unhashedTag + "'>#" + unhashedTag + "</button> ";
 		$(".tagBucket").append(tagString);
 	}
 
@@ -728,7 +822,7 @@ var mb_user = (function () {
 			editors: {user_ids: newUsers} 
 		};
 		var promise = $.appnet.channel.update(currentChannel,userUpdates);
-		promise.then(completeAddUser, function (response) {failAlert('Addition of member failed.');});
+		promise.then(completeAddUser, function (response) {mb_ui.failAlert('Addition of member failed.');});
 		
 		var userRow = $("div#searchResults div#userRow_search_" + userId).detach();
 		$("div#memberResults").append(userRow);
@@ -761,7 +855,7 @@ var mb_user = (function () {
 		$("div#searchResults").html("");
 		var searchArgs = {q: $("input#userSearch").val(), count: 10};
 		var promise = $.appnet.user.search(searchArgs);
-		promise.then(completeSearch, function (response) {failAlert('Search request failed.');});
+		promise.then(completeSearch, function (response) {mb_ui.failAlert('Search request failed.');});
 	}
 
 	//private
@@ -780,7 +874,7 @@ var mb_user = (function () {
 				editors: {user_ids: newUsers} 
 			};
 			var promise = $.appnet.channel.update(channelInfo.channel,userUpdates);
-			promise.then(completeRemoveUser, function (response) {failAlert('Removal of member failed.');});
+			promise.then(completeRemoveUser, function (response) {mb_ui.failAlert('Removal of member failed.');});
 		}
 	}
 
@@ -801,154 +895,78 @@ var mb_user = (function () {
 
 })();
 
-
 /* ui and miscellaneous functions */
 //needs cleanup
 
-function onClickAdd(that) {
-	var listType = $(that).closest("div.bucketListDiv").data("type");
-	var theList = $("input:radio[name=bucketBucket][data-list=" + listType + "]").prop('checked', true);
-	forceScroll("#sectionAdd");
-}
+var mb_ui = (function () {
 
-function onClickItemTag(unhashedTag) {
-	//Clicking a tag in the lists restricts the lists to that tag.
-	mb_tags.filter(unhashedTag);
-}
+	return {
+		add: add,
+		addSetting: addSetting,
+		failAlert: failAlert,
+		forceScroll: forceScroll,
+		itemTag: itemTag,
+		navbarSetter: navbarSetter,
+		pushHistory: pushHistory,
+		tagButton: tagButton
+	};
 
-function onClickTagButton(that) {
-	//Add the tag to the item for the Add Item form, or filter by the tag for the list display.
-	if ($(that).closest("form").attr("id") == "bucketItemEntry")
-		$("#item").val($("#item").val() + " #" + $(that).val());
-	else
-		mb_tags.filter($(that).val());
-}
+	//public
+	function add(that) {
+		var listType = $(that).closest("div.bucketListDiv").data("type");
+		var theList = $("input:radio[name=bucketBucket][data-list=" + listType + "]").prop('checked', true);
+		forceScroll("#sectionAdd");
+	}
 
-function addSetting(that) {
-	var theSetting = $(that).closest("div.form-group").prop("id");
-	switch (theSetting) {
+	function addSetting(that) {
+		var theSetting = $(that).closest("div.form-group").prop("id");
+		switch (theSetting) {
 		case "memberControl":
-		$("#addMember").show();
-		break;
-	}
-}
-
-
-function checkLocalStorage() {
-	if (localStorage && localStorage["accessToken"]) {
-			//Retrieve the access token.
-			try {api.accessToken = localStorage["accessToken"];} 
-			catch (e) {}
-	} else {
-		api.accessToken = window.location.hash.split("access_token=")[1];
-		if (api.accessToken && localStorage) {
-			try {localStorage["accessToken"] = api.accessToken;} 
-			catch (e) {}
+			$("#addMember").show();
+			break;
 		}
 	}
-}
 
-function checkLocalStorageChannel(defaultChannel) {
-	if (localStorage && localStorage["currentChannel"]) {
-			//Retrieve the current channel.
-			try {api.currentChannel = localStorage["currentChannel"];} 
-			catch (e) {}
-	} else {
-		api.currentChannel = defaultChannel;
-		if (api.currentChannel && localStorage) {
-			try {localStorage["currentChannel"] = api.currentChannel;}
-			catch (e) {}
-		}
-	}
-}
-
-function setLocalStorageChannel(newChannel) {
-	api.currentChannel = newChannel;
-	if (api.currentChannel && localStorage) {
-		//Set the new channel.
-		try {localStorage["currentChannel"] = api.currentChannel;}
-		catch (e) {}
-	}
-}
-
-function checkLocalStorageUser() {
-	if (localStorage && localStorage["userId"]) {
-			try {api.userId = localStorage["userId"];} 
-			catch (e) {}
-	} else {
-		var promise = $.appnet.user.get("me");
-		promise.then(setLocalStorageUser, function (response) {failAlert('Failed to retrieve user ID.');});
+	function failAlert(msg) {
+		//document.getElementById("errorDiv").scrollIntoView();
+		//$('#errorDiv').html(msg).show().fadeOut(8000);
+		alert(msg);
 	}
 
-	function setLocalStorageUser(response) {
-		api.userId = response.data.id;
-		if (api.userId && localStorage) {
-			try {localStorage["userId"] = api.userId;} 
-			catch (e) {}
-		}
-	}
-}
-
-function failAlert(msg) {
-	//document.getElementById("errorDiv").scrollIntoView();
-	//$('#errorDiv').html(msg).show().fadeOut(8000);
-	alert(msg);
-}
-
-function forceScroll(hash) {
-	var target = $(hash);
-	$('html,body').animate({scrollTop: target.offset().top - 50}, 1000);
-	//navbarSetter(hash);
-	return false;
-}
-
-function initializeButtons() {
-	$("span.settingsButton").click(function (event) {
-		event.preventDefault();
-		//forceScroll("#sectionSettings");
-		$(event.target).closest("div.bucketListDiv").find(".settingsToggle").toggle();
-		if ($(event.target).closest("div.bucketListDiv").find(".settingsToggle").length == 0)
-			forceScroll("#sectionSettings");
-	});
-}
-
-function logout() {
-	//Erase token and lists.
-	api.accessToken = '';
-	if (localStorage) {
-		try {
-			localStorage.removeItem("accessToken");
-		} catch (e) {}
+	function forceScroll(hash) {
+		var target = $(hash);
+		$('html,body').animate({scrollTop: target.offset().top - 50}, 1000);
+		//navbarSetter(hash);
+		return false;
 	}
 
-	$(".loggedIn").hide();
-	$(".loggedOut").show();
-	//Clear the lists.
-	clearPage();
-	//Erase the channel array.
-	//...
-}
+	function itemTag(unhashedTag) {
+		//Clicking a tag in the lists restricts the lists to that tag.
+		mb_tags.filter(unhashedTag);
+	}
+	
+	function navbarSetter(hashSectionName) {
+		$("div#navbar-collapsible ul li").removeClass("active");
+		//Not sure I need this.
+		//if (hashSectionName) 
+		//	$("div#navbar-collapsible ul li a[href = hashSectionName]").addClass("active");
+	}
+	
+	function pushHistory(newLocation) {
+		if (history.pushState) 
+			history.pushState({}, document.title, newLocation);
+	}
+	
+	function tagButton(that) {
+		//Add the tag to the item for the Add Item form, or filter by the tag for the list display.
+		if ($(that).closest("form").attr("id") == "bucketItemEntry")
+			$("#item").val($("#item").val() + " #" + $(that).val());
+		else
+			mb_tags.filter($(that).val());
+	}
+	
+})();
 
-function navbarSetter(hashSectionName) {
-	$("div#navbar-collapsible ul li").removeClass("active");
-	//Not sure I need this.
-	//if (hashSectionName) 
-	//	$("div#navbar-collapsible ul li a[href = hashSectionName]").addClass("active");
-}
-
-function pushHistory(newLocation) {
-	if (history.pushState) 
-		history.pushState({}, document.title, newLocation);
-}
-
-function toggleAbout() {
-	$('.about').toggle();
-	$('html, body').animate({scrollTop: '0px'}, 150);
-	if ( $('#more').html() == "[more]" ) 
-		 $('#more').html("[less]");
-	else
-		$('#more').html("[more]");
-}
 
 function updateChannels() {//manual channel repair for dev.
 	/* Delete old annotation type
