@@ -239,7 +239,7 @@ function completeMessages(response) {
 
 function processChannelUsers(thisChannel,annotationValue) {
 	//Owner not included in the editors list, so add separately.
-	displayUserResult(thisChannel.owner, "owner");
+	mb_user.display(thisChannel.owner, "owner");
 	//User data.
 	if (thisChannel.editors.user_ids.length > 0) {
 		//Retrieve the user data.
@@ -258,7 +258,7 @@ function processChannelUsers(thisChannel,annotationValue) {
 
 function completeUsers(response) {
 	for (u=0; u < response.data.length; u++) {
-		displayUserResult(response.data[u],"editor");
+		mb_user.display(response.data[u],"editor");
 	}
 }
 
@@ -598,15 +598,6 @@ var mb_item = (function () {
 
 })();
 
-//needs cleanup
-
-function onClickAdd(that) {
-	var listType = $(that).closest("div.bucketListDiv").data("type");
-	var theList = $("input:radio[name=bucketBucket][data-list=" + listType + "]").prop('checked', true);
-	forceScroll("#sectionAdd");
-}
-
-
 
 /* tag functions */
 
@@ -702,58 +693,68 @@ var mb_tags = (function () {
 	}
 })();
 
-//needs cleanup
-
-function onClickItemTag(unhashedTag) {
-	//Clicking a tag in the lists restricts the lists to that tag.
-	mb_tags.filter(unhashedTag);
-}
-
-function onClickTagButton(that) {
-	//Add the tag to the item for the Add Item form, or filter by the tag for the list display.
-	if ($(that).closest("form").attr("id") == "bucketItemEntry")
-		$("#item").val($("#item").val() + " #" + $(that).val());
-	else
-		mb_tags.filter($(that).val());
-}
-
-
-/* settings functions */
-
-function addSetting(that) {
-	var theSetting = $(that).closest("div.form-group").prop("id");
-	switch (theSetting) {
-		case "memberControl":
-		$("#addMember").show();
-		break;
-	}
-}
 
 /* user functions */
 
-function addUser(userId) {
-	var currentChannel = api.currentChannel;
-	var newUsers = channelArray[currentChannel].editors.slice();
-	newUsers.push(userId);
-	var userUpdates = {
-		editors: {user_ids: newUsers} 
+var mb_user = (function () {
+
+	return {
+		add: add,
+		display: display,
+		remove: remove,
+		search: search
 	};
-	var promise = $.appnet.channel.update(currentChannel,userUpdates);
-	promise.then(completeAddUser, function (response) {failAlert('Addition of member failed.');});
 
-	var userRow = $("div#searchResults div#userRow_search_" + userId).detach();
-	$("div#memberResults").append(userRow);
-	$("div#memberResults div#userRow_search_" + userId + " a").remove();
-}
+	//public
+	function add(userId) {
+		var currentChannel = api.currentChannel;
+		var newUsers = channelArray[currentChannel].editors.slice();
+		newUsers.push(userId);
+		var userUpdates = {
+			editors: {user_ids: newUsers} 
+		};
+		var promise = $.appnet.channel.update(currentChannel,userUpdates);
+		promise.then(completeAddUser, function (response) {failAlert('Addition of member failed.');});
+		
+		var userRow = $("div#searchResults div#userRow_search_" + userId).detach();
+		$("div#memberResults").append(userRow);
+		$("div#memberResults div#userRow_search_" + userId + " a").remove();
+	}
 
-function completeAddUser(response) {
-	//Update the channel.
-	channelArray[response.data.channel_id].editors = response.data.editors.user_ids;
-}
+	function display(result, type) {
+		var resultLocation = "div#memberResults";
+		var resultString = "<div class='form-group memberRow' id='userRow_" + (type ? type + "_" : "") + result.id + "'>";
+		resultString += "<div class='col-xs-4 col-md-5 text-right'>" + (result.avatar_image.is_default ? "" : "<img src='" + result.avatar_image.url + "' class='avatarImg' />") + "</div>";
+		resultString += "<div class='col-xs-4 col-md-2 text-center'>@" + result.username + (result.name ? "<br /><span class='realName'>" + result.name + "</span>" : "" ) + "</div>";
+		resultString += "<div class='col-xs-4 col-md-5 text-left'>";
+		if (type && type=="search") {
+			//Should add a check for existing membership here.
+			resultString += "<a class='btn btn-default btn-sm' href='#userSearch' title='Add member' onclick='mb_user.add(" + result.id + ")'><i class='fa fa-plus'></i></a>";
+			resultLocation = "div#searchResults";
+		} else if (!type || type != "owner") {
+			resultString += "<a class='btn btn-default btn-sm' href='#sectionSettings' title='Remove member' onclick='mb_user.remove(" + result.id + ")'><i class='fa fa-times'></i></a>";
+		}
+		resultString += "</div></div>";
+		$(resultLocation).append(resultString);
+	}
 
-function removeUser(userId) {
-	removeUserFromChannel(userId,api.currentChannel);
-	$("div#userRow_" + userId).remove();
+	function remove(userId) {
+		removeUserFromChannel(userId,api.currentChannel);
+		$("div#userRow_" + userId).remove();
+	}
+
+	function search() {
+		$("div#searchResults").html("");
+		var searchArgs = {q: $("input#userSearch").val(), count: 10};
+		var promise = $.appnet.user.search(searchArgs);
+		promise.then(completeSearch, function (response) {failAlert('Search request failed.');});
+	}
+
+	//private
+	function completeAddUser(response) {
+		//Update the channel.
+		channelArray[response.data.channel_id].editors = response.data.editors.user_ids;
+	}
 
 	function removeUserFromChannel(userId, channelInfo) {
 		var newUsers = channelInfo.editors.slice();
@@ -768,48 +769,56 @@ function removeUser(userId) {
 			promise.then(completeRemoveUser, function (response) {failAlert('Removal of member failed.');});
 		}
 	}
+
+	function completeRemoveUser(response) {
+		//Only update the channel.
+		channelArray[response.data.channel_id].editors = response.data.editors.user_ids;
+	}
+
+	function completeSearch(response) {
+		if (response.data.length == 0) {
+			$("div#searchResults").html("<p>No users found.</p>");
+		} else {
+			for (var u=0; u < response.data.length; u++) {
+				display(response.data[u], "search");
+			}
+		}
+	}
+
+})();
+
+
+/* ui and miscellaneous functions */
+//needs cleanup
+
+function onClickAdd(that) {
+	var listType = $(that).closest("div.bucketListDiv").data("type");
+	var theList = $("input:radio[name=bucketBucket][data-list=" + listType + "]").prop('checked', true);
+	forceScroll("#sectionAdd");
 }
 
-function completeRemoveUser(response) {
-	//Only update the channel.
-	channelArray[response.data.channel_id].editors = response.data.editors.user_ids;
+function onClickItemTag(unhashedTag) {
+	//Clicking a tag in the lists restricts the lists to that tag.
+	mb_tags.filter(unhashedTag);
 }
 
-function searchUsers() {
-	$("div#searchResults").html("");
-	var searchArgs = {q: $("input#userSearch").val(), count: 10};
-	var promise = $.appnet.user.search(searchArgs);
-	promise.then(completeSearch, function (response) {failAlert('Search request failed.');});
+function onClickTagButton(that) {
+	//Add the tag to the item for the Add Item form, or filter by the tag for the list display.
+	if ($(that).closest("form").attr("id") == "bucketItemEntry")
+		$("#item").val($("#item").val() + " #" + $(that).val());
+	else
+		mb_tags.filter($(that).val());
 }
 
-function completeSearch(response) {
-	if (response.data.length == 0) {
-		$("div#searchResults").html("<p>No users found.</p>");
-	} else {
-		for (var u=0; u < response.data.length; u++) {
-			displayUserResult(response.data[u], "search");
-		}	
+function addSetting(that) {
+	var theSetting = $(that).closest("div.form-group").prop("id");
+	switch (theSetting) {
+		case "memberControl":
+		$("#addMember").show();
+		break;
 	}
 }
 
-function displayUserResult(result, type) {
-	var resultLocation = "div#memberResults";
-	var resultString = "<div class='form-group memberRow' id='userRow_" + (type ? type + "_" : "") + result.id + "'>";
-	resultString += "<div class='col-xs-4 col-md-5 text-right'>" + (result.avatar_image.is_default ? "" : "<img src='" + result.avatar_image.url + "' class='avatarImg' />") + "</div>";
-	resultString += "<div class='col-xs-4 col-md-2 text-center'>@" + result.username + (result.name ? "<br /><span class='realName'>" + result.name + "</span>" : "" ) + "</div>";
-	resultString += "<div class='col-xs-4 col-md-5 text-left'>";
-	if (type && type=="search") {
-		//Should add a check for existing membership here.
-		resultString += "<a class='btn btn-default btn-sm' href='#userSearch' title='Add member' onclick='addUser(" + result.id + ")'><i class='fa fa-plus'></i></a>";
-		resultLocation = "div#searchResults";
-	} else if (!type || type != "owner") {
-		resultString += "<a class='btn btn-default btn-sm' href='#sectionSettings' title='Remove member' onclick='removeUser(" + result.id + ")'><i class='fa fa-times'></i></a>";
-	}
-	resultString += "</div></div>";
-	$(resultLocation).append(resultString);
-}
-
-/* miscellaneous functions */
 
 function checkLocalStorage() {
 	if (localStorage && localStorage["accessToken"]) {
