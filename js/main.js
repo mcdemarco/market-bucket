@@ -519,29 +519,10 @@ context.item = (function () {
 		messageTextArray[respd.id] = respd.text;
 	}
 
-	function move(itemId, targetType) {
-		var currentChannel = api.currentChannel;
-		var sourceType = $("#item_" + itemId).closest("div.bucketListDiv").data("type");
-		var updatedLists = JSON.parse(JSON.stringify(channelArray[currentChannel].lists));
-		//Movement paths: from default to non-default, from non-default to non-default, from non-default to default.
-		if (sourceType != 1) {
-			//need to debit the source list.
-			var index = updatedLists[sourceType].indexOf(itemId.toString());
-			if (index > -1) updatedLists[sourceType].splice(index, 1);
-		}
-		if (targetType != 1) {
-			//need to credit the target list
-			updatedLists[targetType].push(itemId.toString());
-		}
-		//Send to ADN.
-		updateLists(currentChannel,updatedLists);
-		//Move html.
-		$("#item_" + itemId).appendTo("div#list_" + targetType + " div.list-group");
-		//Need to update the buttons.
-		$("div#buttons_" + itemId).remove();
-		//Don't want the new buttons starting out of sync.
-		$("div#list_" + targetType + " .settingsToggle").hide();
-		$("#item_" + itemId).append(formatButtons(itemId,currentChannel,targetType));
+	function move(e) {
+		var itemId = $(e.target).closest("div.formattedItem").prop("id").split("item_")[1];
+		var targetType = $(e.target).closest("[data-destination]").data("destination");
+		moveItem(itemId, targetType);
 	}
 
 	//private
@@ -629,6 +610,32 @@ context.item = (function () {
 		context.ui.forceScroll("#sectionAdd");
 	}
 
+	function moveItem(itemId, targetType) {
+		var currentChannel = api.currentChannel;
+		var sourceType = $("#item_" + itemId).closest("div.bucketListDiv").data("type");
+		var updatedLists = JSON.parse(JSON.stringify(channelArray[currentChannel].lists));
+		//Movement paths: from default to non-default, from non-default to non-default, from non-default to default.
+		if (sourceType != 1) {
+			//need to debit the source list.
+			var index = updatedLists[sourceType].indexOf(itemId.toString());
+			if (index > -1) updatedLists[sourceType].splice(index, 1);
+		}
+		if (targetType != 1) {
+			//need to credit the target list
+			updatedLists[targetType].push(itemId.toString());
+		}
+		//Send to ADN.
+		updateLists(currentChannel,updatedLists);
+		//Move html.
+		$("#item_" + itemId).appendTo("div#list_" + targetType + " div.list-group");
+		//Need to update the buttons.
+		$("div#buttons_" + itemId).remove();
+		//Don't want the new buttons starting out of sync.
+		$("div#list_" + targetType + " .settingsToggle").hide();
+		$("#item_" + itemId).append(formatButtons(itemId,currentChannel,targetType));
+		activateButtons(itemId);
+	}
+
 	function formatButtons(itemId, channelId, listType) {
 		if (!channelId) channelId = api.currentChannel;
 		var formattedItem = "<div id='buttons_" + itemId + "' class='pull-right'>";
@@ -636,10 +643,10 @@ context.item = (function () {
 			//Add the main checkbox.
 			formattedItem += "<button type='button' class='btn btn-default btn-xs' ";
 			if (!channelArray[channelId].hasOwnProperty("listTypes"))
-				formattedItem += " data-button='deleteItem'";
+				formattedItem += " data-button='deleteItem'>";
 			else
-			formattedItem += " onclick='marketBucket.item.move(" + itemId + ",0)";
-			formattedItem += "'><i class='fa fa-check'></i></button>";
+				formattedItem += " data-button='moveItem' data-destination='0'>";
+			formattedItem += "<i class='fa fa-check'></i></button>";
 		}
 		if (channelArray[channelId].hasOwnProperty("listTypes")) {
 			//Add the move options
@@ -649,7 +656,7 @@ context.item = (function () {
 			formattedItem += "<ul class='dropdown-menu' role='menu'>";
 			for (var li in channelArray[channelId].listTypes) {
 				if (li != listType && li != 0) 
-					formattedItem += "<li><a href='#' onclick='marketBucket.item.move(" + itemId + "," + li + ")'><i class='fa fa-arrows'></i> Move to " + channelArray[channelId].listTypes[li].title + "</a></li>";
+					formattedItem += "<li><a href='#' data-button='moveItem' data-destination='" + li + "'><i class='fa fa-arrows'></i> Move to " + channelArray[channelId].listTypes[li].title + "</a></li>";
 			}
 			//Edit option
 			formattedItem += "<li class='divider'></li>";
@@ -665,6 +672,8 @@ context.item = (function () {
 	}
 
 	function activateButtons(itemId) {
+		$("#item_" + itemId + " button[data-button='moveItem']").click(context.item.move);
+		$("#item_" + itemId + " a[data-button='moveItem']").click(context.item.move);
 		$("#item_" + itemId + " button[data-button='deleteItem']").click(context.item.deleteIt);
 		$("#item_" + itemId + " a[data-button='deleteItem']").click(context.item.deleteIt);
 		$("#item_" + itemId + " a[data-button='editItem']").click(context.item.edit);
