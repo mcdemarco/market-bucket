@@ -806,7 +806,8 @@ context.tags = (function () {
 			for (var ut=0; ut < sortedArray.length; ut++) {
 				displayTag(sortedArray[ut]);
 			}
-			context.tags.colorize();
+			colorize();
+			activateTagButtons();
 			$("#tagSearchRow").show();
 		}
 	}
@@ -832,8 +833,13 @@ context.tags = (function () {
 	//private
 	function displayTag(unhashedTag) {
 		//Display tags individually as part of the tag collection process.
-		var tagString = "<button type='button' class='btn btn-default btn-sm tag' onclick='marketBucket.ui.tagButton(this);' value='" + unhashedTag + "'>#" + unhashedTag + "</button> ";
+		var tagString = "<button type='button' class='btn btn-default btn-sm tag' value='" + unhashedTag + "'>#" + unhashedTag + "</button> ";
 		$(".tagBucket").append(tagString);
+	}
+
+	function activateTagButtons() {
+		//The tags within items are activated elsewhere.
+		$("button.tag").click(context.ui.tagButton);
 	}
 
 	function getColor(str) {
@@ -868,7 +874,8 @@ context.user = (function () {
 	};
 
 	//public
-	function add(userId) {
+	function add(e) {
+		var userId = $(e.target).closest("a[data-user]").data("user");
 		var currentChannel = api.currentChannel;
 		var newUsers = channelArray[currentChannel].editors.slice();
 		newUsers.push(userId);
@@ -885,22 +892,25 @@ context.user = (function () {
 
 	function display(result, type) {
 		var resultLocation = "div#memberResults";
-		var resultString = "<div class='form-group memberRow' id='userRow_" + (type ? type + "_" : "") + result.id + "'>";
+		var rowId = "userRow_" + (type ? type + "_" : "") + result.id;
+		var resultString = "<div class='form-group memberRow' id='" + rowId + "'>";
 		resultString += "<div class='col-xs-4 col-md-5 text-right'>" + (result.avatar_image.is_default ? "" : "<img src='" + result.avatar_image.url + "' class='avatarImg' />") + "</div>";
 		resultString += "<div class='col-xs-4 col-md-2 text-center'>@" + result.username + (result.name ? "<br /><span class='realName'>" + result.name + "</span>" : "" ) + "</div>";
 		resultString += "<div class='col-xs-4 col-md-5 text-left'>";
 		if (type && type=="search") {
 			//Should add a check for existing membership here.
-			resultString += "<a class='btn btn-default btn-sm' href='#userSearch' title='Add member' onclick='marketBucket.user.add(" + result.id + ")'><i class='fa fa-plus'></i></a>";
+			resultString += "<a class='btn btn-default btn-sm' href='#sectionSettings' title='Add member' data-button='addUser' data-user='" + result.id + "'><i class='fa fa-plus'></i></a>";
 			resultLocation = "div#searchResults";
 		} else if (!type || type != "owner") {
-			resultString += "<a class='btn btn-default btn-sm' href='#sectionSettings' title='Remove member' onclick='marketBucket.user.remove(" + result.id + ")'><i class='fa fa-times'></i></a>";
+			resultString += "<a class='btn btn-default btn-sm' href='#sectionSettings' title='Remove member' data-button='removeUser' data-user='" + result.id + "'><i class='fa fa-times'></i></a>";
 		}
 		resultString += "</div></div>";
 		$(resultLocation).append(resultString);
+		activateButtons(rowId);
 	}
 
-	function remove(userId) {
+	function remove(e) {
+		var userId = $(e.target).closest("a[data-user]").data("user");
 		removeUserFromChannel(userId,api.currentChannel);
 		$("div#userRow_" + userId).remove();
 	}
@@ -913,13 +923,19 @@ context.user = (function () {
 	}
 
 	//private
-	function completeAddUser(response) {
-		//Update the channel.
-		channelArray[response.data.channel_id].editors = response.data.editors.user_ids;
+
+	function activateButtons(rowId) {
+		$("#" + rowId + " a[data-button='addUser']").click(context.user.add);
+		$("#" + rowId + " a[data-button='removeUser']").click(context.user.remove);
 	}
 
-	function removeUserFromChannel(userId, channelInfo) {
-		var newUsers = channelInfo.editors.slice();
+	function completeAddUser(response) {
+		//Update the channel.
+		channelArray[response.data.id].editors = response.data.editors.user_ids;
+	}
+
+	function removeUserFromChannel(userId, channelId) {
+		var newUsers = channelArray[channelId].editors.slice();
 		//ADN's version of the array is of strings.
 		var index = newUsers.indexOf(userId.toString());
 		if (index > -1) {
@@ -927,14 +943,16 @@ context.user = (function () {
 			var userUpdates = {
 				editors: {user_ids: newUsers} 
 			};
-			var promise = $.appnet.channel.update(channelInfo.channel,userUpdates);
+			var promise = $.appnet.channel.update(channelId,userUpdates);
 			promise.then(completeRemoveUser, function (response) {context.ui.failAlert('Removal of member failed.');});
 		}
+		//Remove the user from the UI.
+		$("div#userRow_editor_" + userId).remove();
 	}
 
 	function completeRemoveUser(response) {
 		//Only update the channel.
-		channelArray[response.data.channel_id].editors = response.data.editors.user_ids;
+		channelArray[response.data.id].editors = response.data.editors.user_ids;
 	}
 
 	function completeSearch(response) {
@@ -974,7 +992,6 @@ context.ui = (function () {
 	}
 
 	function addMember(e) {
-		e.stopPropagation();
 		$("#addMember").show();
 	}
 
@@ -1027,12 +1044,12 @@ context.ui = (function () {
 			context.ui.forceScroll("#sectionSettings");
 	}
 	
-	function tagButton(that) {
+	function tagButton(e) {
 		//Add the tag to the item for the Add Item form, or filter by the tag for the list display.
-		if ($(that).closest("form").attr("id") == "bucketItemEntry")
-			$("#item").val($("#item").val() + " #" + $(that).val());
+		if ($(e.target).closest("form").attr("id") == "bucketItemEntry")
+			$("#item").val($("#item").val() + " #" + $(e.target).val());
 		else
-			context.tags.filter($(that).val());
+			context.tags.filter($(e.target).val());
 	}
 	
 })();
