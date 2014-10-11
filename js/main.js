@@ -85,7 +85,8 @@ context.init = (function () {
 		//...
 	}
 
-	function reload(newChannel) {
+	function reload(e) {
+		var newChannel = $(e.target).val();
 		if (api.currentChannel == newChannel) return;
 		if (!channelArray.hasOwnProperty(newChannel)) {
 			context.ui.failAlert("Failed to change the channel.");
@@ -100,13 +101,17 @@ context.init = (function () {
 
 	//private
 	function activateButtons() {
+		//Activates all buttons on the page as initially loaded.
 		$("#addButton").click(context.item.add);
+		$("#addMemberButton").click(context.ui.addMember);
 		$("#clearButton").click(context.item.clearForm);
 		$("#list_1 span[data-type='addButton']").click(context.ui.add);
+		$("#listSetSelect").change(context.init.reload);
 		$("#logOutButton").click(context.init.logout);
+		$("div#controlButtons a.controlButton").click(context.ui.controlToggle);
 		$("#searchUsers").click(context.user.search);
 		$("#tagSearchClearButton").click(context.tags.unfilter);
-		//save settings needs a stop propagation?
+		//save settings?
 	}
 
 	function clearPage() {
@@ -127,7 +132,7 @@ context.init = (function () {
 		$("div#memberResults").html("");
 		$("div#searchResults").html("");
 		//Clear the list controls.
-		$("div#sublistControls").html("");
+		$("div#sublistControl").html("");
 		//...
 	}
 
@@ -287,7 +292,7 @@ context.channel = (function () {
 		for (var ch in channelArray) {
 			if (channelArray.hasOwnProperty(ch)) {
 				var optionString = "<option id='channel_" + ch + "' value='" + ch + "'" + ((ch == api.currentChannel) ? " selected" : "") + ">" + channelArray[ch].name + "</option>";
-				$("select#listSet").append(optionString);
+				$("select#listSetSelect").append(optionString);
 			}
 		} 
 	}
@@ -364,7 +369,7 @@ context.channel = (function () {
 	}
 		
 	function editCloner(index, listTypesObj) {
-		$("#sublistControls").append("<div class='form-group listControl'><div class='col-xs-4 text-right'><label class='control-label' for='sublistEdit_" + index + "'>" + (index == 0 ? "Archive" : "List " + index) + ":</label></div><div class='col-xs-3'><input type='text' id='sublistEdit_" + index + "' class='form-control' value='" + listTypesObj[index.toString()].title + "' /></div><div class='col-xs-4'><input type='text' id='sublistSubtitle_" + index + "' class='form-control' value='" + (listTypesObj[index.toString()].subtitle ? listTypesObj[index.toString()].subtitle : "") + "' /></div></div>");
+		$("#sublistControl").append("<div class='form-group listControl'><div class='col-xs-4 text-right'><label class='control-label' for='sublistEdit_" + index + "'>" + (index == 0 ? "Archive" : "List " + index) + ":</label></div><div class='col-xs-3'><input type='text' id='sublistEdit_" + index + "' class='form-control' value='" + listTypesObj[index.toString()].title + "' /></div><div class='col-xs-4'><input type='text' id='sublistSubtitle_" + index + "' class='form-control' value='" + (listTypesObj[index.toString()].subtitle ? listTypesObj[index.toString()].subtitle : "") + "' /></div></div>");
 	}
 	
 	function listNamer(index, listTypesObj) {
@@ -922,7 +927,8 @@ context.ui = (function () {
 
 	return {
 		add: add,
-		addSetting: addSetting,
+		addMember: addMember,
+		controlToggle: controlToggle,
 		failAlert: failAlert,
 		forceScroll: forceScroll,
 		itemTag: itemTag,
@@ -938,12 +944,20 @@ context.ui = (function () {
 		forceScroll("#sectionAdd");
 	}
 
-	function addSetting(that) {
-		var theSetting = $(that).closest("div.form-group").prop("id");
-		switch (theSetting) {
-		case "memberControl":
-			$("#addMember").show();
-			break;
+	function addMember(e) {
+		e.stopPropagation();
+		$("#addMember").show();
+	}
+
+	function controlToggle(e) {
+		var control = $(e.target).closest("a").data("control");
+		if ($("div#" + control).is(":visible")) {
+			//Toggle all off.
+			$(".control").hide();
+		} else {
+			//Show one.
+			$(".control").hide();
+			$("div#" + control).show();
 		}
 	}
 

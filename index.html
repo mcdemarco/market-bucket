@@ -247,40 +247,42 @@
   <form class="form-horizontal" role="form" id="settingsForm">
     <div class="row text-center">
 	<div class="form-group"><!--always on -->
-	  <div class="col-xs-1 col-md-5 text-right"><label class="control-label hidden-xs" for="listSet">List groups:</label></div>
-	  <div class="col-xs-7 col-md-2">
-	    <select class="form-control" id="listSet" onchange="marketBucket.init.reload($(this).val());"></select>
+	  <div class="col-xs-1 col-md-4 text-right"><label class="control-label hidden-xs" for="listSetSelect">List groups:</label></div>
+	  <div class="col-xs-10 col-md-4">
+	    <select class="form-control" id="listSetSelect"></select>
 	  </div>
-	  <div class="col-xs-4 col-md-5 text-left">
-	    <a class="btn btn-default btn-sm" href="#" onclick="$('#memberControl').toggle(); return false;" title="View/add members"><i class="fa fa-group"></i></a>
-	    <a class="btn btn-default btn-sm" href="#" onclick="$('#settingsForm div.listControl').toggle(); return false;" title="(Re)name current lists/group"><i class="fa fa-pencil"></i></a>
-	    <a class="btn btn-default btn-sm" href="#" id="addChannelControl" title="Add new list groups" disabled><i class="fa fa-plus"></i></a>
+	  <div class="col-xs-12 col-md-2 text-center" id="controlButtons">
+	    <a class="btn btn-default btn-sm controlButton" href="javascript:void(0);" data-control="memberControl" title="View/add members"><i class="fa fa-group"></i></a>
+	    <a class="btn btn-default btn-sm controlButton" href="javascript:void(0);" data-control="listControl" title="(Re)name current lists/group"><i class="fa fa-pencil"></i></a>
+	    <a class="btn btn-default btn-sm controlButton" href="javascript:void(0);" data-control="channelControl" title="Add new list groups" disabled><i class="fa fa-plus"></i></a>
 	  </div>
 	</div>
-	<div class="form-group" id="memberControl">
+	<div class="form-group control" id="memberControl">
 	  <div class="col-xs-12 text-center h4 font-brand">List members</div>
 	  <div class="col-xs-12 text-left" id="memberResults"></div>
-	  <div class="col-xs-4 text-right"></div>
-	  <div class="col-xs-4 text-center">
-	    <button class="btn btn-custom btn-xs form-control" href="#" onclick="marketBucket.ui.addSetting(this);return false;">Add A Member</button>
+	  <div class="col-md-4 col-xs-3 text-right"></div>
+	  <div class="col-md-4 col-xs-6 text-center">
+	    <button class="btn btn-custom btn-xs form-control" href="#" id="addMemberButton">Add A Member</button>
 	  </div>
-	  <div class="col-xs-4 text-left"></div>
+	  <div class="col-md-4 col-xs-3 text-left"></div>
 	</div>
-	<div class="form-group" id="addMember">
+	<div class="form-group control" id="addMember">
 	  <div class="col-xs-4 text-right"><label class="control-label" for="userSearch">Search ADN:</label></div>
 	  <div class="col-xs-4"><input type="text" id="userSearch" class="form-control" value="@" /></div>
 	  <div class="col-xs-4 text-left"><a class="btn btn-default btn-sm" href="#userSearch" id="searchUsers"><i class="fa fa-search"></i></a></div>
 	  <div class="col-xs-12 text-center" id="searchResults"></div>
 	</div>
-	<div class="form-group listControl">
-	  <div class="col-xs-4 text-right"><label class="control-label" for="listGroupName">List group:</label></div>
-	  <div class="col-xs-7"><input type="text" id="listGroupName" class="form-control" value="(default)" /></div>
-	</div>
-	<div id="sublistControls">
-	</div>
-	<div class="form-group listControl">
-	  <div class="col-xs-4 col-xs-offset-4 text-center">
-	    <button class="btn btn-custom btn-xs form-control" href="#" id="saveSettings">Save Edits</button>
+	<div class="control" id="listControl">
+	  <div class="form-group">
+	    <div class="col-xs-4 text-right"><label class="control-label" for="listGroupName">List group:</label></div>
+	    <div class="col-xs-7"><input type="text" id="listGroupName" class="form-control" value="(default)" /></div>
+	  </div>
+	  <div id="sublistControl">
+	  </div>
+	  <div class="form-group">
+	    <div class="col-xs-4 col-xs-offset-4 text-center">
+	      <button class="btn btn-custom btn-xs form-control" href="#" id="saveSettings">Save Edits</button>
+	    </div>
 	  </div>
 	</div>
     </div>

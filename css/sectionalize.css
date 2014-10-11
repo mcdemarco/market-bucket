@@ -129,7 +129,7 @@ div.memberRow span.realName {
 
 div#addMember,
 div#memberControl,
-form#settingsForm div.listControl {
+div#listControl {
   display: none; }
 
 #sectionAdd h1,
