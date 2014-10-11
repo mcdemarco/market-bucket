@@ -65,7 +65,7 @@ context.init = (function () {
 			$(".loggedIn").show('slow');
 			checkLocalStorageUser();
 		}
-		context.ui.buttons();
+		activateButtons();
 	}
 
 	function logout() {
@@ -99,6 +99,16 @@ context.init = (function () {
 	}
 
 	//private
+	function activateButtons() {
+		$("#addButton").click(context.item.add);
+		$("#clearButton").click(context.item.clearForm);
+		$("#list_1 span[data-type='addButton']").click(context.ui.add);
+		$("#logOutButton").click(context.init.logout);
+		$("#searchUsers").click(context.user.search);
+		$("#tagSearchClearButton").click(context.tags.unfilter);
+		//save settings needs a stop propagation?
+	}
+
 	function clearPage() {
 		//Clear the form.
 		context.item.clearForm();
@@ -345,8 +355,11 @@ context.channel = (function () {
 	}
 
 	function listCloner(index, listTypesObj) {
+		//Clone and name.
 		$("div#list_1").clone().attr("id","list_" + index).data("type",index).appendTo("div#bucketListHolder").removeClass("col-sm-offset-4");
 		listNamer(index, listTypesObj);
+		//Activate new buttons.
+		$("div#list_" + index + " span[data-type='addButton']").click(context.ui.add);
 		editCloner(index, listTypesObj);
 	}
 		
@@ -910,7 +923,6 @@ context.ui = (function () {
 	return {
 		add: add,
 		addSetting: addSetting,
-		buttons: buttons,
 		failAlert: failAlert,
 		forceScroll: forceScroll,
 		itemTag: itemTag,
@@ -920,8 +932,8 @@ context.ui = (function () {
 	};
 
 	//public
-	function add(that) {
-		var listType = $(that).closest("div.bucketListDiv").data("type");
+	function add(e) {
+		var listType = $(e.target).closest("div.bucketListDiv").data("type");
 		var theList = $("input:radio[name=bucketBucket][data-list=" + listType + "]").prop('checked', true);
 		forceScroll("#sectionAdd");
 	}
@@ -933,16 +945,6 @@ context.ui = (function () {
 			$("#addMember").show();
 			break;
 		}
-	}
-
-	function buttons() {
-		$("#addButton").click(context.item.add);
-		$("#clearButton").click(context.item.clearForm);
-		$("#list_1 span[data-type='addButton']").click(context.ui.add);
-		$("#logOutButton").click(context.init.logout);
-		$("#searchUsers").click(context.user.search);
-		$("#tagSearchClearButton").click(context.tags.unfilter);
-		//save settings needs a stop propagation?
 	}
 
 	function failAlert(msg) {
