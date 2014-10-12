@@ -123,7 +123,9 @@ context.init = (function () {
 			if (i != 1)
 				$("#list_" + i).remove();
 		}
-		//Clear the main list. (Assume title will be rewritten.)
+		//Clear the main list.
+		//Assume title will be rewritten, but actively rewrite header to a temp value.
+		$("section#sectionLists h1").html("");
 		$("#list_1 div.formattedItem").remove();
 		$("#list_1 span.subTitle").html("");
 		$("#list_1").removeClass("col-sm-offset-2").addClass("col-sm-offset-4");
@@ -309,6 +311,7 @@ context.channel = (function () {
 		
 		//Process the channel name itself.
 		$("input#listGroupName").val(channelArray[thisChannel.id].name);
+		$("section#sectionLists h1").html(channelArray[thisChannel.id].name);
 		
 		//Make more list holders for sublists.
 		var len = Object.keys(listTypes).length;
@@ -334,8 +337,8 @@ context.channel = (function () {
 			
 		} else {
 			
-			//Name main list after list group.
-			$("div#list_1 span.mainTitle").html(channelArray[thisChannel.id].name);
+			//Don't name main list at all.
+			$("div#list_1 span.mainTitle").html("<i class='fa fa-fw'></i>");
 			
 		}
 		//Button activation
