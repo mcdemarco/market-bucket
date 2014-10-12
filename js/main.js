@@ -109,6 +109,7 @@ context.init = (function () {
 		$("#listSetSelect").change(context.init.reload);
 		$("#logOutButton").click(context.init.logout);
 		$("div#controlButtons a.controlButton").click(context.ui.controlToggle);
+		$("#saveListEdits").click(context.list.edit);
 		$("#searchUsers").click(context.user.search);
 		$("#tagSearchClearButton").click(context.tags.unfilter);
 		//save settings?
@@ -124,7 +125,7 @@ context.init = (function () {
 				$("#list_" + i).remove();
 		}
 		//Clear the main list.
-		//Assume title will be rewritten, but actively rewrite header to a temp value.
+		//Assume title will be rewritten, but actively null/rewrite some bits anyway.
 		$("section#sectionLists h1").html("");
 		$("#list_1 div.formattedItem").remove();
 		$("#list_1 span.subTitle").html("");
@@ -134,6 +135,7 @@ context.init = (function () {
 		$("div#memberResults").html("");
 		$("div#searchResults").html("");
 		//Clear the list controls.
+		$("div#listGroupNameWrapper").html("");
 		$("div#sublistControl").html("");
 		//...
 	}
@@ -309,9 +311,9 @@ context.channel = (function () {
 		var listTypes = (channelArray[thisChannel.id].listTypes ? channelArray[thisChannel.id].listTypes : {});
 		processChannelUsers(thisChannel);
 		
-		//Process the channel name itself.
-		$("input#listGroupName").val(channelArray[thisChannel.id].name);
+		//Process the channel name itself. Pass in the whole input for the editor to preserve defaultValue.
 		$("section#sectionLists h1").html(channelArray[thisChannel.id].name);
+		$("div#listGroupNameWrapper").html("<input type='text' id='listGroupName' class='form-control' value='" + channelArray[thisChannel.id].name + "' />");
 		
 		//Make more list holders for sublists.
 		var len = Object.keys(listTypes).length;
@@ -367,7 +369,7 @@ context.channel = (function () {
 	}
 		
 	function editCloner(index, listTypesObj) {
-		$("#sublistControl").append("<div class='form-group listControl'><div class='col-xs-4 text-right'><label class='control-label' for='sublistEdit_" + index + "'>" + (index == 0 ? "Archive" : "List " + index) + ":</label></div><div class='col-xs-3'><input type='text' id='sublistEdit_" + index + "' class='form-control' value='" + listTypesObj[index.toString()].title + "' /></div><div class='col-xs-4'><input type='text' id='sublistSubtitle_" + index + "' class='form-control' value='" + (listTypesObj[index.toString()].subtitle ? listTypesObj[index.toString()].subtitle : "") + "' /></div></div>");
+		$("#sublistControl").append("<div class='form-group listControl'><div class='col-xs-4 text-right'><label class='control-label' for='sublistEdit_" + index + "'>" + (index == 0 ? "Archive" : "List " + index) + ":</label></div><div class='col-xs-3'><input type='text' id='sublistEdit_" + index + "' class='form-control sublistTitle' value='" + listTypesObj[index.toString()].title + "' /></div><div class='col-xs-4'><input type='text' id='sublistSubtitle_" + index + "' class='form-control' value='" + (listTypesObj[index.toString()].subtitle ? listTypesObj[index.toString()].subtitle : "") + "' /></div></div>");
 	}
 	
 	function listNamer(index, listTypesObj) {
@@ -864,6 +866,44 @@ context.tags = (function () {
 		var yiq = ((r*299)+(g*587)+(b*114))/1000;
 		return (yiq >= 128) ? 'black' : 'white';
 	}
+})();
+
+
+context.list = (function () {
+
+	return {
+		add: add,
+		edit: edit,
+		remove: remove
+	};
+
+	//public
+	function add() {
+		//Add a new list set.
+	}
+
+	function edit() {
+		//Check that the form is, in fact, dirty.
+		var dirty = false;
+		$("#listControl input").each(function (index) {
+			if ($(this).prop("defaultValue") != $(this).val()) 
+				dirty = true;
+		});
+		if (!dirty) {
+			context.ui.failAlert("No edits found.");
+			return;
+		} else alert("Edits!");
+		//Check that all remaining sublists still have titles.
+
+		//Put together the channel update.
+	}
+
+	function remove() {
+		//Remove a list set. This option should only be displayed for the channel owner.
+		confirm("Are you sure you want to delete this list?  This action cannot be undone.");
+	}
+
+
 })();
 
 
