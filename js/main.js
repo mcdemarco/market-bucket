@@ -188,7 +188,9 @@ context.channel = (function () {
 
 	return {
 		get: get,
-		getMessages: getMessages
+		getAnnotations: getAnnotations,
+		getMessages: getMessages,
+		storeChannel: storeChannel
 	};
 
 	function get() {
@@ -203,6 +205,20 @@ context.channel = (function () {
 		promise.then(completeChannels, function (response) {context.ui.failAlert('Failed to retrieve your list(s).');}).done(context.tags.colorize);
 	}
 
+	function getAnnotations(thisChannel) {
+		//Not assuming we're the only annotation.
+		var ourAnnotations = {};
+		for (var a = 0; a < thisChannel.annotations.length; a++) {
+			if (thisChannel.annotations[a].type == api.annotation_type) {
+				ourAnnotations[api.annotation_type] = thisChannel.annotations[a].value;
+			}
+			if (thisChannel.annotations[a].type == api.message_annotation_type) {
+				ourAnnotations[api.message_annotation_type] = thisChannel.annotations[a].value;
+			}
+		}
+		return ourAnnotations;
+	}
+
 	function getMessages(channelId) {
 		//Get a single channel with its messages.
 		var args = {
@@ -212,30 +228,39 @@ context.channel = (function () {
 		var promise = $.appnet.channel.get(channelId, args);
 		promise.then(completeChannel, function (response) {context.ui.failAlert('Failed to retrieve your list.');}).done(context.tags.colorize);
 	}
-	
+
+	function storeChannel(thisChannel, annotationsObject) {
+		//Just populating some old arguments instead of refactoring.
+		var annotationValue = annotationsObject[api.annotation_type];
+		var messageAnnotationValue = annotationsObject.hasOwnProperty(api.message_annotation_type) ? annotationsObject[api.message_annotation_type]: {};
+		//Save data for every channel.
+		channelArray[thisChannel.id] = {"id" : thisChannel.id,
+										"name" : annotationValue["name"],
+										"owner" : thisChannel.owner.id,
+										"editors" : thisChannel.editors.user_ids};
+		//								"annotationValue" : annotationValue};
+		if (annotationValue.hasOwnProperty("list_types")) {
+			channelArray[thisChannel.id].listTypes = annotationValue.list_types;
+			channelArray[thisChannel.id].lists = messageAnnotationValue.lists;
+		}
+		if (messageAnnotationValue.hasOwnProperty("deletion_queue")) {
+			channelArray[thisChannel.id].deletionQueue = messageAnnotationValue.deletion_queue;
+		}
+	}
+
 	//private
 
 	function completeChannels(response) {
 		if (response.data.length > 0) {
 			for (var c = 0; c < response.data.length; c++) {
 				var thisChannel = response.data[c];
-				//Not assuming we're the only annotation.
-				var annotationValue = {};
-				var annotationValue2 = {};
-				for (var a = 0; a < thisChannel.annotations.length; a++) {
-					if (thisChannel.annotations[a].type == api.annotation_type) {
-						annotationValue = thisChannel.annotations[a].value;
-					}
-					if (thisChannel.annotations[a].type == api.message_annotation_type) {
-					annotationValue2 = thisChannel.annotations[a].value;
-					}
-				}
+				var annotations = getAnnotations(thisChannel);
 				//Eject if no settings annotation.
-				if (!annotationValue) continue;
+				if (!annotations.hasOwnProperty(api.annotation_type)) continue;
 				//Eject if user can't write to channel. (unlikely)
 				// ...
 				
-				processChannel(response.data[c], annotationValue, annotationValue2);
+				storeChannel(thisChannel, annotations);
 				
 				if (Object.keys(channelArray).length == 1) {
 					//This channel is first in the activity ordering and will be our default if one wasn't saved.
@@ -253,22 +278,6 @@ context.channel = (function () {
 			//Ask before creating; the user may not want them.
 			//Or make a publically writeable sandbox channel set...
 			//createChannel();
-		}
-	}
-		
-	function processChannel(thisChannel, annotationValue, messageAnnotationValue) {
-		//Save data for every channel.
-		channelArray[thisChannel.id] = {"id" : thisChannel.id,
-										"name" : annotationValue["name"],
-										"owner" : thisChannel.owner.id,
-										"editors" : thisChannel.editors.user_ids,
-										"annotationValue" : annotationValue};
-		if (annotationValue.hasOwnProperty("list_types")) {
-			channelArray[thisChannel.id].listTypes = annotationValue.list_types;
-			channelArray[thisChannel.id].lists = messageAnnotationValue.lists;
-		}
-		if (messageAnnotationValue.hasOwnProperty("deletion_queue")) {
-			channelArray[thisChannel.id].deletionQueue = messageAnnotationValue.deletion_queue;
 		}
 	}
 
@@ -292,9 +301,7 @@ context.channel = (function () {
 		var listTypes = (channelArray[thisChannel.id].listTypes ? channelArray[thisChannel.id].listTypes : {});
 		processChannelUsers(thisChannel);
 		
-		//Process the channel name itself. Pass in the whole input for the editor to preserve defaultValue.
-		$("section#sectionLists h1").html(channelArray[thisChannel.id].name);
-		$("div#listGroupNameWrapper").html("<input type='text' id='listGroupName' class='form-control listTitle' value='" + channelArray[thisChannel.id].name + "' />");
+		context.ui.nameList(thisChannel.id);
 		
 		//Make more list holders for sublists.
 		var len = Object.keys(listTypes).length;
@@ -311,19 +318,15 @@ context.channel = (function () {
 				listCloner(0, listTypes);
 			}
 			//Need to retitle the main list.
-			listNamer(1, listTypes);
+			context.ui.nameSublist(1, listTypes);
 			
 			//Layout adjustment for the big screen.
 			$("div#list_1").removeClass("col-sm-offset-4");
 			if (len == 2) $("div#list_1").addClass("col-sm-offset-2");
 			if (len == 4) $("div#list_0").addClass("col-sm-offset-4");
 			
-		} else {
-			
-			//Don't name main list at all.
-			$("div#list_1 span.mainTitle").html("<i class='fa fa-fw'></i>");
-			
 		}
+
 		//Button activation
 		initializeButtons();
 		
@@ -343,7 +346,7 @@ context.channel = (function () {
 	function listCloner(index, listTypesObj) {
 		//Clone and name.
 		$("div#list_1").clone().attr("id","list_" + index).data("type",index).appendTo("div#bucketListHolder").removeClass("col-sm-offset-4");
-		listNamer(index, listTypesObj);
+		context.ui.nameSublist(index, listTypesObj);
 		//Activate new buttons.
 		$("div#list_" + index + " span[data-type='addButton']").click(context.ui.add);
 		editCloner(index, listTypesObj);
@@ -351,16 +354,6 @@ context.channel = (function () {
 		
 	function editCloner(index, listTypesObj) {
 		$("#sublistControl").append("<div class='form-group listControl' id='sublist_" + index + "'><div class='col-xs-4 text-right'><label class='control-label' for='sublistEdit_" + index + "'>" + (index == 0 ? "Archive" : "List " + index) + ":</label></div><div class='col-xs-3'><input type='text' id='sublistEdit_" + index + "' name='title' class='form-control listTitle' value='" + listTypesObj[index.toString()].title + "' /></div><div class='col-xs-4'><input type='text' id='sublistSubtitle_" + index + "' name='subtitle' class='form-control' value='" + (listTypesObj[index.toString()].subtitle ? listTypesObj[index.toString()].subtitle : "") + "' /></div></div>");
-	}
-	
-	function listNamer(index, listTypesObj) {
-		$("div#list_" + index + " span.mainTitle").html(listTypesObj[index.toString()].title);
-		$("div#itemCheckboxes span#label_" + index).html(listTypesObj[index.toString()].title);
-		$("div#itemCheckboxes span#label_" + index).closest("label").show();
-
-		if (listTypesObj[index.toString()].hasOwnProperty("subtitle")) {
-			$("div#list_" + index + " span.subTitle").html(listTypesObj[index.toString()].subtitle);
-		}
 	}
 
 	function completeMessages(response) {
@@ -940,8 +933,22 @@ context.list = (function () {
 
 	function completeEditLists(response) {
 		//Rename lists based on the response we got back.  
-		//This would be easiest with a reload.  Compromise by updating the channelArray and forcing a vacuous channel switch.
-		debugger;
+		//This would be easiest with a reload...
+		var channelId = response.data.id;
+		var annotations = context.channel.getAnnotations(response.data);
+		//Update the channelArray.
+		context.channel.storeChannel(response.data, annotations);
+		//Update the UI.
+		context.ui.nameList(channelId);
+		if (channelArray[channelId].hasOwnProperty("listTypes")) {
+			for (var key in Object.keys(channelArray[channelId].listTypes)) {
+				context.ui.nameSublist(parseInt(key),channelArray[channelId].listTypes);
+			}
+		}
+		//This was not part of nameList.
+		$("option#channel_" + channelId).text(channelArray[channelId].name);
+		//Give some UI feedback.
+		$("button#saveListEdits").addClass("btn-success").removeClass("btn-custom");
 	}
 
 })();
@@ -1061,6 +1068,8 @@ context.ui = (function () {
 		failAlert: failAlert,
 		forceScroll: forceScroll,
 		itemTag: itemTag,
+		nameList: nameList,
+		nameSublist: nameSublist,
 		navbarSetter: navbarSetter,
 		pushHistory: pushHistory,
 		settingsToggle: settingsToggle,
@@ -1106,6 +1115,27 @@ context.ui = (function () {
 	function itemTag(unhashedTag) {
 		//Clicking a tag in the lists restricts the lists to that tag.
 		context.tags.filter(unhashedTag);
+	}
+
+
+	function nameList(channelId) {
+		//Process the channel name itself. Pass in the whole input for the editor to preserve defaultValue.
+		$("section#sectionLists h1").html(channelArray[channelId].name);
+		$("div#listGroupNameWrapper").html("<input type='text' id='listGroupName' class='form-control listTitle' value='" + channelArray[channelId].name + "' />");
+		//If  nameSublist is called, this will be re-filled.
+		$("div#list_1 span.mainTitle").html("<i class='fa fa-fw'></i>");
+	}
+	
+	function nameSublist(index, listTypesObj) {
+		$("div#list_" + index + " span.mainTitle").html(listTypesObj[index.toString()].title);
+		$("div#itemCheckboxes span#label_" + index).html(listTypesObj[index.toString()].title);
+		$("div#itemCheckboxes span#label_" + index).closest("label").show();
+
+		if (listTypesObj[index.toString()].hasOwnProperty("subtitle")) {
+			$("div#list_" + index + " span.subTitle").html(listTypesObj[index.toString()].subtitle);
+		} else {
+			$("div#list_" + index + " span.subTitle").html("");
+		}
 	}
 	
 	function navbarSetter(hashSectionName) {
