@@ -16,6 +16,7 @@ var marketBucket = {};
 
 	var channelArray = {};
 	var messageTextArray = {};
+	var updateArgs = {include_annotations: 1};
 
 context.init = (function () {
 
@@ -186,26 +187,9 @@ context.init = (function () {
 context.channel = (function () {
 
 	return {
-		add: add,
 		get: get,
 		getMessages: getMessages
 	};
-
-	function add(listTypeObj) {
-		//TODO (not called)
-		//Create a new placeholder default channel for the user.
-		//Later, allow the user to pick his list types and name, if any.
-		var channel = {
-			type: api.channel_type,
-			auto_subscribe: true,
-			annotations:  [{
-				type: api.annotation_type,
-				value: {'default_list': 1}
-			}]
-		};
-		var promise1 = $.appnet.channel.create(channel);
-		promise1.then(completeCreateChannel, function (response) {context.ui.failAlert('Failed to create new list.');});
-	}
 
 	function get() {
 		//Determine channels.
@@ -230,9 +214,6 @@ context.channel = (function () {
 	}
 	
 	//private
-	function completeCreateChannel() {
-		//console.log("channels created");
-	}
 
 	function completeChannels(response) {
 		if (response.data.length > 0) {
@@ -313,7 +294,7 @@ context.channel = (function () {
 		
 		//Process the channel name itself. Pass in the whole input for the editor to preserve defaultValue.
 		$("section#sectionLists h1").html(channelArray[thisChannel.id].name);
-		$("div#listGroupNameWrapper").html("<input type='text' id='listGroupName' class='form-control' value='" + channelArray[thisChannel.id].name + "' />");
+		$("div#listGroupNameWrapper").html("<input type='text' id='listGroupName' class='form-control listTitle' value='" + channelArray[thisChannel.id].name + "' />");
 		
 		//Make more list holders for sublists.
 		var len = Object.keys(listTypes).length;
@@ -369,7 +350,7 @@ context.channel = (function () {
 	}
 		
 	function editCloner(index, listTypesObj) {
-		$("#sublistControl").append("<div class='form-group listControl'><div class='col-xs-4 text-right'><label class='control-label' for='sublistEdit_" + index + "'>" + (index == 0 ? "Archive" : "List " + index) + ":</label></div><div class='col-xs-3'><input type='text' id='sublistEdit_" + index + "' class='form-control sublistTitle' value='" + listTypesObj[index.toString()].title + "' /></div><div class='col-xs-4'><input type='text' id='sublistSubtitle_" + index + "' class='form-control' value='" + (listTypesObj[index.toString()].subtitle ? listTypesObj[index.toString()].subtitle : "") + "' /></div></div>");
+		$("#sublistControl").append("<div class='form-group listControl' id='sublist_" + index + "'><div class='col-xs-4 text-right'><label class='control-label' for='sublistEdit_" + index + "'>" + (index == 0 ? "Archive" : "List " + index) + ":</label></div><div class='col-xs-3'><input type='text' id='sublistEdit_" + index + "' name='title' class='form-control listTitle' value='" + listTypesObj[index.toString()].title + "' /></div><div class='col-xs-4'><input type='text' id='sublistSubtitle_" + index + "' name='subtitle' class='form-control' value='" + (listTypesObj[index.toString()].subtitle ? listTypesObj[index.toString()].subtitle : "") + "' /></div></div>");
 	}
 	
 	function listNamer(index, listTypesObj) {
@@ -532,11 +513,6 @@ context.item = (function () {
 
 	//private
 
-	function updateArgs() {
-		return {include_annotations: 1};
-	}
-
-
 	function createItem(channel,message) {
 		if (!channel || channel == 0) {
 			context.ui.failAlert('Failed to create item.');
@@ -598,7 +574,7 @@ context.item = (function () {
 					}]
 				};
 			}
-			var promise = $.appnet.channel.update(currentChannel, channelUpdates, updateArgs());
+			var promise = $.appnet.channel.update(currentChannel, channelUpdates, updateArgs);
 			promise.then(completeUpdateLists,  function (response) {context.ui.failAlert('Failed to remove item.');});
 		}
 		//In either case, remove item.
@@ -702,7 +678,7 @@ context.item = (function () {
 			};
 		}
 
-		var promise = $.appnet.channel.update(channelId, channelUpdates, updateArgs());
+		var promise = $.appnet.channel.update(channelId, channelUpdates, updateArgs);
 		promise.then(completeUpdateLists,  function (response) {context.ui.failAlert('Failed to move item.');});
 	}
 
@@ -745,7 +721,7 @@ context.item = (function () {
 				}]
 			};
 		}
-		var promise = $.appnet.channel.update(api.currentChannel, channelUpdates, updateArgs());
+		var promise = $.appnet.channel.update(api.currentChannel, channelUpdates, updateArgs);
 		promise.then(completeUpdateLists,  function (response) {context.ui.failAlert('Failed to remove item.');});
 	}
 
@@ -878,24 +854,49 @@ context.list = (function () {
 	};
 
 	//public
-	function add() {
+	function add(listTypeObj) {
 		//Add a new list set.
+		//TODO (not called)
+		//Create a new placeholder default channel for the user.
+		//Later, allow the user to pick his list types and name, if any.
+		var channel = {
+			type: api.channel_type,
+			auto_subscribe: true,
+			annotations:  [{
+				type: api.annotation_type,
+				value: {'default_list': 1}
+			}]
+		};
+		var promise1 = $.appnet.channel.create(channel);
+		promise1.then(completeCreateChannel, function (response) {context.ui.failAlert('Failed to create new list.');});
 	}
 
 	function edit() {
 		//Check that the form is, in fact, dirty.
-		var dirty = false;
+		var clean = true;
 		$("#listControl input").each(function (index) {
 			if ($(this).prop("defaultValue") != $(this).val()) 
-				dirty = true;
+				clean = false;
 		});
-		if (!dirty) {
+		if (clean) {
 			context.ui.failAlert("No edits found.");
 			return;
-		} else alert("Edits!");
-		//Check that all remaining sublists still have titles.
-
-		//Put together the channel update.
+		}
+		//Check that the list and any sublists still have titles.
+		var empty = false;
+		$("#listControl input.listTitle").each(function (index) {
+			if ($(this).val() == "") {
+				empty = true;
+				//Reset to original value. Was .css("box-shadow","0 0 10px #9C4449"), but switched to the Bootstrap way.
+				$(this).val($(this).prop("defaultValue")).parent().addClass("has-error");
+			}
+		});
+		if (empty) {
+			context.ui.failAlert("List and sublist titles are required.");
+			return;
+		}
+		//Ready to edit.
+		editLists(api.currentChannel);
 	}
 
 	function remove() {
@@ -903,6 +904,45 @@ context.list = (function () {
 		confirm("Are you sure you want to delete this list?  This action cannot be undone.");
 	}
 
+	//private
+	function completeCreateChannel() {
+		//console.log("channels created");
+	}
+
+	function editLists(currentChannel) {
+		var newName = $("#listGroupName").val();
+		var channelEdits = {
+			annotations:  [{
+				type: api.annotation_type,
+				value: { 'name': newName }
+			}]
+		};
+		var sublistObject = {};
+		for (var i=0; i< $("#sublistControl div.listControl").length; i++) {
+			sublistObject[i.toString()] = {title: $("input#sublistEdit_" + i).val()};
+			if ($("input#sublistSubtitle_" + i).val() != "")
+				sublistObject[i.toString()] = {title: $("input#sublistEdit_" + i).val(), subtitle: $("input#sublistSubtitle_" + i).val()};
+		}
+		if (Object.keys(sublistObject).length > 0) {
+			channelEdits = {
+				annotations:  [{
+					type: api.annotation_type,
+					value: { 'name': newName,
+							 'list_types': sublistObject
+						   }
+				}]
+			};
+
+		}
+		var promise = $.appnet.channel.update(currentChannel, channelEdits, updateArgs);
+		promise.then(completeEditLists,  function (response) {context.ui.failAlert('Failed to update list.');});
+	}
+
+	function completeEditLists(response) {
+		//Rename lists based on the response we got back.  
+		//This would be easiest with a reload.  Compromise by updating the channelArray and forcing a vacuous channel switch.
+		debugger;
+	}
 
 })();
 
