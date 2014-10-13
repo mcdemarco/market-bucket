@@ -283,9 +283,10 @@ context.channel = (function () {
 			processChannelList();
 
 		} else {
-			//Ask before creating; the user may not want them.
-			//Or make a publically writeable sandbox channel set...
-			//createChannel();
+			//Populate a few extra-blank spots but otherwise don't try too hard to prevent errors.
+			$("section#sectionLists h1").html("No lists");
+			context.ui.forceScroll("#sectionSettings");
+			$("#addControl").show();
 		}
 	}
 
