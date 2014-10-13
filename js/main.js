@@ -249,7 +249,7 @@ context.channel = (function () {
 		//								"annotationValue" : annotationValue};
 		if (annotationValue.hasOwnProperty("list_types")) {
 			channelArray[thisChannel.id].listTypes = annotationValue.list_types;
-			channelArray[thisChannel.id].lists = messageAnnotationValue.lists;
+			channelArray[thisChannel.id].lists = messageAnnotationValue.lists ?  messageAnnotationValue.lists : {};
 		}
 		if (messageAnnotationValue.hasOwnProperty("deletion_queue")) {
 			channelArray[thisChannel.id].deletionQueue = messageAnnotationValue.deletion_queue;
