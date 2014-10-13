@@ -735,7 +735,9 @@ context.item = (function () {
 
 	function updateSublistOnAdd(channelId, messageId, listType) {
 		//Called on creation after formatting, so the html is already located in the right spot. Just update the channel.
-		var updatedLists = JSON.parse(JSON.stringify(channelArray[channelId].lists));
+		var updatedLists = channelArray[channelId].lists;
+		if (!updatedLists.hasOwnProperty(listType))
+			updatedLists[listType] = [];
 		updatedLists[listType].push(messageId);
 		updateLists(channelId,updatedLists);
 	}
