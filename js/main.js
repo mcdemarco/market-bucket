@@ -18,6 +18,7 @@ var marketBucket = {};
 	var messageTextArray = {};
 	var updateArgs = {include_annotations: 1};
 
+
 context.init = (function () {
 
 	return {
@@ -83,8 +84,8 @@ context.init = (function () {
 		$(".loggedOut").show();
 		//Clear the lists.
 		clearPage();
-		//Reset the channel array.
-		//...
+		//Reset the channel array by processing the sample channel?
+		context.channel.showSampleChannel();
 	}
 
 	function reload(e) {
@@ -104,6 +105,7 @@ context.init = (function () {
 		context.channel.getMessages(newChannel);
 		context.ui.forceScroll("#sectionLists");
 	}
+
 
 	//private
 	function activateButtons() {
@@ -196,6 +198,7 @@ context.channel = (function () {
 		get: get,
 		getAnnotations: getAnnotations,
 		getMessages: getMessages,
+		showSampleChannel: showSampleChannel,
 		storeChannel: storeChannel
 	};
 
@@ -208,7 +211,7 @@ context.channel = (function () {
 			type: api.channel_type
 		};
 		var promise = $.appnet.channel.search(args);
-		promise.then(completeChannels, function (response) {context.ui.failAlert('Failed to retrieve your list(s).');}).done(context.tags.colorize);
+		promise.then(completeChannelSearch, function (response) {context.ui.failAlert('Failed to retrieve your list(s).');}).done(context.tags.colorize);
 	}
 
 	function getAnnotations(thisChannel) {
@@ -256,41 +259,139 @@ context.channel = (function () {
 		}
 	}
 
+	function showSampleChannel() {
+		//Indicate the sample channel and data by channel id 0.
+		var sampleChannel = {"pagination_id":"10000",
+	                     "is_inactive":false,
+	                     "readers":{"public":false,
+	                                "user_ids":[],
+	                                "any_user":false,
+	                                "you":true,
+	                                "immutable":false},
+	                     "you_muted":false,
+	                     "you_can_edit":true,
+	                     "has_unread":true,
+	                     "editors":{"public":false,
+	                                "user_ids":[],
+	                                "any_user":false,
+	                                "you":true,
+	                                "immutable":false},
+	                     "annotations":[{"type":"net.mcdemarco.market-bucket.lists",
+	                                     "value":{"lists":{"0":["5080161",
+	                                            "5080161",
+	                                            "5080170",
+	                                            "5080170",
+	                                            "5080177",
+	                                            "5080177"],
+	                                       "2":["5080128",
+	                                            "5080148",
+	                                            "5080160"]}}},
+	                                    {"type":"net.mcdemarco.market-bucket.settings",
+	                                     "value":{"list_types":{"0":{"title":"archive"},
+	                                                            "1":{"title":"now"},
+	                                                            "2":{"title":"later"}},
+	                                              "name":"Check It Twice"}}],
+	                     "recent_message_id":"5080177",
+	                     "writers":{"public":false,
+	                                "user_ids":[],
+	                                "any_user":false,
+	                                "you":true,
+	                                "immutable":false},
+	                     "you_subscribed":true,
+	                     "owner":{"username":"mcdemarco",
+	                              "avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png",
+	                                              "width":144,
+	                                              "is_default":false,
+	                                              "height":144},
+	                              "description":{"text":"",
+	                                             "entities":{"mentions":[],
+	                                                         "hashtags":[],
+	                                                         "links":[]}},
+	                              "verified_link":"http://mcdemarco.net",
+	                              "locale":"en_US",
+	                              "created_at":"2013-04-06T12:31:18Z",
+	                              "id":"68560",
+	                              "canonical_url":"https://alpha.app.net/mcdemarco",
+	                              "verified_domain":"mcdemarco.net",
+	                              "cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg",
+	                                             "width":1024,
+	                                             "is_default":false,
+	                                             "height":683},
+	                              "timezone":"America/New_York",
+	                              "counts":{"following":120,
+	                                        "posts":2429,
+	                                        "followers":95,
+	                                        "stars":346},
+	                              "type":"human",
+	                              "annotations":[],
+	                              "name":"M. C. DeMarco"},
+	                     "counts":{"messages":14},
+	                     "type":"net.mcdemarco.market-bucket.list",
+	                     "id":"0"};
+
+		var sampleMessages = {"data":[
+			{"num_replies":0,"channel_id":"0","text":"olive oil","created_at":"2014-10-13T20:36:56Z","id":"5080177","entities":{"mentions":[],"hashtags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">olive oil</span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080177","pagination_id":"5080177","user":{"username":"mcdemarco","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+			{"num_replies":0,"channel_id":"0","text":"coconut oil","created_at":"2014-10-13T20:36:34Z","id":"5080170","entities":{"mentions":[],"hashtags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">coconut oil</span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080170","pagination_id":"5080170","user":{"username":"mcdemarco","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":250,"is_default":false,"height":250},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+			{"num_replies":0,"channel_id":"0","text":"chicken thighs #perishable","created_at":"2014-10-13T20:35:49Z","id":"5080161","entities":{"mentions":[],"hashtags":[{"name":"perishable","len":11,"pos":15}],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">chicken thighs <span data-hashtag-name=\"perishable\" itemprop=\"hashtag\">#perishable</span></span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080161","pagination_id":"5080161","user":{"username":"mcdemarco","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":250,"is_default":false,"height":250},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+			{"num_replies":0,"channel_id":"0","text":"batteries #RadioShack","created_at":"2014-10-13T20:35:08Z","id":"5080160","entities":{"mentions":[],"hashtags":[{"name":"radioshack","len":11,"pos":10}],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">batteries <span data-hashtag-name=\"radioshack\" itemprop=\"hashtag\">#RadioShack</span></span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080160","pagination_id":"5080160","user":{"username":"mcdemarco","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":250,"is_default":false,"height":250},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+			{"num_replies":0,"channel_id":"0","text":"creamer","created_at":"2014-10-13T20:34:56Z","id":"5080148","entities":{"mentions":[],"hashtags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">creamer</span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080148","pagination_id":"5080148","user":{"username":"mcdemarco","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":250,"is_default":false,"height":250},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+			{"num_replies":0,"channel_id":"0","text":"kitrone","created_at":"2014-10-13T20:33:18Z","id":"5080128","entities":{"mentions":[],"hashtags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">kitrone</span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080128","pagination_id":"5080128","user":{"username":"mcdemarco","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":250,"is_default":false,"height":250},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+			{"num_replies":0,"channel_id":"0","text":"Twinkies™","created_at":"2014-10-13T20:27:39Z","id":"5080100","entities":{"mentions":[],"hashtags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">Twinkies&#8482;</span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080100","pagination_id":"5080100","user":{"username":"mcdemarco","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":250,"is_default":false,"height":250},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+			{"num_replies":0,"channel_id":"0","text":"panko from #TraderJoes","created_at":"2014-10-13T20:25:49Z","id":"5080091","entities":{"mentions":[],"hashtags":[{"name":"traderjoes","len":11,"pos":11}],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">panko from <span data-hashtag-name=\"traderjoes\" itemprop=\"hashtag\">#TraderJoes</span></span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080091","pagination_id":"5080091","user":{"username":"mcdemarco","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":250,"is_default":false,"height":250},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+			{"num_replies":0,"channel_id":"0","text":"milk  #perishable","created_at":"2014-10-13T20:25:07Z","id":"5080090","entities":{"mentions":[],"hashtags":[{"name":"perishable","len":11,"pos":6}],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">milk  <span data-hashtag-name=\"perishable\" itemprop=\"hashtag\">#perishable</span></span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080090","pagination_id":"5080090","user":{"username":"mcdemarco","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":250,"is_default":false,"height":250},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+			{"num_replies":0,"channel_id":"0","text":"eggs from #MarketBasket","created_at":"2014-10-13T20:24:49Z","id":"5080089","entities":{"mentions":[],"hashtags":[{"name":"marketbasket","len":13,"pos":10}],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">eggs from <span data-hashtag-name=\"marketbasket\" itemprop=\"hashtag\">#MarketBasket</span></span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080089","pagination_id":"5080089","user":{"username":"mcdemarco","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":250,"is_default":false,"height":250},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+			{"num_replies":0,"channel_id":"0","text":"circuses","created_at":"2014-10-13T20:15:19Z","id":"5080015","entities":{"mentions":[],"hashtags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">circuses</span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080015","pagination_id":"5080015","user":{"username":"mcdemarco","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":250,"is_default":false,"height":250},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+			{"num_replies":0,"channel_id":"0","text":"bread","created_at":"2014-10-13T20:15:09Z","id":"5080013","entities":{"mentions":[],"hashtags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">bread</span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080013","pagination_id":"5080013","user":{"username":"mcdemarco","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":250,"is_default":false,"height":250},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}}
+		]};
+
+		populateChannel(sampleChannel);
+		displayChannel(sampleChannel);
+		//Just one option in the dropdown, saying it's the sample list (for logged-in users).
+		var optionString = "<option id='channel_" + 0 + "' value='" + 0 + "' selected>(sample list)</option>";
+		$("select#listSetSelect").append(optionString);
+		completeMessages(sampleMessages);
+		context.tags.display("0");
+	}
+
 	//private
 
-	function completeChannels(response) {
+	function completeChannelSearch(response) {
 		if (response.data.length > 0) {
 			for (var c = 0; c < response.data.length; c++) {
-				var thisChannel = response.data[c];
-				var annotations = getAnnotations(thisChannel);
-				//Eject if no settings annotation.
-				if (!annotations.hasOwnProperty(api.annotation_type)) continue;
-				//Eject if user can't write to channel. (unlikely)
-				// ...
-				
-				storeChannel(thisChannel, annotations);
-				
-				if (Object.keys(channelArray).length == 1) {
-					//This channel is first in the activity ordering and will be our default if one wasn't saved.
-					context.init.checkLocalStorageChannel(thisChannel.id);
-				}
-				
+				populateChannel(response.data[c]);
+
 				//Fetch more data if this is the right channel.
- 				if (api.currentChannel && api.currentChannel == thisChannel.id) {
-					displayChannel(thisChannel);
+				if (api.currentChannel && api.currentChannel == response.data[c].id) {
+					displayChannel(response.data[c]);
 				}
 			}
-			processChannelList();
+			populateChannelSelector();
 
 		} else {
 			//Populate a few extra-blank spots but otherwise don't try too hard to prevent errors.
-			$("section#sectionLists h1").html("No lists");
+			showSampleChannel();
 			context.ui.forceScroll("#sectionSettings");
 			$("#addControl").show();
 		}
 	}
 
-	function processChannelList() {
+	function populateChannel(thisChannel) {
+		var annotations = getAnnotations(thisChannel);
+		//Eject if no settings annotation.
+		if (!annotations.hasOwnProperty(api.annotation_type)) return;
+		//Eject if user can't write to channel. (unlikely)
+		// ...
+		
+		storeChannel(thisChannel, annotations);
+		
+		if (Object.keys(channelArray).length == 1) {
+			//This channel is first in the activity ordering and will be our default if one wasn't saved.
+			context.init.checkLocalStorageChannel(thisChannel.id);
+		}
+
+	}
+
+	function populateChannelSelector() {
 		//Put the channel list into the settings dropdown.
 		for (var ch in channelArray) {
 			if (channelArray.hasOwnProperty(ch)) {
@@ -335,6 +436,8 @@ context.channel = (function () {
 			if (len == 4) $("div#list_0").addClass("col-sm-offset-4");
 			
 		}
+		
+		if (thisChannel.id == "0") return;
 
 		//Button activation
 		initializeButtons();
@@ -365,7 +468,7 @@ context.channel = (function () {
 		$("#sublistControl").append("<div class='form-group listControl' id='sublist_" + index + "'><div class='col-xs-4 text-right'><label class='control-label' for='sublistEdit_" + index + "'>" + (index == 0 ? "Archive" : "List " + index) + ":</label></div><div class='col-xs-3'><input type='text' id='sublistEdit_" + index + "' name='title' class='form-control listTitle' value='" + listTypesObj[index.toString()].title + "' /></div><div class='col-xs-4'><input type='text' id='sublistSubtitle_" + index + "' name='subtitle' class='form-control' value='" + (listTypesObj[index.toString()].subtitle ? listTypesObj[index.toString()].subtitle : "") + "' /></div></div>");
 	}
 
-	function completeMessages(response) {
+	function completeMessages(response) {debugger;
 		//Populate the UI for an individual retrieved list.
 		if (response.data.length > 0) {
 			for (var i=0; i < response.data.length; i++) {
