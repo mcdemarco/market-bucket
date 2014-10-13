@@ -63,6 +63,13 @@ section {
   background-color: #e5f5de;
   color: #687858; }
 
+#sectionBlurb a {
+  padding: 1px;
+  color: #4DA513; }
+
+#sectionBlurb a:hover {
+  color: #508721; }
+
 #sectionAbout, #sectionAdd {
   background-color: #7E8250;
   color: #deefcc; }
@@ -82,16 +89,14 @@ footer {
   min-height: 40px;
   padding-top: 20px;
   padding-bottom: 20px; }
-
-footer .nav > li > a,
-footer p > a {
-  padding: 1px;
-  color: #B3C293; }
-
-footer .nav > li > a:hover,
-footer p > a:hover {
-  background-color: transparent;
-  color: #fff; }
+  footer .nav > li > a,
+  footer p > a {
+    padding: 1px;
+    color: #B3C293; }
+  footer .nav > li > a:hover,
+  footer p > a:hover {
+    background-color: transparent;
+    color: #fff; }
 
 h1, .font-brand {
   font-family: "Rock Salt", cursive; }

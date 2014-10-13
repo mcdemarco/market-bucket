@@ -21,6 +21,8 @@ $primary-highlight: #91C133;
 $secondary-bgcolor: #e5f5de;
 $secondary-color: #687858;
 $secondary-color-gray: #686868;
+$secondary-link-color: #4DA513;
+$secondary-link-hover: #508721;
 
 $transparent-color: #fff;
 $transparent-shadow: 2px 2px 4px #112200;
@@ -108,6 +110,15 @@ section {
     color: $secondary-color;
 }
 
+#sectionBlurb a {
+    padding:1px;
+    color: $secondary-link-color;
+}
+
+#sectionBlurb a:hover {
+    color: $secondary-link-hover;
+}
+
 #sectionAbout, #sectionAdd {
     background-color: $primary-bgcolor;
     color: $primary-color;
@@ -132,18 +143,18 @@ footer {
     min-height:40px;
     padding-top:20px;
     padding-bottom:20px;
-}
 
-footer .nav>li>a,
-footer p>a {
-    padding:1px;
-    color: $nav-link-color;
-}
+    .nav>li>a,
+    p>a {
+	padding:1px;
+	color: $nav-link-color;
+    }
 
-footer .nav>li>a:hover,
-footer p>a:hover  {
-    background-color:transparent;
-    color: $nav-color;
+    .nav>li>a:hover,
+    p>a:hover  {
+	background-color:transparent;
+	color: $nav-color;
+    }
 }
 
 h1, .font-brand {
