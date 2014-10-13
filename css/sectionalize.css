@@ -127,6 +127,7 @@ div.memberRow span.realName {
   font-style: italic;
   color: #686868; }
 
+div#addControl,
 div#addMember,
 div#memberControl,
 div#listControl {

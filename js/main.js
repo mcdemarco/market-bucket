@@ -24,7 +24,8 @@ context.init = (function () {
 		checkLocalStorageChannel: checkLocalStorageChannel,
 		load: load,
 		logout: logout,
-		reload: reload
+		reload: reload,
+		reloadChannel: reloadChannel
 	};
 
 	function checkLocalStorageChannel(defaultChannel) {
@@ -88,6 +89,10 @@ context.init = (function () {
 
 	function reload(e) {
 		var newChannel = $(e.target).val();
+		reloadChannel(newChannel);
+	}
+
+	function reloadChannel(newChannel) {
 		if (api.currentChannel == newChannel) return;
 		if (!channelArray.hasOwnProperty(newChannel)) {
 			context.ui.failAlert("Failed to change the channel.");
@@ -106,6 +111,7 @@ context.init = (function () {
 		$("#addButton").click(context.item.add);
 		$("#addMemberButton").click(context.ui.addMember);
 		$("#clearButton").click(context.item.clearForm);
+		$("#createButton").click(context.list.add);
 		$("#list_1 span[data-type='addButton']").click(context.ui.add);
 		$("#listSetSelect").change(context.init.reload);
 		$("#logOutButton").click(context.init.logout);
@@ -237,7 +243,9 @@ context.channel = (function () {
 		channelArray[thisChannel.id] = {"id" : thisChannel.id,
 										"name" : annotationValue["name"],
 										"owner" : thisChannel.owner.id,
-										"editors" : thisChannel.editors.user_ids};
+										"editors" : thisChannel.editors.user_ids,
+									    "tagArray" : []
+									   };
 		//								"annotationValue" : annotationValue};
 		if (annotationValue.hasOwnProperty("list_types")) {
 			channelArray[thisChannel.id].listTypes = annotationValue.list_types;
@@ -270,7 +278,7 @@ context.channel = (function () {
 				//Fetch more data if this is the right channel.
  				if (api.currentChannel && api.currentChannel == thisChannel.id) {
 					displayChannel(thisChannel);
-			}
+				}
 			}
 			processChannelList();
 
@@ -847,24 +855,52 @@ context.list = (function () {
 	};
 
 	//public
-	function add(listTypeObj) {
-		//Add a new list set.
-		//TODO (not called)
-		//Create a new placeholder default channel for the user.
-		//Later, allow the user to pick his list types and name, if any.
-		var channel = {
+	function add(e) {
+		//Validate and add a new list set.
+		if ($("input#newListName").val() == "") {
+			context.ui.failAlert("Please provide a name for the new list.");
+			$("input#newListName").parent().addClass("has-error");
+			return;
+		}
+		var newListName = $("input#newListName").val();
+		var newChannel = {
 			type: api.channel_type,
 			auto_subscribe: true,
 			annotations:  [{
 				type: api.annotation_type,
-				value: {'default_list': 1}
+				value: {'name': newListName}
 			}]
 		};
-		var promise1 = $.appnet.channel.create(channel);
-		promise1.then(completeCreateChannel, function (response) {context.ui.failAlert('Failed to create new list.');});
+		//Sublist cases.
+		var listTypesObj = {};
+		switch ($("#addControl input:radio[name=newListType]:checked" ).val()) {
+			case "2":
+				listTypesObj = {'0': {'title':'archive'},
+								'1': {'title':'to do'}
+							   };
+				break;
+			case "3":
+				listTypesObj = {'0': {'title':'archive'},
+								'1': {'title':'now'},
+								'2': {'title':'later'}
+							   };
+				break;
+			default:
+				break;
+		}
+		if (Object.keys(listTypesObj).length > 0) {
+			newChannel.annotations = [{
+				type: api.annotation_type,
+				value: {'name': newListName,
+					    'list_types': listTypesObj }
+			}];
+		}
+		//Create it!
+		var promise = $.appnet.channel.create(newChannel,updateArgs);
+		promise.then(completeCreateChannel, function (response) {context.ui.failAlert('Failed to create new list.');});
 	}
 
-	function edit() {
+	function edit(e) {
 		//Check that the form is, in fact, dirty.
 		var clean = true;
 		$("#listControl input").each(function (index) {
@@ -898,8 +934,17 @@ context.list = (function () {
 	}
 
 	//private
-	function completeCreateChannel() {
-		//console.log("channels created");
+	function completeCreateChannel(response) {
+		//As on edit, we update based on the response.
+		var channelId = response.data.id;
+		var annotations = context.channel.getAnnotations(response.data);
+		//Update the channelArray.
+		context.channel.storeChannel(response.data, annotations);
+		//Update the channel switcher, switch it, and manually fire the onchange.
+		var optionString = "<option id='channel_" + channelId + "' value='" + channelId + "'" + ">" + channelArray[channelId].name + "</option>";
+		$("select#listSetSelect").append(optionString);
+		$("select#listSetSelect option#channel_" + channelId).prop("selected", true);
+		context.init.reloadChannel(channelId);
 	}
 
 	function editLists(currentChannel) {
@@ -1116,7 +1161,6 @@ context.ui = (function () {
 		//Clicking a tag in the lists restricts the lists to that tag.
 		context.tags.filter(unhashedTag);
 	}
-
 
 	function nameList(channelId) {
 		//Process the channel name itself. Pass in the whole input for the editor to preserve defaultValue.

@@ -253,8 +253,8 @@
 	  </div>
 	  <div class="col-xs-12 col-md-2 text-center" id="controlButtons">
 	    <a class="btn btn-default btn-sm controlButton" href="javascript:void(0);" data-control="memberControl" title="View/add members"><i class="fa fa-group"></i></a>
-	    <a class="btn btn-default btn-sm controlButton" href="javascript:void(0);" data-control="listControl" title="(Re)name current lists/group"><i class="fa fa-pencil"></i></a>
-	    <a class="btn btn-default btn-sm controlButton" href="javascript:void(0);" data-control="channelControl" title="Add new list groups" disabled><i class="fa fa-plus"></i></a>
+	    <a class="btn btn-default btn-sm controlButton" href="javascript:void(0);" data-control="listControl" title="(Re)name current list(s)"><i class="fa fa-pencil"></i></a>
+	    <a class="btn btn-default btn-sm controlButton" href="javascript:void(0);" data-control="addControl" title="Add new list(s)"><i class="fa fa-plus"></i></a>
 	  </div>
 	</div>
 	<div class="form-group control" id="memberControl">
@@ -282,6 +282,45 @@
 	  <div class="form-group">
 	    <div class="col-xs-4 col-xs-offset-4 text-center">
 	      <button type="button" class="btn btn-custom btn-xs form-control" href="#" id="saveListEdits">Save Edits</button>
+	    </div>
+	  </div>
+	</div>
+	<div class="control" id="addControl">
+	  <div class="form-group">
+	    <div class="col-xs-10 col-xs-offset-1"><label class="control-label" for="newListName">New list name:</label></div>
+	    <div class="col-xs-10 col-xs-offset-1"><input type="text" id="newListName" class="form-control text-left" value="" placeholder="My new list's name" ></div>
+	  </div>
+	  <div class="form-group">
+	    <div class="col-xs-10 col-xs-offset-1 text-left">
+	      <div class="radio">
+		<label>
+		  <input type="radio" name="newListType" id="basicList" value="1" checked>
+		  One simple list with no archiving.
+		</label>
+	      </div>
+	      <div class="radio">
+		<label>
+		  <input type="radio" name="newListType" id="basicArchivedList" value="2">
+		  One list plus an archive.
+		</label>
+	      </div>
+	      <div class="radio">
+		<label>
+		  <input type="radio" name="newListType" id="twoArchivedLists" value="3">
+		  Two lists plus an archive.
+		</label>
+	      </div>
+	      <div class="radio">
+		<label>
+		  <input type="radio" name="newListType" id="threeArchivedLists" value="4" disabled>
+		  Three lists plus an archive. (Coming soon!)
+		</label>
+	      </div>
+	    </div>
+	  </div>
+	  <div class="form-group">
+	    <div class="col-xs-4 col-xs-offset-4 text-center">
+	      <button type="button" class="btn btn-custom btn-xs form-control" href="#" id="createButton">Create List(s)</button>
 	    </div>
 	  </div>
 	</div>
