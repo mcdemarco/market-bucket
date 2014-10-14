@@ -466,7 +466,7 @@ context.channel = (function () {
 		$("#sublistControl").append("<div class='form-group listControl' id='sublist_" + index + "'><div class='col-xs-4 text-right'><label class='control-label' for='sublistEdit_" + index + "'>" + (index == 0 ? "Archive" : "List " + index) + ":</label></div><div class='col-xs-3'><input type='text' id='sublistEdit_" + index + "' name='title' class='form-control listTitle' value='" + listTypesObj[index.toString()].title + "' /></div><div class='col-xs-4'><input type='text' id='sublistSubtitle_" + index + "' name='subtitle' class='form-control' value='" + (listTypesObj[index.toString()].subtitle ? listTypesObj[index.toString()].subtitle : "") + "' /></div></div>");
 	}
 
-	function completeMessages(response) {debugger;
+	function completeMessages(response) {
 		//Populate the UI for an individual retrieved list.
 		if (response.data.length > 0) {
 			for (var i=0; i < response.data.length; i++) {
