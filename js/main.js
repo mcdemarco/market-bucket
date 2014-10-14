@@ -476,7 +476,7 @@ context.channel = (function () {
 					if (respd.user.id == api.userId) {
 						//Delete if creator and remove from queue.
 						var promise = $.appnet.message.destroy(api.currentChannel,respd.id);
-						promise.then(completeAutoDelete,  function (response) {context.ui.failAlert('Failed to delete queued item.');});
+						promise.then(context.item.completeAutoDelete,  function (response) {context.ui.failAlert('Failed to delete queued item.');});
 					}
 					//In either case, don't display "deleted" item or retrieve its tags.
 					continue;
