@@ -85,7 +85,7 @@ context.init = (function () {
 		//Clear the lists.
 		clearPage();
 		//Reset the channel array by processing the sample channel?
-		context.channel.showSampleChannel();
+		context.channel.useSampleChannel();
 	}
 
 	function reload(e) {
@@ -198,8 +198,8 @@ context.channel = (function () {
 		get: get,
 		getAnnotations: getAnnotations,
 		getMessages: getMessages,
-		showSampleChannel: showSampleChannel,
-		storeChannel: storeChannel
+		storeChannel: storeChannel,
+		useSampleChannel: useSampleChannel
 	};
 
 	function get() {
@@ -259,7 +259,7 @@ context.channel = (function () {
 		}
 	}
 
-	function showSampleChannel() {
+	function useSampleChannel() {
 		//Indicate the sample channel and data by channel id 0.
 		var sampleChannel = {"pagination_id":"10000",
 	                     "is_inactive":false,
@@ -277,15 +277,8 @@ context.channel = (function () {
 	                                "you":true,
 	                                "immutable":false},
 	                     "annotations":[{"type":"net.mcdemarco.market-bucket.lists",
-	                                     "value":{"lists":{"0":["5080161",
-	                                            "5080161",
-	                                            "5080170",
-	                                            "5080170",
-	                                            "5080177",
-	                                            "5080177"],
-	                                       "2":["5080128",
-	                                            "5080148",
-	                                            "5080160"]}}},
+	                                     "value":{"lists":{"0":["5080161","5080161","5080170","5080170","5080177","5080177"],
+	                                       "2":["5080128","5080148","5080160"]}}},
 	                                    {"type":"net.mcdemarco.market-bucket.settings",
 	                                     "value":{"list_types":{"0":{"title":"archive"},
 	                                                            "1":{"title":"now"},
@@ -344,12 +337,12 @@ context.channel = (function () {
 			{"num_replies":0,"channel_id":"0","text":"bread","created_at":"2014-10-13T20:15:09Z","id":"5080013","entities":{"mentions":[],"hashtags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">bread</span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080013","pagination_id":"5080013","user":{"username":"mcdemarco","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":250,"is_default":false,"height":250},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}}
 		]};
 
-		populateChannel(sampleChannel);
-		displayChannel(sampleChannel);
+		populateChannel(sampleChannel,sampleMessages);
+		//displayChannel(sampleChannel);
 		//Just one option in the dropdown, saying it's the sample list (for logged-in users).
 		var optionString = "<option id='channel_" + 0 + "' value='" + 0 + "' selected>(sample list)</option>";
 		$("select#listSetSelect").append(optionString);
-		completeMessages(sampleMessages);
+		//completeMessages(sampleMessages);
 		context.tags.display("0");
 	}
 
@@ -359,23 +352,19 @@ context.channel = (function () {
 		if (response.data.length > 0) {
 			for (var c = 0; c < response.data.length; c++) {
 				populateChannel(response.data[c]);
-
-				//Fetch more data if this is the right channel.
-				if (api.currentChannel && api.currentChannel == response.data[c].id) {
-					displayChannel(response.data[c]);
-				}
 			}
 			populateChannelSelector();
 
 		} else {
 			//Populate a few extra-blank spots but otherwise don't try too hard to prevent errors.
-			showSampleChannel();
+			//Should no longer be accessible.
+			useSampleChannel();
 			context.ui.forceScroll("#sectionSettings");
 			$("#addControl").show();
 		}
 	}
 
-	function populateChannel(thisChannel) {
+	function populateChannel(thisChannel,theseMessages) {
 		var annotations = getAnnotations(thisChannel);
 		//Eject if no settings annotation.
 		if (!annotations.hasOwnProperty(api.annotation_type)) return;
@@ -387,6 +376,13 @@ context.channel = (function () {
 		if (Object.keys(channelArray).length == 1) {
 			//This channel is first in the activity ordering and will be our default if one wasn't saved.
 			context.init.checkLocalStorageChannel(thisChannel.id);
+		}
+
+		//Fetch more data if this is the right channel.
+		if (thisChannel.id == "0" && theseMessages) {
+			displayChannel(thisChannel,theseMessages);
+		} else if (api.currentChannel && api.currentChannel == thisChannel.id) {
+			displayChannel(thisChannel);
 		}
 
 	}
@@ -406,7 +402,7 @@ context.channel = (function () {
 			displayChannel(response.data);
 	}
 
-	function displayChannel(thisChannel) {
+	function displayChannel(thisChannel,theseMessages) {
 		//Users in settings panel.
 		var listTypes = (channelArray[thisChannel.id].listTypes ? channelArray[thisChannel.id].listTypes : {});
 		processChannelUsers(thisChannel);
@@ -434,21 +430,23 @@ context.channel = (function () {
 			$("div#list_1").removeClass("col-sm-offset-4");
 			if (len == 2) $("div#list_1").addClass("col-sm-offset-2");
 			if (len == 4) $("div#list_0").addClass("col-sm-offset-4");
-			
 		}
 		
-		if (thisChannel.id == "0") return;
-
 		//Button activation
 		initializeButtons();
 		
-		//Retrieve the messages.
-		var args = {
-			include_deleted: 0,
-			count: api.message_count
-		};
-		var promise = $.appnet.message.getChannel(thisChannel.id, args);
-		promise.then(completeMessages, function (response) {context.ui.failAlert('Failed to retrieve items.');}).done(context.tags.display);
+		if (thisChannel.id == "0") {
+			//Use sample messages.
+			completeMessages(theseMessages);
+		} else {
+			//Retrieve the messages from ADN.
+			var args = {
+				include_deleted: 0,
+				count: api.message_count
+			};
+			var promise = $.appnet.message.getChannel(thisChannel.id, args);
+			promise.then(completeMessages, function (response) {context.ui.failAlert('Failed to retrieve items.');}).done(context.tags.display);
+		}
 	}
 	
 	function initializeButtons() {
