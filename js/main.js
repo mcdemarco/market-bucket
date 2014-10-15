@@ -37,7 +37,7 @@ context.init = (function () {
 			catch (e) {}
 		} else {
 			api.currentChannel = defaultChannel;
-			if (api.currentChannel && localStorage) {
+			if (api.currentChannel && api.currentChannel >= api.max_samples && localStorage) {
 				try {localStorage["currentChannel"] = api.currentChannel;}
 				catch (e) {}
 			}
@@ -380,7 +380,7 @@ context.channel = (function () {
 		}
 
 		//Fetch more data if this is the right channel.
-		if (parseInt(thisChannel.id) < api.max_samples && cannedMessages) {
+		if (thisChannel.id == "0" && cannedMessages) {
 			displayChannel(thisChannel,cannedMessages);
 		} else if (api.currentChannel && api.currentChannel == thisChannel.id) {
 			displayChannel(thisChannel);
