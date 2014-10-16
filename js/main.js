@@ -90,23 +90,23 @@ context.init = (function () {
 	}
 
 	function reload(e) {
-		var newChannel = $(e.target).val();
-		reloadChannel(newChannel);
+		var newChannelId = $(e.target).val();
+		reloadChannel(newChannelId);
 	}
 
-	function reloadChannel(newChannel) {
-		if (api.currentChannel == newChannel) return;
-		if (!channelArray.hasOwnProperty(newChannel)) {
+	function reloadChannel(newChannelId) {
+		if (api.currentChannel == newChannelId) return;
+		if (!channelArray.hasOwnProperty(newChannelId)) {
 			context.ui.failAlert("Failed to change the channel.");
 			return;
 		}
 		//Now we're ready to restore to an initializable state.
 		clearPage();
-		setLocalStorageChannel(newChannel);
-		context.channel.getMessages(newChannel);
+		//sample checking done by this function for itself
+		setLocalStorageChannel(newChannelId);
+		context.channel.displayChannel(newChannelId);
 		context.ui.forceScroll("#sectionLists");
 	}
-
 
 	//private
 	function activateButtons() {
@@ -166,7 +166,7 @@ context.init = (function () {
 	
 	function setLocalStorageChannel(newChannel) {
 		api.currentChannel = newChannel;
-		if (api.currentChannel && localStorage) {
+		if (api.currentChannel && parseInt(api.currentChannel) >= api.max_samples && localStorage) {
 			//Set the new channel.
 			try {localStorage["currentChannel"] = api.currentChannel;}
 			catch (e) {}
@@ -196,6 +196,7 @@ context.init = (function () {
 context.channel = (function () {
 
 	return {
+		displayChannel: displayChannel,
 		get: get,
 		getAnnotations: getAnnotations,
 		getMessages: getMessages,
@@ -216,6 +217,7 @@ context.channel = (function () {
 	}
 
 	function getAnnotations(thisChannel) {
+		//Annotations processor; public because needed for item processing.
 		//Not assuming we're the only annotation.
 		var ourAnnotations = {};
 		for (var a = 0; a < thisChannel.annotations.length; a++) {
@@ -230,13 +232,18 @@ context.channel = (function () {
 	}
 
 	function getMessages(channelId) {
-		//Get a single channel with its messages.
-		var args = {
-			include_annotations: 1,
-			type: api.channel_type
-		};
-		var promise = $.appnet.channel.get(channelId, args);
-		promise.then(completeChannel, function (response) {context.ui.failAlert('Failed to retrieve your list.');}).done(context.tags.colorize);
+		if (parseInt(channelId) < api.max_samples) {
+			var sampleMessages = getSampleMessages();
+			completeChannel(sampleMessages[channelId]);
+		} else {
+			//Get a single channel with its messages.
+			var args = {
+				include_annotations: 1,
+				type: api.channel_type
+			};
+			var promise = $.appnet.channel.get(channelId, args);
+			promise.then(completeChannel, function (response) {context.ui.failAlert('Failed to retrieve your list.');}).done(context.tags.colorize);
+			}
 	}
 
 	function storeChannel(thisChannel, annotationsObject) {
@@ -246,8 +253,9 @@ context.channel = (function () {
 		//Save data for every channel.
 		channelArray[thisChannel.id] = {"id" : thisChannel.id,
 										"name" : annotationValue["name"],
-										"owner" : thisChannel.owner.id,
-										"editors" : thisChannel.editors.user_ids,
+										"owner" : thisChannel.owner,
+										"editors" : thisChannel.editors,
+										"editorIds" : thisChannel.editors.user_ids,
 									    "tagArray" : []
 									   };
 		//								"annotationValue" : annotationValue};
@@ -262,15 +270,15 @@ context.channel = (function () {
 
 	function useSampleChannel() {
 		//Indicate the sample channel and data by low channel ids.
-		var sampleChannels = getSampleChannels();
-		var sampleMessages = getSampleMessages();
-		completeChannelSearch(sampleChannels,sampleMessages);
+		var sampleChannelResponse = getSampleChannelResponse();
+		//var sampleMessages = getSampleMessages();
+		completeChannelSearch(sampleChannelResponse);
 		//context.tags.display();
 	}
 
 	//private
-	function getSampleChannels() {
-		var sampleChannels = {"data": [
+	function getSampleChannelResponse() {
+		var sampleChannelResponse = {"data": [
 			{"pagination_id":"10000",
 	         "is_inactive":false,
 	         "readers":{"public":false,
@@ -387,7 +395,7 @@ context.channel = (function () {
 			 "type":"net.mcdemarco.market-bucket.list",
 			 "id":"1"}
 		]};
-		return sampleChannels;
+		return sampleChannelResponse;
 	}
 
 	function getSampleMessages() {
@@ -415,19 +423,20 @@ context.channel = (function () {
 	}
 
 	function completeChannelSearch(response) {
-		var cannedMessages = getSampleMessages();
+		//Process the automatic channel search's results.
 		if (response.data.length == 0) {
-			response = getSampleChannels();
+			//If no results, use the sample response.
+			response = getSampleChannelResponse();
 		}
 		if (response.data.length > 0) {
 			for (var c = 0; c < response.data.length; c++) {
-				populateChannel(response.data[c],cannedMessages);
+				populateChannel(response.data[c]);
 			}
 			populateChannelSelector();
 		}
 	}
 
-	function populateChannel(thisChannel,cannedMessages) {
+	function populateChannel(thisChannel) {
 		var annotations = getAnnotations(thisChannel);
 		//Eject if no settings annotation.
 		if (!annotations.hasOwnProperty(api.annotation_type)) return;
@@ -442,10 +451,8 @@ context.channel = (function () {
 		}
 
 		//Fetch more data if this is the right channel.
-		if (thisChannel.id == "0" && cannedMessages) {
-			displayChannel(thisChannel,cannedMessages);
-		} else if (api.currentChannel && api.currentChannel == thisChannel.id) {
-			displayChannel(thisChannel);
+		if (api.currentChannel && api.currentChannel == thisChannel.id) {
+			displayChannel(thisChannel.id);
 		}
 	}
 
@@ -460,16 +467,18 @@ context.channel = (function () {
 	}
 
 	function completeChannel(response) {
-		if (response.data)
-			displayChannel(response.data);
+		//Nothing left to do here?
+		//if (response.data)
+		//	displayChannel(response.data);
 	}
 
-	function displayChannel(thisChannel,theseMessages) {
+	function displayChannel(thisChannelId) {
+		//Display a channel based on the stored info in channelArray, and retrieve messages or use canned messages.
 		//Users in settings panel.
-		var listTypes = (channelArray[thisChannel.id].listTypes ? channelArray[thisChannel.id].listTypes : {});
-		processChannelUsers(thisChannel);
+		var listTypes = (channelArray[thisChannelId].listTypes ? channelArray[thisChannelId].listTypes : {});
+		processChannelUsers(thisChannelId);
 		
-		context.ui.nameList(thisChannel.id);
+		context.ui.nameList(thisChannelId);
 		
 		//Make more list holders for sublists.
 		var len = Object.keys(listTypes).length;
@@ -497,9 +506,10 @@ context.channel = (function () {
 		//Button activation
 		initializeButtons();
 		
-		if (thisChannel.id < api.max_samples) {
+		if (parseInt(thisChannelId) < api.max_samples) {
 			//Use sample messages.
-			completeMessages(theseMessages[thisChannel.id]);
+			var theseMessages = getSampleMessages();
+			completeMessages(theseMessages[thisChannelId]);
 			context.tags.display();
 		} else {
 			//Retrieve the messages from ADN.
@@ -507,7 +517,7 @@ context.channel = (function () {
 				include_deleted: 0,
 				count: api.message_count
 			};
-			var promise = $.appnet.message.getChannel(thisChannel.id, args);
+			var promise = $.appnet.message.getChannel(thisChannelId, args);
 			promise.then(completeMessages, function (response) {context.ui.failAlert('Failed to retrieve items.');}).done(context.tags.display);
 		}
 	}
@@ -530,7 +540,7 @@ context.channel = (function () {
 	}
 
 	function completeMessages(response) {
-		//Populate the UI for an individual retrieved list.
+		//Populate the UI for an individual retrieved message list.
 		if (response.data.length > 0) {
 			for (var i=0; i < response.data.length; i++) {
 				var respd = response.data[i];
@@ -550,8 +560,9 @@ context.channel = (function () {
 		}
 	}
 
-	function processChannelUsers(thisChannel,annotationValue) {
+	function processChannelUsers(thisChannelId) {
 		//Owner not included in the editors list, so add separately.
+		var thisChannel = channelArray[thisChannelId];
 		context.user.display(thisChannel.owner, "owner");
 		//User data.
 		if (thisChannel.editors.user_ids.length > 0) {
@@ -1179,7 +1190,7 @@ context.user = (function () {
 	function add(e) {
 		var userId = $(e.target).closest("a[data-user]").data("user");
 		var currentChannel = api.currentChannel;
-		var newUsers = channelArray[currentChannel].editors.slice();
+		var newUsers = channelArray[currentChannel].editorIds.slice();
 		newUsers.push(userId);
 		var userUpdates = {
 			editors: {user_ids: newUsers} 
@@ -1233,11 +1244,12 @@ context.user = (function () {
 
 	function completeAddUser(response) {
 		//Update the channel.
-		channelArray[response.data.id].editors = response.data.editors.user_ids;
+		channelArray[response.data.id].editors = response.data.editors;
+		channelArray[response.data.id].editorIds = response.data.editors.user_ids;
 	}
 
 	function removeUserFromChannel(userId, channelId) {
-		var newUsers = channelArray[channelId].editors.slice();
+		var newUsers = channelArray[channelId].editorIds.slice();
 		//ADN's version of the array is of strings.
 		var index = newUsers.indexOf(userId.toString());
 		if (index > -1) {
@@ -1254,7 +1266,8 @@ context.user = (function () {
 
 	function completeRemoveUser(response) {
 		//Only update the channel.
-		channelArray[response.data.id].editors = response.data.editors.user_ids;
+		channelArray[response.data.id].editors = response.data.editors;
+		channelArray[response.data.id].editorIds = response.data.editors.user_ids;
 	}
 
 	function completeSearch(response) {
