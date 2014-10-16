@@ -23,23 +23,41 @@ var marketBucket = {};
 context.init = (function () {
 
 	return {
-		checkLocalStorageChannel: checkLocalStorageChannel,
+		checkLocalStorage: checkLocalStorage,
 		load: load,
 		logout: logout,
 		reload: reload,
 		reloadChannel: reloadChannel
 	};
 
-	function checkLocalStorageChannel(defaultChannel) {
-		if (localStorage && localStorage["currentChannel"]) {
-			//Retrieve the current channel.
-			try {api.currentChannel = localStorage["currentChannel"];} 
+	function checkLocalStorage(key, value) {
+		//Defragmented into one function.  Only the channel part needs to be public.
+		if (localStorage && localStorage[key]) {
+			try {api[key] = localStorage[key];} 
 			catch (e) {}
 		} else {
-			api.currentChannel = defaultChannel;
-			if (api.currentChannel && parseInt(api.currentChannel) >= api.max_samples && localStorage) {
-				try {localStorage["currentChannel"] = api.currentChannel;}
-				catch (e) {}
+			switch(key) {
+				case "accessToken":
+					api.accessToken = window.location.hash.split("access_token=")[1];
+					if (api.accessToken && localStorage) {
+						try {localStorage["accessToken"] = api.accessToken;} 
+						catch (e) {}
+					}
+					break;
+				case "currentChannel":
+					api.currentChannel = value;
+					//Don't store a sample channel; only a real one.
+					if (localStorage && value && !context.channel.isSampleChannel(value)) {
+						try {localStorage["currentChannel"] = value;}
+						catch (e) {}
+					}
+					break;
+				case "userId":
+					var promise = $.appnet.user.get("me");
+					promise.then(setLocalStorageUser, function (response) {context.ui.failAlert('Failed to retrieve user ID.');});
+					break;
+				default:
+					break;
 			}
 		}
 	}
@@ -48,18 +66,18 @@ context.init = (function () {
 		//The initialization function called on document ready.
 		var authUrl = "https://account.app.net/oauth/authenticate?client_id=" + api['client_id'] + "&response_type=token&redirect_uri=" + encodeURIComponent(api.site) + "&scope=messages:" + api.channel_type;
 
-
 		$("a.adn-button").attr('href',authUrl);
 		$("a.h1-link").attr('href',api.site);
 		$("a#fontBrandLink").click(function(){context.ui.navbarSetter();});
-		checkLocalStorage();
+		activateButtons();
+
+		checkLocalStorage("accessToken");
 		if (!api.accessToken) {
 			logout();
 			return;
 		}
 		$.appnet.authorize(api.accessToken,api.client_id);
 		if (!$.appnet.token.get()) {
-			api.accessToken = '';
 			logout();
 			return;
 		} else {
@@ -67,14 +85,14 @@ context.init = (function () {
 			$(".loggedOut").hide();
 			context.channel.get();
 			$(".loggedIn").show('slow');
-			checkLocalStorageUser();
+			checkLocalStorage("userId");
 		}
-		activateButtons();
 	}
 
 	function logout() {
 		//Erase token and lists.
 		api.accessToken = '';
+		api.currentChannel = '0';
 		if (localStorage) {
 			try {
 				localStorage.clear();
@@ -103,7 +121,7 @@ context.init = (function () {
 		//Now we're ready to restore to an initializable state.
 		clearPage();
 		//sample checking done by this function for itself
-		setLocalStorageChannel(newChannelId);
+		setLocalStorage("currentChannel",newChannelId);
 		context.channel.displayChannel(newChannelId);
 		context.ui.forceScroll("#sectionLists");
 	}
@@ -150,36 +168,16 @@ context.init = (function () {
 		//...
 	}
 
-	function checkLocalStorage() {
-		if (localStorage && localStorage["accessToken"]) {
-			//Retrieve the access token.
-			try {api.accessToken = localStorage["accessToken"];} 
-			catch (e) {}
-		} else {
-			api.accessToken = window.location.hash.split("access_token=")[1];
-			if (api.accessToken && localStorage) {
-				try {localStorage["accessToken"] = api.accessToken;} 
-				catch (e) {}
+	function setLocalStorage(key, value) {
+		api[key] = value;
+		if (localStorage) {
+			if (key == "currentChannel" && context.channel.isSampleChannel(value)) {
+				//Don't store the demo channel in local storage.
+				return;
 			}
-		}
-	}
-	
-	function setLocalStorageChannel(newChannel) {
-		api.currentChannel = newChannel;
-		if (api.currentChannel && parseInt(api.currentChannel) >= api.max_samples && localStorage) {
-			//Set the new channel.
-			try {localStorage["currentChannel"] = api.currentChannel;}
+			//Store the new value.
+			try {localStorage[key] = value;}
 			catch (e) {}
-		}
-	}
-
-	function checkLocalStorageUser() {
-		if (localStorage && localStorage["userId"]) {
-			try {api.userId = localStorage["userId"];} 
-			catch (e) {}
-		} else {
-			var promise = $.appnet.user.get("me");
-			promise.then(setLocalStorageUser, function (response) {context.ui.failAlert('Failed to retrieve user ID.');});
 		}
 	}
 
@@ -199,7 +197,7 @@ context.channel = (function () {
 		displayChannel: displayChannel,
 		get: get,
 		getAnnotations: getAnnotations,
-		getMessages: getMessages,
+		isSampleChannel: isSampleChannel,
 		storeChannel: storeChannel,
 		useSampleChannel: useSampleChannel
 	};
@@ -231,19 +229,10 @@ context.channel = (function () {
 		return ourAnnotations;
 	}
 
-	function getMessages(channelId) {
-		if (parseInt(channelId) < api.max_samples) {
-			var sampleMessages = getSampleMessages();
-			completeChannel(sampleMessages[channelId]);
-		} else {
-			//Get a single channel with its messages.
-			var args = {
-				include_annotations: 1,
-				type: api.channel_type
-			};
-			var promise = $.appnet.channel.get(channelId, args);
-			promise.then(completeChannel, function (response) {context.ui.failAlert('Failed to retrieve your list.');}).done(context.tags.colorize);
-			}
+	function isSampleChannel(channelId) {
+		if (!channelId)
+			channelId = api.currentChannel;
+		return (parseInt(channelId) <= api.max_samples);
 	}
 
 	function storeChannel(thisChannel, annotationsObject) {
@@ -447,7 +436,7 @@ context.channel = (function () {
 		
 		if (Object.keys(channelArray).length == 1) {
 			//This channel is first in the activity ordering and will be our default if one wasn't saved.
-			context.init.checkLocalStorageChannel(thisChannel.id);
+			context.init.checkLocalStorage("currentChannel",thisChannel.id);
 		}
 
 		//Fetch more data if this is the right channel.
@@ -460,16 +449,10 @@ context.channel = (function () {
 		//Put the channel list into the settings dropdown.
 		for (var ch in channelArray) {
 			if (channelArray.hasOwnProperty(ch)) {
-				var optionString = "<option id='channel_" + ch + "' value='" + ch + "'" + ((ch == api.currentChannel) ? " selected" : "") + ">" + channelArray[ch].name + "</option>";
+				var optionString = "<option id='channel_" + ch + "' value='" + ch + "'" + ((ch == api.currentChannel) ? " selected" : "") + ">" + channelArray[ch].name + (isSampleChannel() ? " (demo list)" : "")  + "</option>";
 				$("select#listSetSelect").append(optionString);
 			}
 		} 
-	}
-
-	function completeChannel(response) {
-		//Nothing left to do here?
-		//if (response.data)
-		//	displayChannel(response.data);
 	}
 
 	function displayChannel(thisChannelId) {
@@ -506,7 +489,7 @@ context.channel = (function () {
 		//Button activation
 		initializeButtons();
 		
-		if (parseInt(thisChannelId) < api.max_samples) {
+		if (isSampleChannel(thisChannelId)) {
 			//Use sample messages.
 			var theseMessages = getSampleMessages();
 			completeMessages(theseMessages[thisChannelId]);
