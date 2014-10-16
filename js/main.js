@@ -108,11 +108,13 @@ context.init = (function () {
 	}
 
 	function reload(e) {
+		//Reload helper for UI list dropdown.
 		var newChannelId = $(e.target).val();
 		reloadChannel(newChannelId);
 	}
 
 	function reloadChannel(newChannelId) {
+		//Reloader for all channel changes (UI, on create, etc.).
 		if (api.currentChannel == newChannelId) return;
 		if (!channelArray.hasOwnProperty(newChannelId)) {
 			context.ui.failAlert("Failed to change the channel.");
@@ -144,6 +146,7 @@ context.init = (function () {
 	}
 
 	function clearPage() {
+		//Resets the page for loading a new channel or loading sample channels after logout.
 		//Clear the form.
 		context.item.clearForm();
 		$("div#itemCheckboxes label").hide();
@@ -169,6 +172,7 @@ context.init = (function () {
 	}
 
 	function setLocalStorage(key, value) {
+		//Explicit setter for local storage, which is normally set during a check.
 		api[key] = value;
 		if (localStorage) {
 			if (key == "currentChannel" && context.channel.isSampleChannel(value)) {
@@ -182,6 +186,7 @@ context.init = (function () {
 	}
 
 	function setLocalStorageUser(response) {
+		//Callback for the local user query.
 		api.userId = response.data.id;
 		if (api.userId && localStorage) {
 			try {localStorage["userId"] = api.userId;} 
@@ -203,7 +208,7 @@ context.channel = (function () {
 	};
 
 	function get() {
-		//Determine channels.
+		//Determine channels and hand them off.
 		var args = {
 			include_annotations: 1,
 			include_inactive: 0,
@@ -230,6 +235,7 @@ context.channel = (function () {
 	}
 
 	function isSampleChannel(channelId) {
+		//Canned channel checker.
 		if (!channelId)
 			channelId = api.currentChannel;
 		return (parseInt(channelId) <= api.max_samples);
@@ -267,6 +273,7 @@ context.channel = (function () {
 
 	//private
 	function getSampleChannelResponse() {
+		//Needed to put the sample channel search canned response in a function instead of a variable.
 		var sampleChannelResponse = {"data": [
 			{"pagination_id":"10000",
 	         "is_inactive":false,
@@ -388,6 +395,7 @@ context.channel = (function () {
 	}
 
 	function getSampleMessages() {
+		//Needed to put the sample message retrieval canned response in a function instead of a variable.
 		var sampleMessages = {"0":{"data":[
 				{"num_replies":0,"channel_id":"0","text":"olive oil","created_at":"2014-10-13T20:36:56Z","id":"5080177","entities":{"mentions":[],"hashtags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">olive oil</span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080177","pagination_id":"5080177","user":{"username":"example_user","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
 				{"num_replies":0,"channel_id":"0","text":"coconut oil","created_at":"2014-10-13T20:36:34Z","id":"5080170","entities":{"mentions":[],"hashtags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">coconut oil</span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080170","pagination_id":"5080170","user":{"username":"example_user","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
@@ -426,6 +434,7 @@ context.channel = (function () {
 	}
 
 	function populateChannel(thisChannel) {
+		//Populates the channel array and passes the selected channel on.
 		var annotations = getAnnotations(thisChannel);
 		//Eject if no settings annotation.
 		if (!annotations.hasOwnProperty(api.annotation_type)) return;
@@ -506,11 +515,12 @@ context.channel = (function () {
 	}
 	
 	function initializeButtons() {
+		//Maybe could init this with the others?
 		$("span.settingsButton").click(context.ui.settingsToggle);
 	}
 
 	function listCloner(index, listTypesObj) {
-		//Clone and name.
+		//Clone and name new list wrappers.
 		$("div#list_1").clone().attr("id","list_" + index).data("type",index).appendTo("div#bucketListHolder").removeClass("col-sm-offset-4");
 		context.ui.nameSublist(index, listTypesObj);
 		//Activate new buttons.
@@ -519,6 +529,7 @@ context.channel = (function () {
 	}
 		
 	function editCloner(index, listTypesObj) {
+		//Add a list and sublist control for the current list, if appropriate.
 		$("#sublistControl").append("<div class='form-group listControl' id='sublist_" + index + "'><div class='col-xs-4 text-right'><label class='control-label' for='sublistEdit_" + index + "'>" + (index == 0 ? "Archive" : "List " + index) + ":</label></div><div class='col-xs-3'><input type='text' id='sublistEdit_" + index + "' name='title' class='form-control listTitle' value='" + listTypesObj[index.toString()].title + "' /></div><div class='col-xs-4'><input type='text' id='sublistSubtitle_" + index + "' name='subtitle' class='form-control' value='" + (listTypesObj[index.toString()].subtitle ? listTypesObj[index.toString()].subtitle : "") + "' /></div></div>");
 	}
 
@@ -544,8 +555,9 @@ context.channel = (function () {
 	}
 
 	function processChannelUsers(thisChannelId) {
-		//Owner not included in the editors list, so add separately.
+		//Put the users into member control.
 		var thisChannel = channelArray[thisChannelId];
+		//Owner not included in the editors list, so add separately.
 		context.user.display(thisChannel.owner, "owner");
 		//User data.
 		if (thisChannel.editors.user_ids.length > 0) {
@@ -564,6 +576,7 @@ context.channel = (function () {
 	}
 
 	function completeUsers(response) {
+		//Handle the editor query response data.
 		for (u=0; u < response.data.length; u++) {
 			context.user.display(response.data[u],"editor");
 		}
@@ -584,6 +597,7 @@ context.item = (function () {
 
 	//public
 	function add() {
+		//Adds an item.
 		var channelId = api.currentChannel;
 		var message = $("textarea#item").val();
 		if (message == "") {
@@ -612,22 +626,26 @@ context.item = (function () {
 	}
 
 	function clearForm() {
+		//Clear the add item form.
 		$("textarea#item").val("");
 		$("button#addButton").html("Add Item");
 		$("#editItemId").val("");
 	}
 
 	function deleteIt(e) {
+		//Handle the UI call to delete an item.
 		var itemId = $(e.target).closest("div.formattedItem").prop("id").split("item_")[1];
 		deleteItem(itemId);
 	}
 
 	function edit(e) {
+		//Handle the UI call to edit an item.
 		var itemId = $(e.target).closest("div.formattedItem").prop("id").split("item_")[1];
 		editItem(itemId);
 	}
 
 	function format(respd, sublist) {
+		//Format an individual item.
 		//Default (sub)list.
 		var listType = (sublist ? sublist : 1);
 		//Check for alternate sublist IF the list has official sublists and it wasn't passed in.
@@ -666,6 +684,7 @@ context.item = (function () {
 	}
 
 	function move(e) {
+		//Handle the UI call to move an item.
 		var itemId = $(e.target).closest("div.formattedItem").prop("id").split("item_")[1];
 		var targetType = $(e.target).closest("[data-destination]").data("destination");
 		moveItem(itemId, targetType);
@@ -674,6 +693,7 @@ context.item = (function () {
 	//private
 
 	function createItem(channel,message) {
+		//Creates all new items, including edited ones.
 		if (!channel || channel == 0) {
 			context.ui.failAlert('Failed to create item.');
 			return;
@@ -686,6 +706,7 @@ context.item = (function () {
 	}
 	
 	function completeItem(response) {
+		//Handle item creation response.
 		var respd = response.data;
 		
 		if (channelArray[response.data.channel_id].hasOwnProperty("listTypes")) {
@@ -752,6 +773,7 @@ context.item = (function () {
 	}
 
 	function moveItem(itemId, targetType) {
+		//Move items, including for archiving.
 		var currentChannel = api.currentChannel;
 		var sourceType = $("#item_" + itemId).closest("div.bucketListDiv").data("type");
 		var updatedLists = JSON.parse(JSON.stringify(channelArray[currentChannel].lists));
@@ -778,6 +800,7 @@ context.item = (function () {
 	}
 
 	function formatButtons(itemId, channelId, listType) {
+		//Add the appropriate buttons to a formatted list item.
 		if (!channelId) channelId = api.currentChannel;
 		var formattedItem = "<div id='buttons_" + itemId + "' class='pull-right'>";
 		if (listType != "0") {
@@ -813,6 +836,7 @@ context.item = (function () {
 	}
 
 	function activateButtons(itemId) {
+		//Maybe could do this on init?
 		$("#item_" + itemId + " button[data-button='moveItem']").click(context.item.move);
 		$("#item_" + itemId + " a[data-button='moveItem']").click(context.item.move);
 		$("#item_" + itemId + " button[data-button='deleteItem']").click(context.item.deleteIt);
@@ -821,6 +845,7 @@ context.item = (function () {
 	}
 
 	function updateLists(channelId,updatedLists) {
+		//Update the item lists on move.
 		//Vacuous moves should be blocked before this point, so we just update the lists.
 		var channelUpdates = {
 			annotations:  [{
@@ -843,7 +868,7 @@ context.item = (function () {
 	}
 
 	function completeUpdateLists(response) {
-		//Used for all channel sublist updates.
+		//Handle all channel sublist updates.
 		var thisChannel = response.data;
 		for (var a = 0; a < thisChannel.annotations.length; a++) {
 			if (thisChannel.annotations[a].type == api.message_annotation_type) {
@@ -859,7 +884,8 @@ context.item = (function () {
 	}
 
 	function completeAutoDelete(response) {
-		//Clean up the deletion queue, which we know existed.
+		//Clean up the deletion queue.
+		//We know it existed if this was called, so no dancing around it.
 		var updatedQueue = channelArray[response.data.channel_id].deletionQueue.slice();
 		var index = updatedQueue.indexOf(response.data.id);
 		if (index > -1) updatedQueue.splice(index, 1);
@@ -886,12 +912,13 @@ context.item = (function () {
 	}
 
 	function completeDelete(response) {
-		//Remove HTML item.
+		//Use deletion response data to remove the HTML item.
 		$("#item_" + response.data.id).remove();
 		//Clean up sublists?
 	}
 
 	function updateSublistOnAdd(channelId, messageId, listType) {
+		//Another sublist updater.
 		//Called on creation after formatting, so the html is already located in the right spot. Just update the channel.
 		var updatedLists = channelArray[channelId].lists;
 		if (!updatedLists.hasOwnProperty(listType))
@@ -928,6 +955,7 @@ context.tags = (function () {
 	}
 
 	function colorize(itemId) {
+		//Colorize a tag or tags based on the string content.
 		var selector = (itemId ? "#item_" + itemId + " .tag" : ".tag"); 
 		$(selector).each(function(index) {
 			if (!$(this).hasClass("colorized")) {
@@ -938,6 +966,7 @@ context.tags = (function () {
 	}
 
 	function display(channelId) {
+		//Display tags for the channel.
 		if (!channelId) 
 			channelId = api.currentChannel;
 		//Display unique tags.
@@ -956,6 +985,7 @@ context.tags = (function () {
 	}
 	
 	function filter(unhashedTag) {
+		//Filter and unfilter based on tag.
 		if (!unhashedTag) {
 			unfilter();
 		} else {
@@ -1062,6 +1092,7 @@ context.list = (function () {
 	}
 
 	function edit(e) {
+		//Handle UI submit of an edit.
 		//Check that the form is, in fact, dirty.
 		var clean = true;
 		$("#listControl input").each(function (index) {
@@ -1090,13 +1121,14 @@ context.list = (function () {
 	}
 
 	function remove() {
+		//TODO.
 		//Remove a list set. This option should only be displayed for the channel owner.
 		confirm("Are you sure you want to delete this list?  This action cannot be undone.");
 	}
 
 	//private
 	function completeCreateChannel(response) {
-		//As on edit, we update based on the response.
+		//Do all the updates involved with having added a channel (not unlike the edit updates).
 		var channelId = response.data.id;
 		var annotations = context.channel.getAnnotations(response.data);
 		//Update the channelArray.
@@ -1109,6 +1141,7 @@ context.list = (function () {
 	}
 
 	function editLists(currentChannel) {
+		//Do the actual list edits (called after form checking).
 		var newName = $("#listGroupName").val();
 		var channelEdits = {
 			annotations:  [{
@@ -1139,7 +1172,7 @@ context.list = (function () {
 
 	function completeEditLists(response) {
 		//Rename lists based on the response we got back.  
-		//This would be easiest with a reload...
+		//This would be easier with a reload...
 		var channelId = response.data.id;
 		var annotations = context.channel.getAnnotations(response.data);
 		//Update the channelArray.
@@ -1171,6 +1204,7 @@ context.user = (function () {
 
 	//public
 	function add(e) {
+		//Add a user on UI request (from search list).
 		var userId = $(e.target).closest("a[data-user]").data("user");
 		var currentChannel = api.currentChannel;
 		var newUsers = channelArray[currentChannel].editorIds.slice();
@@ -1187,6 +1221,7 @@ context.user = (function () {
 	}
 
 	function display(result, type) {
+		//Display a user based on response or canned data.
 		var resultLocation = "div#memberResults";
 		var rowId = "userRow_" + (type ? type + "_" : "") + result.id;
 		var resultString = "<div class='form-group memberRow' id='" + rowId + "'>";
@@ -1206,12 +1241,14 @@ context.user = (function () {
 	}
 
 	function remove(e) {
+		//Handle UI request to remove a user.
 		var userId = $(e.target).closest("a[data-user]").data("user");
 		removeUserFromChannel(userId,api.currentChannel);
 		$("div#userRow_" + userId).remove();
 	}
 
 	function search() {
+		//Search for ADN users in member control.
 		$("div#searchResults").html("");
 		var searchArgs = {q: $("input#userSearch").val(), count: 10};
 		var promise = $.appnet.user.search(searchArgs);
@@ -1221,17 +1258,19 @@ context.user = (function () {
 	//private
 
 	function activateButtons(rowId) {
+		//Maybe do this on init?
 		$("#" + rowId + " a[data-button='addUser']").click(context.user.add);
 		$("#" + rowId + " a[data-button='removeUser']").click(context.user.remove);
 	}
 
 	function completeAddUser(response) {
-		//Update the channel.
+		//Update the channel array based on the response.
 		channelArray[response.data.id].editors = response.data.editors;
 		channelArray[response.data.id].editorIds = response.data.editors.user_ids;
 	}
 
 	function removeUserFromChannel(userId, channelId) {
+		//User nuker.
 		var newUsers = channelArray[channelId].editorIds.slice();
 		//ADN's version of the array is of strings.
 		var index = newUsers.indexOf(userId.toString());
@@ -1248,12 +1287,13 @@ context.user = (function () {
 	}
 
 	function completeRemoveUser(response) {
-		//Only update the channel.
+		//Update only the channel array based on the response.
 		channelArray[response.data.id].editors = response.data.editors;
 		channelArray[response.data.id].editorIds = response.data.editors.user_ids;
 	}
 
 	function completeSearch(response) {
+		//Process search results into the UI.
 		if (response.data.length == 0) {
 			$("div#searchResults").html("<p>No users found.</p>");
 		} else {
@@ -1286,16 +1326,19 @@ context.ui = (function () {
 
 	//public
 	function add(e) {
+		//Handle the UI button(s).
 		var listType = $(e.target).closest("div.bucketListDiv").data("type");
 		var theList = $("input:radio[name=bucketBucket][data-list=" + listType + "]").prop('checked', true);
 		forceScroll("#sectionAdd");
 	}
 
 	function addMember(e) {
+		//Handle the UI button(s).
 		$("#addMember").show();
 	}
 
 	function controlToggle(e) {
+		//Handle the UI list management toggle buttons.
 		var control = $(e.target).closest("a").data("control");
 		if ($("div#" + control).is(":visible")) {
 			//Toggle all off.
@@ -1308,12 +1351,12 @@ context.ui = (function () {
 	}
 
 	function failAlert(msg) {
-		//document.getElementById("errorDiv").scrollIntoView();
-		//$('#errorDiv').html(msg).show().fadeOut(8000);
+		//Error reporter.
 		alert(msg);
 	}
 
 	function forceScroll(hash) {
+		//Scroller.
 		var target = $(hash);
 		$('html,body').animate({scrollTop: target.offset().top - 50}, 1000);
 		//navbarSetter(hash);
@@ -1321,6 +1364,7 @@ context.ui = (function () {
 	}
 
 	function itemTag(unhashedTag) {
+		//Handle UI click on tags within lists.
 		//Clicking a tag in the lists restricts the lists to that tag.
 		context.tags.filter(unhashedTag);
 	}
@@ -1334,6 +1378,7 @@ context.ui = (function () {
 	}
 	
 	function nameSublist(index, listTypesObj) {
+		//Handle the sublist titles and subtitles.
 		$("div#list_" + index + " span.mainTitle").html(listTypesObj[index.toString()].title);
 		$("div#itemCheckboxes span#label_" + index).html(listTypesObj[index.toString()].title);
 		$("div#itemCheckboxes span#label_" + index).closest("label").show();
@@ -1346,6 +1391,7 @@ context.ui = (function () {
 	}
 	
 	function navbarSetter(hashSectionName) {
+		//Deal with navbar issues.
 		$("div#navbar-collapsible ul li").removeClass("active");
 		//Not sure I need this.
 		//if (hashSectionName) 
@@ -1353,11 +1399,13 @@ context.ui = (function () {
 	}
 	
 	function pushHistory(newLocation) {
+		//Sets the location (mainly to clear out the access token).
 		if (history.pushState) 
 			history.pushState({}, document.title, newLocation);
 	}
 
 	function settingsToggle(e) {
+		//Handle the settings buttons on the sublists.
 		e.preventDefault();
 		$(e.target).closest("div.bucketListDiv").find(".settingsToggle").toggle();
 		if ($(e.target).closest("div.bucketListDiv").find(".settingsToggle").length == 0)
