@@ -694,8 +694,12 @@ context.item = (function () {
 
 	function createItem(channel,message) {
 		//Creates all new items, including edited ones.
-		if (!channel || channel == 0) {
+		if (!channel) {
 			context.ui.failAlert('Failed to create item.');
+			return;
+		}
+		if (context.channel.isSampleChannel(channel)) {
+			context.ui.failAlert('Add and edit are disabled for sample lists.');
 			return;
 		}
 		var newMessage = {
@@ -727,38 +731,40 @@ context.item = (function () {
 	function deleteItem(itemId) {
 		//On active delete, check for ownership and delete if owned or add to queue if not.
 		var currentChannel = api.currentChannel;
-		if ($("#item_" + itemId).data("creator") == api.userId) {
-			//Creator can delete for reals
-			var promise = $.appnet.message.destroy(currentChannel,itemId);
-			promise.then(completeDelete,  function (response) {context.ui.failAlert('Failed to delete item.');});
-		} else {
-			//Add to deleted queue
-			var updatedQueue = [];
-			if (channelArray[currentChannel].hasOwnProperty("deletionQueue")) {
-				updatedQueue = channelArray[currentChannel].deletionQueue.slice();
-			}
-			updatedQueue.push(itemId.toString());
-			var channelUpdates = {
-				include_annotations: 1,
-				annotations:  [{
-					type: api.message_annotation_type,
-					value: {'deletion_queue': updatedQueue}
-				}]
-			};
-			if (channelArray[currentChannel].hasOwnProperty("lists")) {
-				channelUpdates = {
+		if (!context.channel.isSampleChannel(currentChannel)) {
+			if ($("#item_" + itemId).data("creator") == api.userId) {
+				//Creator can delete for reals
+				var promise = $.appnet.message.destroy(currentChannel,itemId);
+				promise.then(completeDelete,  function (response) {context.ui.failAlert('Failed to delete item.');});
+			} else {
+				//Add to deleted queue
+				var updatedQueue = [];
+				if (channelArray[currentChannel].hasOwnProperty("deletionQueue")) {
+					updatedQueue = channelArray[currentChannel].deletionQueue.slice();
+				}
+				updatedQueue.push(itemId.toString());
+				var channelUpdates = {
 					include_annotations: 1,
 					annotations:  [{
 						type: api.message_annotation_type,
-						value: {'lists': channelArray[currentChannel].lists,
-								'deletion_queue': updatedQueue}
+						value: {'deletion_queue': updatedQueue}
 					}]
 				};
+				if (channelArray[currentChannel].hasOwnProperty("lists")) {
+					channelUpdates = {
+						include_annotations: 1,
+						annotations:  [{
+							type: api.message_annotation_type,
+							value: {'lists': channelArray[currentChannel].lists,
+									'deletion_queue': updatedQueue}
+						}]
+					};
+				}
+				var promise = $.appnet.channel.update(currentChannel, channelUpdates, updateArgs);
+				promise.then(completeUpdateLists,  function (response) {context.ui.failAlert('Failed to remove item.');});
 			}
-			var promise = $.appnet.channel.update(currentChannel, channelUpdates, updateArgs);
-			promise.then(completeUpdateLists,  function (response) {context.ui.failAlert('Failed to remove item.');});
 		}
-		//In either case, remove item.
+		//In all cases, remove item.
 		$("#item_" + itemId).remove();
 	}
 
@@ -775,20 +781,22 @@ context.item = (function () {
 	function moveItem(itemId, targetType) {
 		//Move items, including for archiving.
 		var currentChannel = api.currentChannel;
-		var sourceType = $("#item_" + itemId).closest("div.bucketListDiv").data("type");
-		var updatedLists = JSON.parse(JSON.stringify(channelArray[currentChannel].lists));
-		//Movement paths: from default to non-default, from non-default to non-default, from non-default to default.
-		if (sourceType != 1) {
-			//need to debit the source list.
-			var index = updatedLists[sourceType].indexOf(itemId.toString());
-			if (index > -1) updatedLists[sourceType].splice(index, 1);
+		if (!context.channel.isSampleChannel(currentChannel)) { 
+			var sourceType = $("#item_" + itemId).closest("div.bucketListDiv").data("type");
+			var updatedLists = JSON.parse(JSON.stringify(channelArray[currentChannel].lists));
+			//Movement paths: from default to non-default, from non-default to non-default, from non-default to default.
+			if (sourceType != 1) {
+				//need to debit the source list.
+				var index = updatedLists[sourceType].indexOf(itemId.toString());
+				if (index > -1) updatedLists[sourceType].splice(index, 1);
+			}
+			if (targetType != 1) {
+				//need to credit the target list
+				updatedLists[targetType].push(itemId.toString());
+			}
+			//Send to ADN.
+			updateLists(currentChannel,updatedLists);
 		}
-		if (targetType != 1) {
-			//need to credit the target list
-			updatedLists[targetType].push(itemId.toString());
-		}
-		//Send to ADN.
-		updateLists(currentChannel,updatedLists);
 		//Move html.
 		$("#item_" + itemId).appendTo("div#list_" + targetType + " div.list-group");
 		//Need to update the buttons.
@@ -1053,6 +1061,12 @@ context.list = (function () {
 			$("input#newListName").parent().addClass("has-error");
 			return;
 		}
+		if (!api.accessToken) {
+			context.ui.failAlert("Please log in to create your own lists.");
+			$("input#newListName").parent().addClass("has-error");
+			return;
+		}
+
 		var newListName = $("input#newListName").val();
 		var newChannel = {
 			type: api.channel_type,
@@ -1114,6 +1128,11 @@ context.list = (function () {
 		});
 		if (empty) {
 			context.ui.failAlert("List and sublist titles are required.");
+			return;
+		}
+		//Check for fakes.
+		if (context.channel.isSampleChannel()) {
+			context.ui.failAlert("Editing of the sample lists is disabled.");
 			return;
 		}
 		//Ready to edit.
@@ -1205,16 +1224,17 @@ context.user = (function () {
 	//public
 	function add(e) {
 		//Add a user on UI request (from search list).
-		var userId = $(e.target).closest("a[data-user]").data("user");
 		var currentChannel = api.currentChannel;
+		var userId = $(e.target).closest("a[data-user]").data("user");
 		var newUsers = channelArray[currentChannel].editorIds.slice();
-		newUsers.push(userId);
-		var userUpdates = {
-			editors: {user_ids: newUsers} 
-		};
-		var promise = $.appnet.channel.update(currentChannel,userUpdates);
-		promise.then(completeAddUser, function (response) {context.ui.failAlert('Addition of member failed.');});
-		
+		if (!context.channel.isSampleChannel(currentChannel)) {
+			newUsers.push(userId);
+			var userUpdates = {
+				editors: {user_ids: newUsers} 
+			};
+			var promise = $.appnet.channel.update(currentChannel,userUpdates);
+			promise.then(completeAddUser, function (response) {context.ui.failAlert('Addition of member failed.');});
+		}
 		var userRow = $("div#searchResults div#userRow_search_" + userId).detach();
 		$("div#memberResults").append(userRow);
 		$("div#memberResults div#userRow_search_" + userId + " a").remove();
@@ -1249,6 +1269,11 @@ context.user = (function () {
 
 	function search() {
 		//Search for ADN users in member control.
+		if (!api.accessToken) {
+			context.ui.failAlert("Please log in to search for users.");
+			return;
+		}
+
 		$("div#searchResults").html("");
 		var searchArgs = {q: $("input#userSearch").val(), count: 10};
 		var promise = $.appnet.user.search(searchArgs);
@@ -1274,7 +1299,7 @@ context.user = (function () {
 		var newUsers = channelArray[channelId].editorIds.slice();
 		//ADN's version of the array is of strings.
 		var index = newUsers.indexOf(userId.toString());
-		if (index > -1) {
+		if (index > -1 && !context.channel.isSampleChannel(channelId)) {
 			newUsers.splice(index, 1);
 			var userUpdates = {
 				editors: {user_ids: newUsers} 
