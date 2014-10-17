@@ -604,11 +604,6 @@ context.item = (function () {
 			alert("No item text entered.");
 			return;
 		}
-		if (channelArray[channelId].hasOwnProperty("listTypes") && !$("input[name=bucketBucket]").is(":checked")) {
-			//This shouldn't be reachable anymore...
-			alert("No list selected for item.");
-			return;
-		}
 		//The edit case.
 		if ($("#editItemId").val() != "") {
 			if (message == messageTextArray) {
