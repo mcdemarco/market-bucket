@@ -526,7 +526,8 @@ context.item = (function () {
 		var respd = response.data;
 		
 		if (channelArray[response.data.channel_id].hasOwnProperty("listTypes")) {
-			var listType = $("input[name=bucketBucket]:checked").data("list");
+			//Need .val() because data was added programmatically?
+			var listType = $("input[name=bucketBucket]:checked").val();
 			format(respd,listType);
 			if (listType != 1) {
 				//Update the sublists!
