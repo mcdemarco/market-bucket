@@ -142,6 +142,8 @@ context.init = (function () {
 		$("#saveListEdits").click(context.list.edit);
 		$("#searchUsers").click(context.user.search);
 		$("#tagSearchClearButton").click(context.tags.unfilter);
+		//Stuff we need to be .live.
+		$("#sectionLists").on("click","span.settingsButton",context.ui.settingsToggle);
 		//save settings?
 	}
 
@@ -495,9 +497,6 @@ context.channel = (function () {
 			if (len == 4) $("div#list_0").addClass("col-sm-offset-4");
 		}
 		
-		//Button activation
-		initializeButtons();
-		
 		if (isSampleChannel(thisChannelId)) {
 			//Use sample messages.
 			var theseMessages = getSampleMessages();
@@ -514,11 +513,6 @@ context.channel = (function () {
 		}
 	}
 	
-	function initializeButtons() {
-		//Maybe could init this with the others?
-		$("span.settingsButton").click(context.ui.settingsToggle);
-	}
-
 	function listCloner(index, listTypesObj) {
 		//Clone and name new list wrappers.
 		$("div#list_1").clone().attr("id","list_" + index).data("type",index).appendTo("div#bucketListHolder").removeClass("col-sm-offset-4");
