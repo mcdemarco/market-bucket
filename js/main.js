@@ -636,9 +636,9 @@ context.item = (function () {
 	function format(respd, sublist) {
 		//Format an individual item.
 		//Default (sub)list.
-		var listType = (sublist ? sublist : 1);
+		var listType = (typeof sublist !== 'undefined' ? sublist : 1);
 		//Check for alternate sublist IF the list has official sublists and it wasn't passed in.
-		if (!sublist && channelArray[respd.channel_id].hasOwnProperty("listTypes")) {
+		if (typeof sublist === 'undefined' && channelArray[respd.channel_id].hasOwnProperty("listTypes")) {
 			for (var key in channelArray[respd.channel_id].listTypes) {
 				if (channelArray[respd.channel_id].listTypes.hasOwnProperty(key) && 
 					channelArray[respd.channel_id].lists.hasOwnProperty(key) &&
@@ -762,7 +762,7 @@ context.item = (function () {
 		$("textarea#item").val(messageTextArray[itemId]);
 		var listType = $("#item_" + itemId).closest("div.bucketListDiv").data("type");
 		$("input:radio[name=bucketBucket][data-list=" + listType + "]").prop('checked', true);
-		$("button#addButton").html("Edit Item");
+		$("button#addButton").html("Save Edits");
 		$("#editItemId").val(itemId.toString());
 		context.ui.forceScroll("#sectionAdd");
 	}
