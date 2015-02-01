@@ -27,7 +27,8 @@ context.init = (function () {
 		load: load,
 		logout: logout,
 		reload: reload,
-		reloadChannel: reloadChannel
+		reloadChannel: reloadChannel,
+		setSortOrder: setSortOrder
 	};
 
 	function checkLocalStorage(key, value) {
@@ -49,6 +50,13 @@ context.init = (function () {
 					//Don't store a sample channel; only a real one.
 					if (localStorage && value && !context.channel.isSampleChannel(value)) {
 						try {localStorage["currentChannel"] = value;}
+						catch (e) {}
+					}
+					break;
+				case "sortOrder":
+					api.sortOrder = value;
+					if (localStorage && value) {
+						try {localStorage["sortOrder"] = value;}
 						catch (e) {}
 					}
 					break;
@@ -86,6 +94,10 @@ context.init = (function () {
 			context.channel.get();
 			$(".loggedIn").show('slow');
 			checkLocalStorage("userId");
+			checkLocalStorage("sortOrder");
+			if (api.sortOrder) {
+				context.ui.displaySortOrder(api.sortOrder);
+			}
 		}
 	}
 
@@ -113,9 +125,9 @@ context.init = (function () {
 		reloadChannel(newChannelId);
 	}
 
-	function reloadChannel(newChannelId) {
+	function reloadChannel(newChannelId, force) {
 		//Reloader for all channel changes (UI, on create, etc.).
-		if (api.currentChannel == newChannelId) return;
+		if (!force && api.currentChannel == newChannelId) return;
 		if (!channelArray.hasOwnProperty(newChannelId)) {
 			context.ui.failAlert("Failed to change the channel.");
 			return;
@@ -126,6 +138,12 @@ context.init = (function () {
 		setLocalStorage("currentChannel",newChannelId);
 		context.channel.displayChannel(newChannelId);
 		context.ui.forceScroll("#sectionLists");
+	}
+
+	function setSortOrder(order) {
+		setLocalStorage("sortOrder", order);
+		reloadChannel(api.currentChannel, true);
+		context.ui.displaySortOrder(order);
 	}
 
 	//private
@@ -145,6 +163,8 @@ context.init = (function () {
 		//Stuff we need to be .live.
 		$("#sectionLists").on("click","span.settingsButton",context.ui.settingsToggle);
 		//save settings?
+		//Not buttons
+		$("#bucketSorterWrapper input[type=radio]").click(context.ui.sortLists);
 	}
 
 	function clearPage() {
@@ -530,7 +550,19 @@ context.channel = (function () {
 	function completeMessages(response) {
 		//Populate the UI for an individual retrieved message list.
 		if (response.data.length > 0) {
-			response.data.sort(azChannelSorter);
+			switch (api.sortOrder) {
+				case "az":
+				response.data.sort(azChannelSorter);
+				break;
+
+				case "on":
+				response.data.sort(oldNewChannelSorter);
+				break;
+
+				case "no":
+				case undefined:
+				break;
+			}
 			for (var i=0; i < response.data.length; i++) {
 				var respd = response.data[i];
 				//Mock deletion check.
@@ -579,6 +611,15 @@ context.channel = (function () {
 
 	function azChannelSorter(a,b) {
 		return a.text.localeCompare(b.text);
+	}
+
+	function oldNewChannelSorter(a,b) {
+		return a.id - b.id;
+	}
+
+	function newOldChannelSorter(a,b) {
+		//For future use.  This is the order the data is coming from the server, so don't actually need to sort it.
+		return b.id - a.id;
 	}
 
 })();
@@ -1332,6 +1373,7 @@ context.ui = (function () {
 		add: add,
 		addMember: addMember,
 		controlToggle: controlToggle,
+		displaySortOrder: displaySortOrder,
 		failAlert: failAlert,
 		forceScroll: forceScroll,
 		itemTag: itemTag,
@@ -1340,6 +1382,7 @@ context.ui = (function () {
 		navbarSetter: navbarSetter,
 		pushHistory: pushHistory,
 		settingsToggle: settingsToggle,
+		sortLists: sortLists,
 		tagButton: tagButton
 	};
 
@@ -1367,6 +1410,12 @@ context.ui = (function () {
 			$(".control").hide();
 			$("div#" + control).show();
 		}
+	}
+
+	function displaySortOrder(order) {
+		//Programmatically change the radio button for sort order.
+		$("div#bucketSorterWrapper input[type=radio]").prop("checked",false);
+		$("div#bucketSorterWrapper input[type=radio][value='" + order +"']").prop("checked",true);
 	}
 
 	function failAlert(msg) {
@@ -1431,6 +1480,15 @@ context.ui = (function () {
 			context.ui.forceScroll("#sectionSettings");
 	}
 	
+	function sortLists(e) {
+		//Handle the sort radio on the list.
+		var sortCode = $(e.target).val();
+		if (sortCode && sortCode != api.sortOrder && sortCode.length == 2) {
+			//Set the value & resort.
+			context.init.setSortOrder(sortCode);
+		}
+	}
+	
 	function tagButton(e) {
 		//Add the tag to the item for the Add Item form, or filter by the tag for the list display.
 		if ($(e.target).closest("form").attr("id") == "bucketItemEntry")
@@ -1438,7 +1496,7 @@ context.ui = (function () {
 		else
 			context.tags.filter($(e.target).val());
 	}
-	
+
 })();
 
 })(marketBucket);
