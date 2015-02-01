@@ -530,6 +530,7 @@ context.channel = (function () {
 	function completeMessages(response) {
 		//Populate the UI for an individual retrieved message list.
 		if (response.data.length > 0) {
+			response.data.sort(azChannelSorter);
 			for (var i=0; i < response.data.length; i++) {
 				var respd = response.data[i];
 				//Mock deletion check.
@@ -574,6 +575,10 @@ context.channel = (function () {
 		for (u=0; u < response.data.length; u++) {
 			context.user.display(response.data[u],"editor");
 		}
+	}
+
+	function azChannelSorter(a,b) {
+		return a.text.localeCompare(b.text);
 	}
 
 })();
