@@ -140,29 +140,30 @@
 
 <section class="container-fluid loggedIn" id="sectionAdd">
   <h1 class="text-center">Add an Item</h1>
-    <div class="row text-center">
-      <div class="col-sm-8 col-sm-offset-2">
-      <form role="form" id="bucketItemEntry">
-	<div class="form-group" id="itemCheckboxes">
-	  <label class="checkbox-inline" for="addToList_1" style="display:none;"><input id="addToList_1" type="radio" name="bucketBucket" data-list="1" value="1" checked="checked"/> <span id="label_1">Now</span></label>
-	  <label class="checkbox-inline" for="addToList_2" style="display:none;"><input id="addToList_2" type="radio" name="bucketBucket" data-list="2" value="2" /> <span id="label_2">Later</label>
-	  <label class="checkbox-inline" for="addToList_3" style="display:none;"><input id="addToList_3" type="radio" name="bucketBucket" data-list="3" value="3" /> <span id="label_3">Other</label>
-	  <label class="checkbox-inline" for="addToList_0" style="display:none;"><input id="addToList_0" type="radio" name="bucketBucket" data-list="0" value="0" /> <span id="label_0">Archive</label>
-	  <label class="sr-only" for="item"></label>
-	  <input id="editItemId" type="hidden" value="" />
+  <div class="row text-center">
+    <div class="col-sm-8 col-sm-offset-2">
+			<form role="form" id="bucketItemEntry">
+				<div class="form-group" id="itemCheckboxes">
+					<label class="checkbox-inline" for="addToList_1" style="display:none;"><input id="addToList_1" type="radio" name="bucketBucket" data-list="1" value="1" checked="checked"/> <span id="label_1">Now</span></label>
+					<label class="checkbox-inline" for="addToList_2" style="display:none;"><input id="addToList_2" type="radio" name="bucketBucket" data-list="2" value="2" /> <span id="label_2">Later</span></label>
+					<label class="checkbox-inline" for="addToList_3" style="display:none;"><input id="addToList_3" type="radio" name="bucketBucket" data-list="3" value="3" /> <span id="label_3">Other</span></label>
+					<label class="checkbox-inline" for="addToList_0" style="display:none;"><input id="addToList_0" type="radio" name="bucketBucket" data-list="0" value="0" /> <span id="label_0">Archive</span></label>
+					<label class="sr-only" for="item"></label>
+					<input id="editItemId" type="hidden" value="" />
+				</div>
+				<div class="form-group">
+					<textarea type="text" class="form-control" rows="2" id="item"></textarea>
+				</div>
+				<div class="form-group">
+					<div class="btn-group form-group">
+						<button type="button" id="addButton" class="btn btn-custom">Add Item</button>
+						<button type="button" id="clearButton" class="btn btn-default">Clear Form</button>
+					</div>
+				</div>
+				<div class="form-group tagBucket" title="Click a tag to add it to your item."></div>
+			</form>
+		</div>
 	</div>
-	<div class="form-group">
-	  <textarea type="text" class="form-control" rows="2" id="item"></textarea>
-	</div>
-	<div class="form-group">
-	  <div class="btn-group form-group">
-	    <button type="button" id="addButton" class="btn btn-custom">Add Item</button>
-	    <button type="button" id="clearButton" class="btn btn-default">Clear Form</button>
-	  </div>
-	</div>
-	<div class="form-group tagBucket" title="Click a tag to add it to your item."></div>
-      </form>
-    </div>
 </section>
 
 <section class="container-fluid loggedIn" id="sectionSettings">
