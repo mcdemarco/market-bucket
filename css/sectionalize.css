@@ -9,14 +9,20 @@ html, body {
   background-attachment: fixed;
   background-size: cover; }
 
-/* address mobile fixed background image weirdness */
+/* address mobile fixed background image weirdness
+   second part from http://stackoverflow.com/a/10841767
+ */
 @media screen and (max-width: 600px) {
   section.transparentSection {
-    background-image: url("/images/good-food-300-background.jpg");
+    background-image: url("/images/good-food-320-background.jpg");
     background-repeat: no-repeat;
     background-position: top;
     background-attachment: scroll;
-    background-size: 100%; } }
+    background-size: 100%; }
+
+  html, body {
+    width: 100%;
+    overflow-x: hidden; } }
 .icon-bar {
   background-color: #fff; }
 
