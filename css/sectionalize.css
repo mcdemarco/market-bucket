@@ -18,11 +18,7 @@ html, body {
     background-repeat: no-repeat;
     background-position: top;
     background-attachment: scroll;
-    background-size: 100%; }
-
-  html, body {
-    width: 100%;
-    overflow-x: hidden; } }
+    background-size: 100%; } }
 .icon-bar {
   background-color: #fff; }
 
