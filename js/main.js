@@ -162,6 +162,7 @@ context.init = (function () {
 		$("#tagSearchClearButton").click(context.tags.unfilter);
 		//Stuff we need to be .live.
 		$("#sectionLists").on("click","span.settingsButton",context.ui.settingsToggle);
+		$("#sectionLists").on("click","span.collapseButton",context.ui.collapseArchive);
 		$("#sectionLists").on("click","span.uncollapseButton",context.ui.uncollapseArchive);
 		//save settings?
 		//Not buttons
@@ -508,6 +509,7 @@ context.channel = (function () {
 			}
 			if (listTypes.hasOwnProperty("0")) {
 				listCloner(0, listTypes);
+				$("div#list_0 span.collapseButton").show();
 			}
 			//Need to retitle the main list.
 			context.ui.nameSublist(1, listTypes);
@@ -1415,7 +1417,8 @@ context.ui = (function () {
 		//Test for presence of the archive purely in the UI.
 		if ($("div#list_0 div.list-group").children().length > targetCount) {
 			$("#list_0 div.formattedItem:gt(" + targetCount + ")").hide();
-			$("#list_0 div.list-group").append(formattedButton);
+			if ($("#uncollapseArchiveWrapper").length == 0)
+				$("#list_0 div.list-group").append(formattedButton);
 		}
 	}
 
