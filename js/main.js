@@ -509,7 +509,6 @@ context.channel = (function () {
 			}
 			if (listTypes.hasOwnProperty("0")) {
 				listCloner(0, listTypes);
-				$("div#list_0 span.collapseButton").show();
 			}
 			//Need to retitle the main list.
 			context.ui.nameSublist(1, listTypes);
@@ -1419,6 +1418,9 @@ context.ui = (function () {
 			$("#list_0 div.formattedItem:gt(" + targetCount + ")").hide();
 			if ($("#uncollapseArchiveWrapper").length == 0)
 				$("#list_0 div.list-group").append(formattedButton);
+			
+			//Possibly hide the re-collapse button.
+			$("div#list_0 span.collapseButton").hide();
 		}
 	}
 
@@ -1525,8 +1527,9 @@ context.ui = (function () {
 		var targetCount = 7;
 		$("div#uncollapseArchiveWrapper").remove();
 		$("#list_0 div.formattedItem").show();
+		//Show a re-collapse button.
+		$("div#list_0 span.collapseButton").show();
 	}
-
 
 })();
 
