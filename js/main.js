@@ -1407,7 +1407,7 @@ context.ui = (function () {
 		//Handle the archive concealment.
 		var targetCount = 7;
 		var formattedButton = "<div class='list-group-item list-group-item active clearfix text-center' id='uncollapseArchiveWrapper' title='Expand this list.'>";
-		formattedButton += "<span class='uncollapseButton'><i class='fa fa-ellipsis-h'></i></span></div>";
+		formattedButton += "<span class='uncollapseButton' style='padding:0 15px;font-size:24px;cursor:pointer;'><i class='fa fa-expand'></i></span></div>";
 		
 		$("div[id != 'list_0'].bucketListDiv div.list-group").each(function() {
       targetCount = Math.max(targetCount, $(this).children().length - 1);
