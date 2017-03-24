@@ -162,6 +162,8 @@ context.init = (function () {
 		$("#tagSearchClearButton").click(context.tags.unfilter);
 		//Stuff we need to be .live.
 		$("#sectionLists").on("click","span.settingsButton",context.ui.settingsToggle);
+		$("#sectionLists").on("click","span.collapseButton",context.ui.collapseArchive);
+		$("#sectionLists").on("click","span.uncollapseButton",context.ui.uncollapseArchive);
 		//save settings?
 		//Not buttons
 		$("#bucketSorterWrapper input[type=radio]").click(context.ui.sortLists);
@@ -529,7 +531,7 @@ context.channel = (function () {
 				count: api.message_count
 			};
 			var promise = $.appnet.message.getChannel(thisChannelId, args);
-			promise.then(completeMessages, function (response) {context.ui.failAlert('Failed to retrieve items.');}).done(context.tags.display);
+			promise.then(completeMessages, function (response) {context.ui.failAlert('Failed to retrieve items.');}).done(context.tags.display,context.ui.collapseArchive);
 		}
 	}
 	
@@ -1372,6 +1374,7 @@ context.ui = (function () {
 	return {
 		add: add,
 		addMember: addMember,
+		collapseArchive: collapseArchive,
 		controlToggle: controlToggle,
 		displaySortOrder: displaySortOrder,
 		failAlert: failAlert,
@@ -1383,7 +1386,8 @@ context.ui = (function () {
 		pushHistory: pushHistory,
 		settingsToggle: settingsToggle,
 		sortLists: sortLists,
-		tagButton: tagButton
+		tagButton: tagButton,
+		uncollapseArchive: uncollapseArchive
 	};
 
 	//public
@@ -1397,6 +1401,27 @@ context.ui = (function () {
 	function addMember(e) {
 		//Handle the UI button(s).
 		$("#addMember").show();
+	}
+
+	function collapseArchive() {
+		//Handle the archive concealment.
+		var targetCount = 7;
+		var formattedButton = "<div class='list-group-item list-group-item active clearfix text-center' id='uncollapseArchiveWrapper' title='Expand this list.'>";
+		formattedButton += "<span class='uncollapseButton' style='padding:0 15px;font-size:24px;cursor:pointer;'><i class='fa fa-expand'></i></span></div>";
+		
+		$("div[id != 'list_0'].bucketListDiv div.list-group").each(function() {
+      targetCount = Math.max(targetCount, $(this).children().length - 1);
+		});
+
+		//Test for presence of the archive purely in the UI.
+		if ($("div#list_0 div.list-group").children().length > targetCount) {
+			$("#list_0 div.formattedItem:gt(" + targetCount + ")").hide();
+			if ($("#uncollapseArchiveWrapper").length == 0)
+				$("#list_0 div.list-group").append(formattedButton);
+			
+			//Possibly hide the re-collapse button.
+			$("div#list_0 span.collapseButton").hide();
+		}
 	}
 
 	function controlToggle(e) {
@@ -1495,6 +1520,15 @@ context.ui = (function () {
 			$("#item").val($("#item").val() + " #" + $(e.target).val());
 		else
 			context.tags.filter($(e.target).val());
+	}
+
+	function uncollapseArchive() {
+		//Undo the archive concealment.
+		var targetCount = 7;
+		$("div#uncollapseArchiveWrapper").remove();
+		$("#list_0 div.formattedItem").show();
+		//Show a re-collapse button.
+		$("div#list_0 span.collapseButton").show();
 	}
 
 })();

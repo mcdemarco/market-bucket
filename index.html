@@ -106,23 +106,23 @@
   <div class="row">
     <div class="col-sm-10 col-sm-offset-1">
       <div class="row" id="bucketListHolder">
-
-	<div class="col-sm-4 col-sm-offset-4 col-xs-12 bucketListDiv" id="list_1" data-type="1">
+				<div class="col-sm-4 col-sm-offset-4 col-xs-12 bucketListDiv" id="list_1" data-type="1">
           <div class="list-group">
-              <div class="list-group-item active">
-                <h2 class="list-group-item-heading"><span class="mainTitle"><i class="fa fa-fw"></i></span>
-		  <span class="pull-right">
-		    <span data-type="addButton"><i class="fa fa-plus"></i></span>
-		    <span class="settingsButton"><i class="fa fa-cog"></i></span>
-		  </span>
-		</h2>
-                <h6><span class="subTitle"></span></h6>
-              </div>
+            <div class="list-group-item active">
+              <h2 class="list-group-item-heading"><span class="mainTitle"><i class="fa fa-fw"></i></span>
+								<span class="pull-right">
+									<span class="collapseButton" style="display:none;" title="Shorten this list."><i class="fa fa-compress"></i></span>
+									<span data-type="addButton"><i class="fa fa-plus"></i></span>
+									<span class="settingsButton"><i class="fa fa-cog"></i></span>
+								</span>
+							</h2>
+              <h6><span class="subTitle"></span></h6>
+            </div>
           </div>
-	</div>
-      
+				</div>
       </div><!--/row-->
-      <div class="row" id="tagSearchRow">
+			
+<div class="row" id="tagSearchRow">
 	<div class="col-sm-10 col-sm-offset-1 col-xs-12 div-trans text-center">
 	  <span class="font-brand">Tag Search:</span>
 	  <div class="tagBucket" style="display:inline-block;padding:3px;" title="Click a tag to see only those items listed."></div>
@@ -140,29 +140,30 @@
 
 <section class="container-fluid loggedIn" id="sectionAdd">
   <h1 class="text-center">Add an Item</h1>
-    <div class="row text-center">
-      <div class="col-sm-8 col-sm-offset-2">
-      <form role="form" id="bucketItemEntry">
-	<div class="form-group" id="itemCheckboxes">
-	  <label class="checkbox-inline" for="addToList_1" style="display:none;"><input id="addToList_1" type="radio" name="bucketBucket" data-list="1" value="1" checked="checked"/> <span id="label_1">Now</span></label>
-	  <label class="checkbox-inline" for="addToList_2" style="display:none;"><input id="addToList_2" type="radio" name="bucketBucket" data-list="2" value="2" /> <span id="label_2">Later</label>
-	  <label class="checkbox-inline" for="addToList_3" style="display:none;"><input id="addToList_3" type="radio" name="bucketBucket" data-list="3" value="3" /> <span id="label_3">Other</label>
-	  <label class="checkbox-inline" for="addToList_0" style="display:none;"><input id="addToList_0" type="radio" name="bucketBucket" data-list="0" value="0" /> <span id="label_0">Archive</label>
-	  <label class="sr-only" for="item"></label>
-	  <input id="editItemId" type="hidden" value="" />
+  <div class="row text-center">
+    <div class="col-sm-8 col-sm-offset-2">
+			<form role="form" id="bucketItemEntry">
+				<div class="form-group" id="itemCheckboxes">
+					<label class="checkbox-inline" for="addToList_1" style="display:none;"><input id="addToList_1" type="radio" name="bucketBucket" data-list="1" value="1" checked="checked"/> <span id="label_1">Now</span></label>
+					<label class="checkbox-inline" for="addToList_2" style="display:none;"><input id="addToList_2" type="radio" name="bucketBucket" data-list="2" value="2" /> <span id="label_2">Later</span></label>
+					<label class="checkbox-inline" for="addToList_3" style="display:none;"><input id="addToList_3" type="radio" name="bucketBucket" data-list="3" value="3" /> <span id="label_3">Other</span></label>
+					<label class="checkbox-inline" for="addToList_0" style="display:none;"><input id="addToList_0" type="radio" name="bucketBucket" data-list="0" value="0" /> <span id="label_0">Archive</span></label>
+					<label class="sr-only" for="item"></label>
+					<input id="editItemId" type="hidden" value="" />
+				</div>
+				<div class="form-group">
+					<textarea type="text" class="form-control" rows="2" id="item"></textarea>
+				</div>
+				<div class="form-group">
+					<div class="btn-group form-group">
+						<button type="button" id="addButton" class="btn btn-custom">Add Item</button>
+						<button type="button" id="clearButton" class="btn btn-default">Clear Form</button>
+					</div>
+				</div>
+				<div class="form-group tagBucket" title="Click a tag to add it to your item."></div>
+			</form>
+		</div>
 	</div>
-	<div class="form-group">
-	  <textarea type="text" class="form-control" rows="2" id="item"></textarea>
-	</div>
-	<div class="form-group">
-	  <div class="btn-group form-group">
-	    <button type="button" id="addButton" class="btn btn-custom">Add Item</button>
-	    <button type="button" id="clearButton" class="btn btn-default">Clear Form</button>
-	  </div>
-	</div>
-	<div class="form-group tagBucket" title="Click a tag to add it to your item."></div>
-      </form>
-    </div>
 </section>
 
 <section class="container-fluid loggedIn" id="sectionSettings">
@@ -171,6 +172,7 @@
       <h1>Manage Lists</h1>
     </div>
   </div>
+	<div class="container-fluid">
   <form class="form-horizontal" role="form" id="settingsForm">
     <div class="row text-center">
 	<div class="form-group"><!--always on -->
@@ -255,6 +257,7 @@
 	</div>
     </div>
   </form>
+	</div>
 </section>
 
 <section class="container-fluid" id="sectionAbout">
