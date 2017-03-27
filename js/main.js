@@ -282,9 +282,6 @@ context.channel = (function () {
 			channelArray[thisChannel.id].listTypes = annotationValue.list_types;
 			channelArray[thisChannel.id].lists = messageAnnotationValue.lists ?  messageAnnotationValue.lists : {};
 		}
-		if (messageAnnotationValue.hasOwnProperty("deletion_queue")) {
-			channelArray[thisChannel.id].deletionQueue = messageAnnotationValue.deletion_queue;
-		}
 	}
 
 	function useSampleChannel() {
@@ -515,8 +512,10 @@ context.channel = (function () {
 			
 			//Layout adjustment for the big screen.
 			$("div#list_1").removeClass("col-sm-offset-4");
-			if (len == 2) $("div#list_1").addClass("col-sm-offset-2");
-			if (len == 4) $("div#list_0").addClass("col-sm-offset-4");
+			if (len == 2) 
+				$("div#list_1").addClass("col-sm-offset-2");
+			if (len == 4) 
+				$("div#list_0").addClass("col-sm-offset-4");
 		}
 		
 		if (isSampleChannel(thisChannelId)) {
@@ -567,16 +566,6 @@ context.channel = (function () {
 			}
 			for (var i=0; i < response.data.length; i++) {
 				var respd = response.data[i];
-				//Mock deletion check.
-				if (channelArray[respd.channel_id].hasOwnProperty("deletionQueue") && channelArray[respd.channel_id].deletionQueue.indexOf(respd.id) > -1) {
-					if (respd.user.id == api.userId) {
-						//Delete if creator and remove from queue.
-						var promise = $.pnut.message.destroy(api.currentChannel,respd.id);
-						promise.then(context.item.completeAutoDelete,  function (response) {context.ui.failAlert('Failed to delete queued item.');});
-					}
-					//In either case, don't display "deleted" item or retrieve its tags.
-					continue;
-				}
 				context.item.format(respd);
 				context.tags.collect(respd.entities.hashtags,respd.channel_id);
 			}
@@ -769,39 +758,10 @@ context.item = (function () {
 		//On active delete, check for ownership and delete if owned or add to queue if not.
 		var currentChannel = api.currentChannel;
 		if (!context.channel.isSampleChannel(currentChannel)) {
-			if ($("#item_" + itemId).data("creator") == api.userId) {
-				//Creator can delete for reals
-				var promise = $.pnut.message.destroy(currentChannel,itemId);
-				promise.then(completeDelete,  function (response) {context.ui.failAlert('Failed to delete item.');});
-			} else {
-				//Add to deleted queue
-				var updatedQueue = [];
-				if (channelArray[currentChannel].hasOwnProperty("deletionQueue")) {
-					updatedQueue = channelArray[currentChannel].deletionQueue.slice();
-				}
-				updatedQueue.push(itemId.toString());
-				var channelUpdates = {
-					include_raw: 1,
-					raw:  [{
-						type: api.message_annotation_type,
-						value: {'deletion_queue': updatedQueue}
-					}]
-				};
-				if (channelArray[currentChannel].hasOwnProperty("lists")) {
-					channelUpdates = {
-						include_raw: 1,
-						raw:  [{
-							type: api.message_annotation_type,
-							value: {'lists': channelArray[currentChannel].lists,
-									'deletion_queue': updatedQueue}
-						}]
-					};
-				}
-				var promise = $.pnut.channel.update(currentChannel, channelUpdates, updateArgs);
-				promise.then(completeUpdateLists,  function (response) {context.ui.failAlert('Failed to remove item.');});
-			}
+			var promise = $.pnut.message.destroy(currentChannel,itemId);
+			promise.then(completeDelete,  function (response) {context.ui.failAlert('Failed to delete item.');});
 		}
-		//In all cases, remove item.
+		//Remove item from UI.
 		$("#item_" + itemId).remove();
 	}
 
@@ -898,16 +858,6 @@ context.item = (function () {
 				value: {'lists': updatedLists}
 			}]
 		};
-		if (channelArray[channelId].hasOwnProperty("deletionQueue")) {
-			channelUpdates = {
-				raw:  [{
-					type: api.message_annotation_type,
-					value: {'lists': updatedLists,
-							'deletion_queue': channelArray[channelId].deletionQueue}
-				}]
-			};
-		}
-
 		var promise = $.pnut.channel.update(channelId, channelUpdates, updateArgs);
 		promise.then(completeUpdateLists,  function (response) {context.ui.failAlert('Failed to move item.');});
 	}
@@ -923,37 +873,7 @@ context.item = (function () {
 		if (annotationValue) {
 			if (annotationValue.lists)
 				channelArray[thisChannel.id].lists = annotationValue.lists;
-			if (annotationValue.deletion_queue) 
-				channelArray[thisChannel.id].deletionQueue = annotationValue.deletion_queue;
 		}
-	}
-
-	function completeAutoDelete(response) {
-		//Clean up the deletion queue.
-		//We know it existed if this was called, so no dancing around it.
-		var updatedQueue = channelArray[response.data.channel_id].deletionQueue.slice();
-		var index = updatedQueue.indexOf(response.data.id);
-		if (index > -1) updatedQueue.splice(index, 1);
-		
-		var channelUpdates = {
-			include_raw: 1,
-			raw:  [{
-				type: api.message_annotation_type,
-				value: {'deletion_queue': updatedQueue}
-			}]
-		};
-		if (channelArray[response.data.channel_id].hasOwnProperty("lists")) {
-			channelUpdates = {
-				include_raw: 1,
-				raw:  [{
-					type: api.message_annotation_type,
-					value: {'lists': channelArray[response.data.channel_id].lists,
-							'deletion_queue': updatedQueue}
-				}]
-			};
-		}
-		var promise = $.pnut.channel.update(api.currentChannel, channelUpdates, updateArgs);
-		promise.then(completeUpdateLists,  function (response) {context.ui.failAlert('Failed to remove item.');});
 	}
 
 	function completeDelete(response) {
