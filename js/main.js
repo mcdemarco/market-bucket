@@ -1,4 +1,13 @@
 //main.js for Market Bucket by @mcdemarco.
+//
+// init
+// channel
+// item
+// tags
+// list
+// user
+// ui
+
 
 var marketBucket = {};
 
@@ -601,7 +610,7 @@ context.channel = (function () {
 	}
 
 	function azChannelSorter(a,b) {
-		return a.text.localeCompare(b.text);
+		return a.content.text.localeCompare(b.content.text);
 	}
 
 	function oldNewChannelSorter(a,b) {
@@ -789,7 +798,10 @@ context.item = (function () {
 			}
 			if (targetType != 1) {
 				//need to credit the target list
-				updatedLists[targetType].push(itemId.toString());
+				if (updatedLists[targetType])
+					updatedLists[targetType].push(itemId.toString());
+				else
+					updatedLists[targetType] = [itemId.toString()];
 			}
 			//Send to pnut.
 			updateLists(currentChannel,updatedLists);
@@ -1187,7 +1199,7 @@ context.user = (function () {
 		if (!context.channel.isSampleChannel(currentChannel)) {
 			newUsers.push(userId);
 			var userUpdates = {
-				editors: {user_ids: newUsers} 
+				acl: {write: {user_ids: newUsers}} 
 			};
 			var promise = $.pnut.channel.update(currentChannel,userUpdates);
 			promise.then(completeAddUser, function (response) {context.ui.failAlert('Addition of member failed.');});
@@ -1232,8 +1244,8 @@ context.user = (function () {
 		}
 
 		$("div#searchResults").html("");
-		var searchArgs = {q: $("input#userSearch").val(), count: 10};
-		var promise = $.pnut.user.search(searchArgs);
+		//No longer a search b/c no search in pnut yet.
+		var promise = $.pnut.user.get($("input#userSearch").val());
 		promise.then(completeSearch, function (response) {context.ui.failAlert('Search request failed.');});
 	}
 
@@ -1248,7 +1260,7 @@ context.user = (function () {
 	function completeAddUser(response) {
 		//Update the channel array based on the response.
 		channelArray[response.data.id].editors = response.data.editors;
-		channelArray[response.data.id].editorIds = response.data.editors.user_ids;
+		channelArray[response.data.id].editorIds = response.data.acl.write.user_ids;
 	}
 
 	function removeUserFromChannel(userId, channelId) {
@@ -1275,13 +1287,11 @@ context.user = (function () {
 	}
 
 	function completeSearch(response) {
-		//Process search results into the UI.
+		//Process search results into the UI.  (Now a single user.)
 		if (response.data.length == 0) {
 			$("div#searchResults").html("<p>No users found.</p>");
 		} else {
-			for (var u=0; u < response.data.length; u++) {
-				display(response.data[u], "search");
-			}
+				display(response.data, "search");
 		}
 	}
 
