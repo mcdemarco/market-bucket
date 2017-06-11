@@ -239,7 +239,7 @@ context.channel = (function () {
 			order: 'activity',
 			type: api.channel_type
 		};
-		var promise = $.pnut.channel.search(args);
+		var promise = $.pnut.channel.getUserSubscribed(args);
 		promise.then(completeChannelSearch, function (response) {context.ui.failAlert('Failed to retrieve your list(s).');}).done(context.tags.colorize);
 	}
 
@@ -270,14 +270,14 @@ context.channel = (function () {
 		var annotationValue = annotationsObject[api.annotation_type];
 		var messageAnnotationValue = annotationsObject.hasOwnProperty(api.message_annotation_type) ? annotationsObject[api.message_annotation_type]: {};
 		//Save data for every channel.
-		channelArray[thisChannel.id] = {"id" : thisChannel.id,
-										"name" : annotationValue["name"],
-										"owner" : thisChannel.owner,
-										"editors" : thisChannel.editors,
-										"editorIds" : thisChannel.editors.user_ids,
-									    "tagArray" : []
-									   };
-		//								"annotationValue" : annotationValue};
+		channelArray[thisChannel.id] = {
+			"id" : thisChannel.id,
+			"name" : annotationValue["name"],
+			"owner" : thisChannel.owner,
+			"editors" : thisChannel.acl,
+			"editorIds" : thisChannel.acl.write.user_ids,
+			"tagArray" : []
+		};
 		if (annotationValue.hasOwnProperty("list_types")) {
 			channelArray[thisChannel.id].listTypes = annotationValue.list_types;
 			channelArray[thisChannel.id].lists = messageAnnotationValue.lists ?  messageAnnotationValue.lists : {};
@@ -578,9 +578,9 @@ context.channel = (function () {
 		//Owner not included in the editors list, so add separately.
 		context.user.display(thisChannel.owner, "owner");
 		//User data.
-		if (thisChannel.editors.user_ids.length > 0) {
+		if (thisChannel.editors.write.user_ids.length > 0) {
 			//Retrieve the user data.
-			var promise = $.pnut.user.getList(thisChannel.editors.user_ids);
+			var promise = $.pnut.user.getList(thisChannel.editors.write.user_ids);
 			promise.then(completeUsers, function (response) {context.ui.failAlert('Failed to retrieve users.');});
 		}
 		//Ownership hath its privileges.
@@ -791,7 +791,7 @@ context.item = (function () {
 				//need to credit the target list
 				updatedLists[targetType].push(itemId.toString());
 			}
-			//Send to ADN.
+			//Send to pnut.
 			updateLists(currentChannel,updatedLists);
 		}
 		//Move html.
@@ -1202,7 +1202,7 @@ context.user = (function () {
 		var resultLocation = "div#memberResults";
 		var rowId = "userRow_" + (type ? type + "_" : "") + result.id;
 		var resultString = "<div class='form-group memberRow' id='" + rowId + "'>";
-		resultString += "<div class='col-xs-4 col-md-5 text-right'>" + (result.avatar_image.is_default ? "" : "<img src='" + result.avatar_image.url + "' class='avatarImg' />") + "</div>";
+		resultString += "<div class='col-xs-4 col-md-5 text-right'>" + (result.content.avatar_image.is_default ? "" : "<img src='" + result.content.avatar_image.link + "' class='avatarImg' />") + "</div>";
 		resultString += "<div class='col-xs-4 col-md-2 text-center'>@" + result.username + (result.name ? "<br /><span class='realName'>" + result.name + "</span>" : "" ) + "</div>";
 		resultString += "<div class='col-xs-4 col-md-5 text-left'>";
 		if (type && type=="search") {
@@ -1225,7 +1225,7 @@ context.user = (function () {
 	}
 
 	function search() {
-		//Search for ADN users in member control.
+		//Search for pnut users in member control.
 		if (!api.accessToken) {
 			context.ui.failAlert("Please log in to search for users.");
 			return;
