@@ -724,7 +724,7 @@ context.item = (function () {
 		//Activate the buttons.
 		activateButtons(respd.id);
 		//Store the item.
-		messageTextArray[respd.id] = respd.text;
+		messageTextArray[respd.id] = respd.content.text;
 	}
 
 	function move(e) {
