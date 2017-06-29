@@ -139,7 +139,8 @@ context.init = (function () {
 
 	function reloadChannel(newChannelId, force) {
 		//Reloader for all channel changes (UI, on create, etc.).
-		if (!force && api.currentChannel == newChannelId) return;
+		if (!force && api.currentChannel == newChannelId) 
+			return;
 		if (!channelArray.hasOwnProperty(newChannelId)) {
 			context.ui.failAlert("Failed to change the channel.");
 			return;
@@ -288,12 +289,16 @@ context.channel = (function () {
 			"name" : annotationValue["name"],
 			"owner" : thisChannel.owner,
 			"editors" : thisChannel.acl,
-			"editorIds" : thisChannel.acl.write.user_ids,
+			"editorIds" : thisChannel.acl.full.user_ids,
+			"oldEditorIds" : thisChannel.acl.write.user_ids,
 			"tagArray" : []
 		};
 		if (annotationValue.hasOwnProperty("list_types")) {
 			channelArray[thisChannel.id].listTypes = annotationValue.list_types;
 			channelArray[thisChannel.id].lists = messageAnnotationValue.lists ?  messageAnnotationValue.lists : {};
+		}
+		if (channelArray[thisChannel.id].oldEditorIds.length > 0 && thisChannel.owner.id == api.userId) {
+			context.user.fix(thisChannel.id);
 		}
 	}
 
@@ -312,16 +317,19 @@ context.channel = (function () {
 			{"pagination_id":"10000",
 	     "is_inactive":false,
 			 "acl": {
-	         "read":{"public":false,
-	                    "user_ids":[],
-	                    "any_user":false,
-	                    "you":true,
-	                    "immutable":false},
-	         "write":{"public":false,
-	                    "user_ids":[],
-	                    "any_user":false,
-	                    "you":true,
-	                    "immutable":false}
+				 "full":{"immutable":false,
+								 "you":true,
+								 "user_ids":[]},
+	       "read":{"public":false,
+	               "user_ids":[],
+	               "any_user":false,
+	               "you":true,
+	               "immutable":false},
+	       "write":{"public":false,
+	                "user_ids":[],
+	                "any_user":false,
+	                "you":true,
+	                "immutable":false}
 			 },
 	     "you_muted":false,
 	     "you_can_edit":true,
@@ -375,6 +383,9 @@ context.channel = (function () {
 			{"pagination_id":"10000",
 			 "is_inactive":false,
 			 "acl": {
+				 "full":{"immutable":false,
+								 "you":true,
+								 "user_ids":[]},
 				 "read":{"public":false,
 								 "user_ids":[],
 								 "any_user":false,
@@ -476,11 +487,15 @@ context.channel = (function () {
 		//Populates the channel array and passes the selected channel on.
 		var annotations = getAnnotations(thisChannel);
 		//Eject if no settings annotation.
-		if (!annotations.hasOwnProperty(api.annotation_type)) return;
-		//Eject if user can't write to channel. (unlikely)
-		// ...
+		if (!annotations.hasOwnProperty(api.annotation_type)) 
+			return;
 		
 		storeChannel(thisChannel, annotations);
+
+		//Warn if user can't write to channel.
+		if (channelArray[thisChannel.id].owner.id != api.userId 
+				&& channelArray[thisChannel.id].editorIds.indexOf(api.userId) < 0)
+			context.ui.failAlert("You won't be able to move items in list " + channelArray[thisChannel.id].name + " until the owner logs into Market Bucket again.");
 		
 		if (Object.keys(channelArray).length == 1) {
 			//This channel is first in the activity ordering and will be our default if one wasn't saved.
@@ -596,18 +611,19 @@ context.channel = (function () {
 		//Owner not included in the editors list, so add separately.
 		context.user.display(thisChannel.owner, "owner");
 		//User data.
-		if (thisChannel.editors.write.user_ids.length > 0) {
+		if (thisChannel.editors.full.user_ids.length > 0) {
 			//Retrieve the user data.
-			var promise = $.pnut.user.getList(thisChannel.editors.write.user_ids);
+			var promise = $.pnut.user.getList(thisChannel.editors.full.user_ids);
 			promise.then(completeUsers, function (response) {context.ui.failAlert('Failed to retrieve users.');});
 		}
 		//Ownership hath its privileges.
 		if (thisChannel.owner.id != api.userId) {
-			//There's nothing in this category right now, but deleting the list would qualify.
+			//Only the add member button so far.  Deleting the list would qualify.
 			$(".listOwner").hide();
 		} else {
 			//For list switching.
 			$("form#settingsForm a.btn").show();
+			$(".listOwner").show();
 		}
 	}
 
@@ -1195,20 +1211,21 @@ context.user = (function () {
 	return {
 		add: add,
 		display: display,
+		fix: fix,
 		remove: remove,
 		search: search
 	};
 
 	//public
 	function add(e) {
-		//Add a user on UI request (from search list).
+		//Add a user on UI request (from search list) to full.
 		var currentChannel = api.currentChannel;
 		var userId = $(e.target).closest("a[data-user]").data("user");
 		var newUsers = channelArray[currentChannel].editorIds.slice();
 		if (!context.channel.isSampleChannel(currentChannel)) {
 			newUsers.push(userId);
 			var userUpdates = {
-				acl: {write: {user_ids: newUsers}} 
+				acl: {full: {user_ids: newUsers}} 
 			};
 			var promise = $.pnut.channel.update(currentChannel,userUpdates);
 			promise.then(completeAddUser, function (response) {context.ui.failAlert('Addition of member failed.');});
@@ -1236,6 +1253,20 @@ context.user = (function () {
 		resultString += "</div></div>";
 		$(resultLocation).append(resultString);
 		activateButtons(rowId);
+	}
+
+	function fix(channelId) {
+		//Repair write users; make them full users.
+		var newEditorIds =	channelArray[channelId].editorIds.concat(channelArray[channelId].oldEditorIds);
+		var userUpdates = {
+			acl: {
+				full: {user_ids: newEditorIds},
+				write: {user_ids: []}
+			} 
+		};
+		var promise = $.pnut.channel.update(channelId,userUpdates);
+		//We can use the promise recipient from the regular add function to update the channel.
+		promise.then(completeAddUser, function (response) {context.ui.failAlert('Channel repair failed.');});
 	}
 
 	function remove(e) {
@@ -1269,7 +1300,9 @@ context.user = (function () {
 	function completeAddUser(response) {
 		//Update the channel array based on the response.
 		channelArray[response.data.id].editors = response.data.editors;
-		channelArray[response.data.id].editorIds = response.data.acl.write.user_ids;
+		channelArray[response.data.id].editorIds = response.data.acl.full.user_ids;
+		//Re: fixing.
+		channelArray[response.data.id].oldEditorIds = response.data.acl.write.user_ids;
 	}
 
 	function removeUserFromChannel(userId, channelId) {
