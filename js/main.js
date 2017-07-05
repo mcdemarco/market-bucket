@@ -492,11 +492,12 @@ context.channel = (function () {
 		
 		storeChannel(thisChannel, annotations);
 
-		//Warn if user can't write to channel.
+		/*Warn if user can't write to channel.
 		if (channelArray[thisChannel.id].owner.id != api.userId 
 				&& channelArray[thisChannel.id].editorIds.indexOf(api.userId) < 0)
 			context.ui.failAlert("You won't be able to move items in the '" + channelArray[thisChannel.id].name + "' list until the owner logs into Market Bucket again.");
-		
+		*/
+
 		if (Object.keys(channelArray).length == 1) {
 			//This channel is first in the activity ordering and will be our default if one wasn't saved.
 			context.init.checkLocalStorage("currentChannel",thisChannel.id);
