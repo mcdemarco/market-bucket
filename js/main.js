@@ -19,7 +19,7 @@ var marketBucket = {};
 		annotation_type: 'net.mcdemarco.market-bucket.settings',
 		message_annotation_type: 'net.mcdemarco.market-bucket.lists',
 		max_samples: 3,
-		max_sublists: 3,
+		max_sublists: 4,
 		message_count: 200,
 		site: 'http://market-bucket.mcdemarco.net'
 	};
@@ -579,7 +579,7 @@ context.channel = (function () {
 		
 	function editCloner(index, listTypesObj) {
 		//Add a list and sublist control for the current list, if appropriate.
-		$("#sublistControl").append("<div class='form-group listControl' id='sublist_" + index + "'><div class='col-xs-4 text-right'><label class='control-label' for='sublistEdit_" + index + "'>" + (index == 0 ? "Archive" : "List " + index) + ":</label></div><div class='col-xs-3'><input type='text' id='sublistEdit_" + index + "' name='title' class='form-control listTitle' value='" + listTypesObj[index.toString()].title + "' /></div><div class='col-xs-4'><input type='text' id='sublistSubtitle_" + index + "' name='subtitle' class='form-control' value='" + (listTypesObj[index.toString()].subtitle ? listTypesObj[index.toString()].subtitle : "") + "' /></div></div>");
+		$("#sublistControl").append("<div class='form-group listControl' id='sublist_" + index + "'><div class='col-xs-4 text-right'><label class='control-label' for='sublistEdit_" + index + "'>" + (index == 0 ? "Archive" : "List " + index) + ":</label></div><div class='col-xs-3'><input type='text' id='sublistEdit_" + index + "' name='title' class='form-control listTitle' value='" + listTypesObj[index.toString()].title + "' /></div><div class='col-xs-4'><input type='text' id='sublistSubtitle_" + index + "' name='subtitle' class='form-control' value='" + (listTypesObj[index.toString()].subtitle ? listTypesObj[index.toString()].subtitle : "") + "' placeholder='Optional subtitle' /></div></div>");
 	}
 
 	function completeMessages(response) {
@@ -1083,6 +1083,13 @@ context.list = (function () {
 				listTypesObj = {'0': {'title':'archive'},
 								'1': {'title':'now'},
 								'2': {'title':'later'}
+							   };
+				break;
+			case "4":
+				listTypesObj = {'0': {'title':'unrated'},
+								'1': {'title':'good'},
+								'2': {'title':'average'},
+								'3': {'title':'bad'}
 							   };
 				break;
 			default:
