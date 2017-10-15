@@ -36,6 +36,7 @@ context.init = (function () {
 		load: load,
 		login: login,
 		logout: logout,
+		refresh: refresh,
 		reload: reload,
 		reloadChannel: reloadChannel,
 		setSortOrder: setSortOrder
@@ -131,6 +132,11 @@ context.init = (function () {
 		context.channel.useSampleChannel();
 	}
 
+	function refresh(e) {
+		//Manual refresh button.
+		reloadChannel(api.currentChannel, true);
+	}
+
 	function reload(e) {
 		//Reload helper for UI list dropdown.
 		var newChannelId = $(e.target).val();
@@ -167,6 +173,7 @@ context.init = (function () {
 		$("#clearButton").click(context.item.clearForm);
 		$("#createButton").click(context.list.add);
 		$("#list_1 span[data-type='addButton']").click(context.ui.add);
+		$("#listRefreshButton").click(context.init.refresh);
 		$("#listSetSelect").change(context.init.reload);
 		$("#logInButton").click(context.init.login);
 		$("#logOutButton").click(context.init.logout);
@@ -195,7 +202,7 @@ context.init = (function () {
 		}
 		//Clear the main list.
 		//Assume title will be rewritten, but actively null/rewrite some bits anyway.
-		$("section#sectionLists h1").html("");
+		$("#listTitleSPAN").html("");
 		$("#list_1 div.formattedItem").remove();
 		$("#list_1 span.subTitle").html("");
 		$("#list_1").removeClass("col-sm-offset-2").addClass("col-sm-offset-4");
@@ -1444,7 +1451,7 @@ context.ui = (function () {
 
 	function nameList(channelId) {
 		//Process the channel name itself. Pass in the whole input for the editor to preserve defaultValue.
-		$("section#sectionLists h1").html(channelArray[channelId].name);
+		$("#listTitleSPAN").html(channelArray[channelId].name);
 		$("div#listGroupNameWrapper").html("<input type='text' id='listGroupName' class='form-control listTitle' value='" + channelArray[channelId].name + "' />");
 		//If  nameSublist is called, this will be re-filled.
 		$("div#list_1 span.mainTitle").html("<i class='fa fa-fw'></i>");
