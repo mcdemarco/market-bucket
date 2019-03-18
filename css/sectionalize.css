@@ -144,7 +144,7 @@ div#listControl {
 #sectionSettings h1 {
   padding-bottom: 30px; }
 
-.settingsToggle {
+div.settingsToggle {
   display: none; }
 
 div.list-group-item {

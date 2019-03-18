@@ -853,14 +853,32 @@ context.item = (function () {
 		//Add the appropriate buttons to a formatted list item.
 		if (!channelId) channelId = api.currentChannel;
 		var formattedItem = "<div id='buttons_" + itemId + "' class='pull-right'>";
+		var defaultDestList;
+		if (channelArray[channelId].hasOwnProperty("listTypes")) {
+			var len = Object.keys(channelArray[channelId].listTypes).length;
+			if (len > 1)
+				defaultDestList = (len-1).toString();
+		}
 		if (listType != "0") {
-			//Add the main checkbox.
-			formattedItem += "<button type='button' class='btn btn-default btn-xs' ";
+			if (listType != "1") {
+				//Add a move up arrow to non-first lists.
+				var destList = (parseInt(listType,10) - 1).toString();
+				formattedItem += "<button type='button' class='settingsToggle btn btn-default btn-xs' ";
+				formattedItem += " data-button='moveItem' data-destination='" + destList + "'>";
+				formattedItem += "<i class='fa fa-arrow-left'></i></button> ";
+			}
+			//Add the main checkbox to non-archive lists.
+			formattedItem += "<button type='button' class='settingsToggle btn btn-default btn-xs' ";
 			if (!channelArray[channelId].hasOwnProperty("listTypes"))
 				formattedItem += " data-button='deleteItem'>";
 			else
 				formattedItem += " data-button='moveItem' data-destination='0'>";
 			formattedItem += "<i class='fa fa-check'></i></button>";
+		} else if (typeof defaultDestList != "undefined") {
+			//Add the move arrow to the archive.
+			formattedItem += "<button type='button' class='settingsToggle btn btn-default btn-xs' ";
+			formattedItem += " data-button='moveItem' data-destination='" + defaultDestList + "'>";
+			formattedItem += "<i class='fa fa-arrow-left'></i></button>";
 		}
 		if (channelArray[channelId].hasOwnProperty("listTypes")) {
 			//Add the move options
@@ -870,7 +888,11 @@ context.item = (function () {
 			formattedItem += "<ul class='dropdown-menu' role='menu'>";
 			for (var li in channelArray[channelId].listTypes) {
 				if (li != listType && li != 0) 
-					formattedItem += "<li><a href='#' data-button='moveItem' data-destination='" + li + "'><i class='fa fa-arrows'></i> Move to " + channelArray[channelId].listTypes[li].title + "</a></li>";
+					formattedItem += "<li><a href='#' data-button='moveItem' data-destination='" + li + "'><i class='fa fa-arrow-" + (listType == "0" || parseInt(listType,10) > parseInt(li,10) ? "left" : "right") + "'></i> Move to " + channelArray[channelId].listTypes[li].title + "</a></li>";
+			}
+			if (listType != "0") {
+				//Add the deletion option
+				formattedItem += "<li><a href='#' data-button='moveItem'><i class='fa fa-check'></i> Archive</a></li>";
 			}
 			//Edit option
 			formattedItem += "<li class='divider'></li>";
@@ -948,7 +970,7 @@ context.tags = (function () {
 		display: display,
 		filter: filter,
 		unfilter: unfilter
-		};
+	};
 
 	//public
 
@@ -1036,7 +1058,7 @@ context.tags = (function () {
 		return pastelColor;
 	}
 	
-	function getContrastYIQ(hexcolor){
+	function getContrastYIQ(hexcolor) {
 		//Get the contrast color for user-defined tag colors using the YIQ formula.
 		var r = parseInt(hexcolor.substr(0,2),16);
 		var g = parseInt(hexcolor.substr(2,2),16);
@@ -1044,6 +1066,7 @@ context.tags = (function () {
 		var yiq = ((r*299)+(g*587)+(b*114))/1000;
 		return (yiq >= 128) ? 'black' : 'white';
 	}
+
 })();
 
 
