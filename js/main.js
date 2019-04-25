@@ -1513,7 +1513,6 @@ context.ui = (function () {
 		//Toggle settings off IF ON, in order to add buttons or items in the default state.
 		//If list is passed in, toggle only the one list.
 		//Otherwise toggle all.
-debugger;
 		if (list) {
 			$("div#list_" + list + " .settingsToggledOff").show();
 			$("div#list_" + list + " .settingsToggledOn").hide();
