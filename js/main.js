@@ -689,7 +689,8 @@ context.item = (function () {
 			}
 		}
 		//Don't want the new buttons starting out of sync.
-		$(".settingsToggle").hide();
+		var listType = $("input[name=bucketBucket]:checked").data("list");
+		context.ui.settingsOff(listType);
 		createItem(channelId, message);
 	}
 
@@ -731,7 +732,7 @@ context.item = (function () {
 		var formattedItem = "<div class='list-group-item clearfix formattedItem' id='item_" + respd.id + "' data-creator='" + respd.user.id + "'>";
 		formattedItem += "<span class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + respd.user.username + "'>";
 		formattedItem += respd.content.html + "</span>";
-		formattedItem += formatButtons(respd.id, respd.channel_id, listType); 
+		formattedItem += formatButtons(respd.id, respd.channel_id, listType);
 		formattedItem += "</div>";
 		//Append the item.
 		$("#list_" + listType + " div.list-group").append(formattedItem);
@@ -843,8 +844,8 @@ context.item = (function () {
 		$("#item_" + itemId).appendTo("div#list_" + targetType + " div.list-group");
 		//Need to update the buttons.
 		$("div#buttons_" + itemId).remove();
-		//Don't want the new buttons starting out of sync.
-		$("div#list_" + targetType + " .settingsToggle").hide();
+		//Don't worry about the new buttons starting out of sync b/c this fix caused issues.
+		context.ui.settingsOff(targetType);
 		$("#item_" + itemId).append(formatButtons(itemId,currentChannel,targetType));
 		activateButtons(itemId);
 	}
@@ -863,12 +864,12 @@ context.item = (function () {
 			if (listType != "1") {
 				//Add a move up arrow to non-first lists.
 				var destList = (parseInt(listType,10) - 1).toString();
-				formattedItem += "<button type='button' class='settingsToggle btn btn-default btn-xs' ";
+				formattedItem += "<button type='button' class='settingsToggle settingsToggledOff btn btn-default btn-xs' ";
 				formattedItem += " data-button='moveItem' data-destination='" + destList + "'>";
 				formattedItem += "<i class='fa fa-arrow-left'></i></button> ";
 			}
 			//Add the main checkbox to non-archive lists.
-			formattedItem += "<button type='button' class='settingsToggle btn btn-default btn-xs' ";
+			formattedItem += "<button type='button' class='settingsToggle settingsToggledOff btn btn-default btn-xs' ";
 			if (!channelArray[channelId].hasOwnProperty("listTypes"))
 				formattedItem += " data-button='deleteItem'>";
 			else
@@ -876,13 +877,13 @@ context.item = (function () {
 			formattedItem += "<i class='fa fa-check'></i></button>";
 		} else if (typeof defaultDestList != "undefined") {
 			//Add the move arrow to the archive.
-			formattedItem += "<button type='button' class='settingsToggle btn btn-default btn-xs' ";
+			formattedItem += "<button type='button' class='settingsToggle settingsToggledOff btn btn-default btn-xs' ";
 			formattedItem += " data-button='moveItem' data-destination='" + defaultDestList + "'>";
 			formattedItem += "<i class='fa fa-arrow-left'></i></button>";
 		}
 		if (channelArray[channelId].hasOwnProperty("listTypes")) {
 			//Add the move options
-			formattedItem += "<div class='btn-group dropdown settingsToggle pull-right'>";
+			formattedItem += "<div class='btn-group dropdown settingsToggle settingsToggledOn pull-right'>";
 			formattedItem += "<button type='button' class='btn btn-default btn-xs dropdown-toggle' data-toggle='dropdown'>";
 			formattedItem += "<i class='fa fa-cog'></i> <span class='caret'></span></button>";
 			formattedItem += "<ul class='dropdown-menu' role='menu'>";
@@ -920,13 +921,13 @@ context.item = (function () {
 		//Update the item lists on move.
 		//Vacuous moves should be blocked before this point, so we just update the lists.
 		var channelUpdates = {
-			raw:  [{
+			raw: [{
 				type: api.message_annotation_type,
 				value: {'lists': updatedLists}
 			}]
 		};
 		var promise = $.pnut.channel.update(channelId, channelUpdates, updateArgs);
-		promise.then(completeUpdateLists,  function (response) {context.ui.failAlert('Failed to move item.');});
+		promise.then(completeUpdateLists, function (response) {context.ui.failAlert('Failed to move item.');});
 	}
 
 	function completeUpdateLists(response) {
@@ -1211,8 +1212,8 @@ context.list = (function () {
 				raw:  [{
 					type: api.annotation_type,
 					value: { 'name': newName,
-							 'list_types': sublistObject
-						   }
+									 'list_types': sublistObject
+								 }
 				}]
 			};
 
@@ -1395,6 +1396,7 @@ context.ui = (function () {
 		navbarSetter: navbarSetter,
 		pushHistory: pushHistory,
 		settingsToggle: settingsToggle,
+		settingsOff: settingsOff,
 		sortLists: sortLists,
 		tagButton: tagButton,
 		uncollapseArchive: uncollapseArchive
@@ -1507,8 +1509,22 @@ context.ui = (function () {
 			history.pushState({}, document.title, newLocation);
 	}
 
+	function settingsOff(list) {
+		//Toggle settings off IF ON, in order to add buttons or items in the default state.
+		//If list is passed in, toggle only the one list.
+		//Otherwise toggle all.
+debugger;
+		if (list) {
+			$("div#list_" + list + " .settingsToggledOff").show();
+			$("div#list_" + list + " .settingsToggledOn").hide();
+		} else {
+			$(".settingsToggledOff").show();
+			$(".settingsToggledOn").hide();
+		}
+	}
+	
 	function settingsToggle(e) {
-		//Handle the settings buttons on the sublists.
+		//Handle the settings buttons on the sublists.  This toggles everything.
 		e.preventDefault();
 		$(e.target).closest("div.bucketListDiv").find(".settingsToggle").toggle();
 		if ($(e.target).closest("div.bucketListDiv").find(".settingsToggle").length == 0)
