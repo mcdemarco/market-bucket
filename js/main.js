@@ -33,6 +33,7 @@ context.init = (function () {
 
 	return {
 		checkLocalStorage: checkLocalStorage,
+		clearPage: clearPage,
 		load: load,
 		login: login,
 		logout: logout,
@@ -79,6 +80,32 @@ context.init = (function () {
 					break;
 			}
 		}
+	}
+
+	function clearPage() {
+		//Resets the page for loading a new channel or loading sample channels after logout.
+		//Clear the form.
+		context.item.clearForm();
+		$("div#itemCheckboxes label").hide();
+		//Nuke the sublists.
+		for (var i=0; i < api.max_sublists; i++) {
+			if (i != 1)
+				$("#list_" + i).remove();
+		}
+		//Clear the main list.
+		//Assume title will be rewritten, but actively null/rewrite some bits anyway.
+		$("#listTitleSPAN").html("");
+		$("#list_1 div.formattedItem").remove();
+		$("#list_1 span.subTitle").html("");
+		$("#list_1").removeClass("col-sm-offset-2").addClass("col-sm-offset-4");
+		$(".tagBucket").html("");
+		//Clear the relevant settings.
+		$("div#memberResults").html("");
+		$("div#searchResults").html("");
+		//Clear the list controls.
+		$("div#listGroupNameWrapper").html("");
+		$("div#sublistControl").html("");
+		//...
 	}
 
 	function load() {
@@ -134,7 +161,7 @@ context.init = (function () {
 
 	function refresh(e) {
 		//Manual refresh button.
-		reloadChannel(api.currentChannel, true);
+		context.channel.getCurrent();
 	}
 
 	function reload(e) {
@@ -155,7 +182,7 @@ context.init = (function () {
 		clearPage();
 		//sample checking done by this function for itself
 		setLocalStorage("currentChannel",newChannelId);
-		context.channel.displayChannel(newChannelId);
+		context.channel.display(newChannelId);
 		context.ui.forceScroll("#sectionLists");
 	}
 
@@ -190,32 +217,6 @@ context.init = (function () {
 		$("#bucketSorterWrapper input[type=radio]").click(context.ui.sortLists);
 	}
 
-	function clearPage() {
-		//Resets the page for loading a new channel or loading sample channels after logout.
-		//Clear the form.
-		context.item.clearForm();
-		$("div#itemCheckboxes label").hide();
-		//Nuke the sublists.
-		for (var i=0; i < api.max_sublists; i++) {
-			if (i != 1)
-				$("#list_" + i).remove();
-		}
-		//Clear the main list.
-		//Assume title will be rewritten, but actively null/rewrite some bits anyway.
-		$("#listTitleSPAN").html("");
-		$("#list_1 div.formattedItem").remove();
-		$("#list_1 span.subTitle").html("");
-		$("#list_1").removeClass("col-sm-offset-2").addClass("col-sm-offset-4");
-		$(".tagBucket").html("");
-		//Clear the relevant settings.
-		$("div#memberResults").html("");
-		$("div#searchResults").html("");
-		//Clear the list controls.
-		$("div#listGroupNameWrapper").html("");
-		$("div#sublistControl").html("");
-		//...
-	}
-
 	function setLocalStorage(key, value) {
 		//Explicit setter for local storage, which is normally set during a check.
 		api[key] = value;
@@ -244,9 +245,10 @@ context.init = (function () {
 context.channel = (function () {
 
 	return {
-		displayChannel: displayChannel,
+		display: display,
 		get: get,
 		getAnnotations: getAnnotations,
+		getCurrent: getCurrent,
 		isSampleChannel: isSampleChannel,
 		storeChannel: storeChannel,
 		useSampleChannel: useSampleChannel
@@ -277,6 +279,15 @@ context.channel = (function () {
 			}
 		}
 		return ourAnnotations;
+	}
+
+	function getCurrent() {
+		//A better process for refreshing the current channel.
+		var args = {
+			include_raw: 1
+		};
+		var promise = $.pnut.channel.get(api.currentChannel,args);
+		promise.then(completeChannel, function (response) {context.ui.failAlert('Failed to retrieve your list(s).');}).done(context.channel.display);
 	}
 
 	function isSampleChannel(channelId) {
@@ -476,6 +487,14 @@ context.channel = (function () {
 		return sampleMessages;
 	}
 
+	function completeChannel(response) {
+		//Like completeChannelSearch but for a single channel.
+		if (response.data) {
+			context.init.clearPage();
+			populateChannel(response.data);
+		}
+	}
+
 	function completeChannelSearch(response) {
 		//Process the automatic channel search's results.
 		if (response.data.length == 0) {
@@ -512,7 +531,7 @@ context.channel = (function () {
 
 		//Fetch more data if this is the right channel.
 		if (api.currentChannel && api.currentChannel == thisChannel.id) {
-			displayChannel(thisChannel.id);
+			display(thisChannel.id);
 		}
 	}
 
@@ -526,7 +545,7 @@ context.channel = (function () {
 		} 
 	}
 
-	function displayChannel(thisChannelId) {
+	function display(thisChannelId) {
 		//Display a channel based on the stored info in channelArray, and retrieve messages or use canned messages.
 		//Users in settings panel.
 		var listTypes = (channelArray[thisChannelId].listTypes ? channelArray[thisChannelId].listTypes : {});
@@ -568,6 +587,7 @@ context.channel = (function () {
 			//Retrieve the messages from ADN.
 			var args = {
 				include_deleted: 0,
+				include_raw: 1,
 				count: api.message_count
 			};
 			var promise = $.pnut.message.getChannel(thisChannelId, args);
@@ -605,6 +625,7 @@ context.channel = (function () {
 				case undefined:
 				break;
 			}
+
 			for (var i=0; i < response.data.length; i++) {
 				var respd = response.data[i];
 				context.item.format(respd);
