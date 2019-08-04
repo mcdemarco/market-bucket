@@ -689,7 +689,8 @@ context.item = (function () {
 			}
 		}
 		//Don't want the new buttons starting out of sync.
-		$(".settingsToggle").hide();
+		var listType = $("input[name=bucketBucket]:checked").data("list");
+		context.ui.settingsOff(listType);
 		createItem(channelId, message);
 	}
 
@@ -731,7 +732,7 @@ context.item = (function () {
 		var formattedItem = "<div class='list-group-item clearfix formattedItem' id='item_" + respd.id + "' data-creator='" + respd.user.id + "'>";
 		formattedItem += "<span class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + respd.user.username + "'>";
 		formattedItem += respd.content.html + "</span>";
-		formattedItem += formatButtons(respd.id, respd.channel_id, listType); 
+		formattedItem += formatButtons(respd.id, respd.channel_id, listType);
 		formattedItem += "</div>";
 		//Append the item.
 		$("#list_" + listType + " div.list-group").append(formattedItem);
@@ -843,8 +844,8 @@ context.item = (function () {
 		$("#item_" + itemId).appendTo("div#list_" + targetType + " div.list-group");
 		//Need to update the buttons.
 		$("div#buttons_" + itemId).remove();
-		//Don't want the new buttons starting out of sync.
-		$("div#list_" + targetType + " .settingsToggle").hide();
+		//Don't worry about the new buttons starting out of sync b/c this fix caused issues.
+		context.ui.settingsOff(targetType);
 		$("#item_" + itemId).append(formatButtons(itemId,currentChannel,targetType));
 		activateButtons(itemId);
 	}
@@ -853,24 +854,46 @@ context.item = (function () {
 		//Add the appropriate buttons to a formatted list item.
 		if (!channelId) channelId = api.currentChannel;
 		var formattedItem = "<div id='buttons_" + itemId + "' class='pull-right'>";
+		var defaultDestList;
+		if (channelArray[channelId].hasOwnProperty("listTypes")) {
+			var len = Object.keys(channelArray[channelId].listTypes).length;
+			if (len > 1)
+				defaultDestList = (len-1).toString();
+		}
 		if (listType != "0") {
-			//Add the main checkbox.
-			formattedItem += "<button type='button' class='btn btn-default btn-xs' ";
+			if (listType != "1") {
+				//Add a move up arrow to non-first lists.
+				var destList = (parseInt(listType,10) - 1).toString();
+				formattedItem += "<button type='button' class='settingsToggle settingsToggledOff btn btn-default btn-xs' ";
+				formattedItem += " data-button='moveItem' data-destination='" + destList + "'>";
+				formattedItem += "<i class='fa fa-arrow-left'></i></button> ";
+			}
+			//Add the main checkbox to non-archive lists.
+			formattedItem += "<button type='button' class='settingsToggle settingsToggledOff btn btn-default btn-xs' ";
 			if (!channelArray[channelId].hasOwnProperty("listTypes"))
 				formattedItem += " data-button='deleteItem'>";
 			else
 				formattedItem += " data-button='moveItem' data-destination='0'>";
 			formattedItem += "<i class='fa fa-check'></i></button>";
+		} else if (typeof defaultDestList != "undefined") {
+			//Add the move arrow to the archive.
+			formattedItem += "<button type='button' class='settingsToggle settingsToggledOff btn btn-default btn-xs' ";
+			formattedItem += " data-button='moveItem' data-destination='" + defaultDestList + "'>";
+			formattedItem += "<i class='fa fa-arrow-left'></i></button>";
 		}
 		if (channelArray[channelId].hasOwnProperty("listTypes")) {
 			//Add the move options
-			formattedItem += "<div class='btn-group dropdown settingsToggle pull-right'>";
+			formattedItem += "<div class='btn-group dropdown settingsToggle settingsToggledOn pull-right'>";
 			formattedItem += "<button type='button' class='btn btn-default btn-xs dropdown-toggle' data-toggle='dropdown'>";
 			formattedItem += "<i class='fa fa-cog'></i> <span class='caret'></span></button>";
 			formattedItem += "<ul class='dropdown-menu' role='menu'>";
 			for (var li in channelArray[channelId].listTypes) {
 				if (li != listType && li != 0) 
-					formattedItem += "<li><a href='#' data-button='moveItem' data-destination='" + li + "'><i class='fa fa-arrows'></i> Move to " + channelArray[channelId].listTypes[li].title + "</a></li>";
+					formattedItem += "<li><a href='#' data-button='moveItem' data-destination='" + li + "'><i class='fa fa-arrow-" + (listType == "0" || parseInt(listType,10) > parseInt(li,10) ? "left" : "right") + "'></i> Move to " + channelArray[channelId].listTypes[li].title + "</a></li>";
+			}
+			if (listType != "0") {
+				//Add the deletion option
+				formattedItem += "<li><a href='#' data-button='moveItem'><i class='fa fa-check'></i> Archive</a></li>";
 			}
 			//Edit option
 			formattedItem += "<li class='divider'></li>";
@@ -898,13 +921,13 @@ context.item = (function () {
 		//Update the item lists on move.
 		//Vacuous moves should be blocked before this point, so we just update the lists.
 		var channelUpdates = {
-			raw:  [{
+			raw: [{
 				type: api.message_annotation_type,
 				value: {'lists': updatedLists}
 			}]
 		};
 		var promise = $.pnut.channel.update(channelId, channelUpdates, updateArgs);
-		promise.then(completeUpdateLists,  function (response) {context.ui.failAlert('Failed to move item.');});
+		promise.then(completeUpdateLists, function (response) {context.ui.failAlert('Failed to move item.');});
 	}
 
 	function completeUpdateLists(response) {
@@ -948,7 +971,7 @@ context.tags = (function () {
 		display: display,
 		filter: filter,
 		unfilter: unfilter
-		};
+	};
 
 	//public
 
@@ -1036,7 +1059,7 @@ context.tags = (function () {
 		return pastelColor;
 	}
 	
-	function getContrastYIQ(hexcolor){
+	function getContrastYIQ(hexcolor) {
 		//Get the contrast color for user-defined tag colors using the YIQ formula.
 		var r = parseInt(hexcolor.substr(0,2),16);
 		var g = parseInt(hexcolor.substr(2,2),16);
@@ -1044,6 +1067,7 @@ context.tags = (function () {
 		var yiq = ((r*299)+(g*587)+(b*114))/1000;
 		return (yiq >= 128) ? 'black' : 'white';
 	}
+
 })();
 
 
@@ -1188,8 +1212,8 @@ context.list = (function () {
 				raw:  [{
 					type: api.annotation_type,
 					value: { 'name': newName,
-							 'list_types': sublistObject
-						   }
+									 'list_types': sublistObject
+								 }
 				}]
 			};
 
@@ -1372,6 +1396,7 @@ context.ui = (function () {
 		navbarSetter: navbarSetter,
 		pushHistory: pushHistory,
 		settingsToggle: settingsToggle,
+		settingsOff: settingsOff,
 		sortLists: sortLists,
 		tagButton: tagButton,
 		uncollapseArchive: uncollapseArchive
@@ -1484,8 +1509,21 @@ context.ui = (function () {
 			history.pushState({}, document.title, newLocation);
 	}
 
+	function settingsOff(list) {
+		//Toggle settings off IF ON, in order to add buttons or items in the default state.
+		//If list is passed in, toggle only the one list.
+		//Otherwise toggle all.
+		if (list) {
+			$("div#list_" + list + " .settingsToggledOff").show();
+			$("div#list_" + list + " .settingsToggledOn").hide();
+		} else {
+			$(".settingsToggledOff").show();
+			$(".settingsToggledOn").hide();
+		}
+	}
+	
 	function settingsToggle(e) {
-		//Handle the settings buttons on the sublists.
+		//Handle the settings buttons on the sublists.  This toggles everything.
 		e.preventDefault();
 		$(e.target).closest("div.bucketListDiv").find(".settingsToggle").toggle();
 		if ($(e.target).closest("div.bucketListDiv").find(".settingsToggle").length == 0)
