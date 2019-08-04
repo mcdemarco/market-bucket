@@ -46,13 +46,12 @@
     </div>
     <div class="navbar-collapse collapse" id="navbar-collapsible">
       <ul class="nav navbar-nav navbar-left">
-        <li class="loggedOut"><a href="#sectionBlurb"><i class="fa fa-lightbulb-o"></i></a></li>
+        <li class="loggedOut"><a href="#sectionBlurb"><span class="hidden-xs">Idea</span><span class="visible-xs-block" title="Idea"><i class="fa fa-lightbulb-o"></i></a></li>
         <li><a href="#sectionLists"><span class="hidden-xs">Lists</span><span class="visible-xs-block" title="Lists"><i class="fa fa-list"></i></span></a></li>
         <li class="loggedIn" title="tag search"><a href="#tagSearchRow"><span class="hidden-xs">Search</span><span class="visible-xs-block" title="Search"><i class="fa fa-search"></i></span></a></li>
         <li class="loggedIn"><a href="#sectionAdd"><span class="hidden-xs">Add</span><span class="visible-xs-block" title="Add"><i class="fa fa-plus"></i></span></a></li>
-        <li class="loggedIn"><a href="#sectionSettings"><span class="hidden-xs">Manage</span><span class="visible-xs-block" title="Manage"><i class="fa fa-cogs"></i></span></a></li>
-        <li class="loggedOut"><a href="#sectionAbout"><span class="hidden-xs">About</span><span class="visible-xs-block"><i class="fa fa-info"></i></span></a></li>
-        <li class="loggedIn"><a class="hidden-xs" href="#sectionAbout">About</a></li>
+        <li class="loggedIn"><a href="#sectionSettings"><span class="hidden-xs">Switch</span><span class="visible-xs-block" title="Switch lists"><i class="fa fa-exchange"></i></span></a></li>
+        <li><a href="#sectionAbout"><span class="hidden-xs">About</span><span class="visible-xs-block" title="About"><i class="fa fa-info"></i></span></a></li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li class="loggedOut" style="display:none;"><a href="#" class="navbar-link" id="logInButton"><span class="hidden-xs">Log In</span><span class="visible-xs-block"><i class="fa fa-sign-in" title="Log In"></i></span></a></li>
@@ -168,14 +167,14 @@
 <section class="container-fluid loggedIn" id="sectionSettings">
   <div class="row text-center">
     <div class="col-xs-12">
-      <h1>Manage Lists</h1>
+      <h1>Switch Lists</h1>
     </div>
   </div>
 	<div class="container-fluid">
   <form class="form-horizontal" role="form" id="settingsForm">
     <div class="row text-center">
 	<div class="form-group"><!--always on -->
-	  <div class="col-xs-1 col-md-4 text-right"><label class="control-label hidden-xs" for="listSetSelect">List groups:</label></div>
+	  <div class="col-xs-1 col-md-4 text-right"><label class="control-label hidden-xs" for="listSetSelect">Lists:</label></div>
 	  <div class="col-xs-10 col-md-4">
 	    <select class="form-control" id="listSetSelect"></select>
 	  </div>
