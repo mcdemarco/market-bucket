@@ -4,19 +4,19 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, minimal-ui, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="Shopping lists powered by app.net">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="description" content="Shopping lists powered by pnut.io">
   <meta name="author" content="@mcdemarco">
   <link rel="icon" href="images/favicon.ico">
 
   <title>Market Bucket</title>
-    
+
   <!-- Bootstrap core CSS -->
   <link href="/css/bootstrap.min.css" rel="stylesheet">
   
   <!-- Custom styles for this template -->
   <link href="/css/sectionalize.css" rel="stylesheet">
-  <link href="//netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//netdna.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
   <link href='http://fonts.googleapis.com/css?family=Rock+Salt|Open+Sans' rel='stylesheet' type='text/css'>
   
   <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -46,17 +46,16 @@
     </div>
     <div class="navbar-collapse collapse" id="navbar-collapsible">
       <ul class="nav navbar-nav navbar-left">
-        <li class="loggedOut"><a href="#sectionBlurb"><i class="fa fa-lightbulb-o"></i></a></li>
+        <li class="loggedOut"><a href="#sectionBlurb"><span class="hidden-xs">Idea</span><span class="visible-xs-block" title="Idea"><i class="fa fa-lightbulb-o"></i></a></li>
         <li><a href="#sectionLists"><span class="hidden-xs">Lists</span><span class="visible-xs-block" title="Lists"><i class="fa fa-list"></i></span></a></li>
-        <!--li class="loggedIn" title="archive"><a href="#list_0"><i class="fa fa-archive"></i></a></li-->
         <li class="loggedIn" title="tag search"><a href="#tagSearchRow"><span class="hidden-xs">Search</span><span class="visible-xs-block" title="Search"><i class="fa fa-search"></i></span></a></li>
         <li class="loggedIn"><a href="#sectionAdd"><span class="hidden-xs">Add</span><span class="visible-xs-block" title="Add"><i class="fa fa-plus"></i></span></a></li>
-        <li class="loggedIn"><a href="#sectionSettings"><span class="hidden-xs">Settings</span><span class="visible-xs-block" title="Settings"><i class="fa fa-cogs"></i></span></a></li>
-        <li class="loggedOut"><a href="#sectionAbout"><span class="hidden-xs">About</span><span class="visible-xs-block"><i class="fa fa-info"></i></span></a></li>
-        <li class="loggedIn"><a class="hidden-xs" href="#sectionAbout">About</a></li>
+        <li class="loggedIn"><a href="#sectionSettings"><span class="hidden-xs">Switch</span><span class="visible-xs-block" title="Switch lists"><i class="fa fa-exchange"></i></span></a></li>
+        <li class="loggedOut"><a href="#sectionAbout"><span class="hidden-xs">About</span><span class="visible-xs-block" title="About"><i class="fa fa-info"></i></span></a></li>
+        <li class="loggedIn"><a href="#sectionAbout" class="hidden-xs">About</a></li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
-        <li class="loggedOut" style="display:none;"><a href="#sectionLogin" class="navbar-link" id="logInPreButton"><span class="hidden-xs">Log In</span><span class="visible-xs-block"><i class="fa fa-sign-in" title="Log In"></i></span></a></li>
+        <li class="loggedOut" style="display:none;"><a href="#" class="navbar-link" id="logInButton"><span class="hidden-xs">Log In</span><span class="visible-xs-block"><i class="fa fa-sign-in" title="Log In"></i></span></a></li>
         <li class="loggedIn"><a href="#" class="navbar-link" id="logOutButton"><span class="hidden-xs">Log Out</span><span class="visible-xs-block" title="Log Out"><i class="fa fa-sign-out"></i></span></a></li>
       </ul>
     </div>
@@ -65,7 +64,7 @@
 
 <section class="container-fluid loggedOut transparentSection" id="sectionBrand">
   <h1 class="text-center v-center font-brand">Market Bucket</h1>
-  <p class="lead text-center shadow">Shopping lists powered by App.net</p>
+  <p class="lead text-center shadow">Shopping lists powered by pnut.io</p>
     <div class="row">
       <!--fontawesome icons-->
       <div class="text-center">
@@ -101,7 +100,7 @@
 </section>
 
 <section class="container-fluid transparentSection" id="sectionLists">
-  <h1 class="text-center" style="padding-bottom: 25px;"></h1>
+  <h1 class="text-center" style="padding-bottom: 25px;"><span id="listTitleSPAN"></span> <span style="padding: 2px 10px;" id="listRefreshButton"><i class="fa fa-refresh"></i></h1>
 
   <div class="row">
     <div class="col-sm-10 col-sm-offset-1">
@@ -169,14 +168,14 @@
 <section class="container-fluid loggedIn" id="sectionSettings">
   <div class="row text-center">
     <div class="col-xs-12">
-      <h1>Manage Lists</h1>
+      <h1>Switch Lists</h1>
     </div>
   </div>
 	<div class="container-fluid">
   <form class="form-horizontal" role="form" id="settingsForm">
     <div class="row text-center">
 	<div class="form-group"><!--always on -->
-	  <div class="col-xs-1 col-md-4 text-right"><label class="control-label hidden-xs" for="listSetSelect">List groups:</label></div>
+	  <div class="col-xs-1 col-md-4 text-right"><label class="control-label hidden-xs" for="listSetSelect">Lists:</label></div>
 	  <div class="col-xs-10 col-md-4">
 	    <select class="form-control" id="listSetSelect"></select>
 	  </div>
@@ -191,12 +190,12 @@
 	  <div class="col-xs-12 text-left" id="memberResults"></div>
 	  <div class="col-md-4 col-xs-3 text-right"></div>
 	  <div class="col-md-4 col-xs-6 text-center">
-	    <button type="button" class="btn btn-custom btn-xs form-control" href="#sectionSettings" id="addMemberButton">Add a Member</button>
+	    <button type="button" class="listOwner btn btn-custom btn-xs form-control" href="#sectionSettings" id="addMemberButton">Add a Member</button>
 	  </div>
 	  <div class="col-md-4 col-xs-3 text-left"></div>
 	</div>
 	<div class="form-group control" id="addMember">
-	  <div class="col-xs-4 text-right"><label class="control-label" for="userSearch">Search ADN:</label></div>
+	  <div class="col-xs-4 text-right"><label class="control-label" for="userSearch">Username:</label></div>
 	  <div class="col-xs-4"><input type="text" id="userSearch" class="form-control" value="@" /></div>
 	  <div class="col-xs-4 text-left"><a class="btn btn-default btn-sm" href="#userSearch" id="searchUsers"><i class="fa fa-search"></i></a></div>
 	  <div class="col-xs-12 text-center" id="searchResults"></div>
@@ -224,28 +223,28 @@
 	  <div class="form-group">
 	    <div class="col-xs-10 col-xs-offset-1 col-md-4 col-md-offset-4 text-left">
 	      <div class="radio">
-		<label>
-		  <input type="radio" name="newListType" id="basicList" value="1" checked>
-		  One simple list with no archiving. (Checked-off items are deleted forever.)
-		</label>
+					<label>
+						<input type="radio" name="newListType" id="basicList" value="1" checked>
+						One simple list with no archiving. (Checked-off items are deleted forever.)
+					</label>
 	      </div>
 	      <div class="radio">
-		<label>
-		  <input type="radio" name="newListType" id="basicArchivedList" value="2">
-		  One list plus an archive. (Checked-off items are automatically archived.)
-		</label>
+					<label>
+						<input type="radio" name="newListType" id="basicArchivedList" value="2">
+						One list plus an archive. (Checked-off items are automatically archived.)
+					</label>
 	      </div>
 	      <div class="radio">
-		<label>
-		  <input type="radio" name="newListType" id="twoArchivedLists" value="3">
-		  Two lists plus an archive. (Items can be moved between lists.)
-		</label>
+					<label>
+						<input type="radio" name="newListType" id="twoArchivedLists" value="3">
+						Two lists plus an archive. (Items can be moved between lists.)
+					</label>
 	      </div>
 	      <div class="radio">
-		<label>
-		  <input type="radio" name="newListType" id="threeArchivedLists" value="4" disabled>
-		  Three lists plus an archive. (Coming soon!)
-		</label>
+					<label>
+						<input type="radio" name="newListType" id="threeArchivedLists" value="4">
+						Three lists plus an archive. (Items can be moved between lists.)
+					</label>
 	      </div>
 	    </div>
 	  </div>
@@ -270,7 +269,7 @@
     </div>
     <div class="col-sm-4 text-center">
       <div class="row">
-        <div class="col-sm-10 col-sm-offset-1 text-center"><h3>Social</h3><p>Multiple lists and list sharing powered by the social networking platform app.net.<br/> To create or access lists, you will need a (free) app.net account.</p><i class="fa fa-adn fa-4x"></i></div>
+        <div class="col-sm-10 col-sm-offset-1 text-center"><h3>Social</h3><p>Multiple lists and list sharing powered by the social networking platform pnut.io.<br/> To create or access lists, you will need a pnut.io account.</p><i class="fa fa-users fa-4x"></i></div>
       </div>
     </div>
     <div class="col-sm-4 text-center">
@@ -281,21 +280,10 @@
   </div>
 </section>
 
-<section class="container-fluid loggedOut transparentSection" id="sectionLogin">
-  <h1 class="text-center font-brand v-center">Log in with App.net</h1>
-  <div class="row">
-    <div class="col-sm-6 col-sm-offset-3">
-      <p class="text-center lead shadow">An App.net account is required to use Market Bucket. You can create an account and sign in by clicking this button.</p>
-      <p class="text-center"><a href='' class='adn-button' data-type='authorize_v2' data-width="145" data-height="22" >Authorize with App.net</a><script>(function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src='//d2zh9g63fcvyrq.cloudfront.net/adn.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'adn-button-js'));</script>
-      </p>
-    </div>
-  </div>
-</section>
-		
 <footer>
   <div class="container-fluid">
     <div class="row text-center">
-	  <p><i class="fa fa-gavel"></i> &nbsp; By using Market Bucket you agree to our <a href="/tos.html">Terms of Service</a> and <a href="/privacy.html">Privacy Policy</a>.<br />  Market Bucket (like <a href="http://paste-app.net">Paste</a>) is maintained and hosted by <a href="https://alpha.app.net/mcdemarco">@mcdemarco</a>. &nbsp; <i class="fa fa-adn"></i></p>
+	  <p><i class="fa fa-gavel"></i> &nbsp; By using Market Bucket you agree to our <a href="/tos.html">Terms of Service</a> and <a href="/privacy.html">Privacy Policy</a>.<br />  Market Bucket (like <a href="http://paste.mcdemarco.net">Paste</a>) is maintained and hosted by <a href="https://pnut.io/@mcdemarco">@mcdemarco</a>. &nbsp; <i class="fa fa-address-book"></i></p>
     </div><!--/row-->
   </div>
 </footer>
@@ -305,12 +293,12 @@
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
     <!--script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script-->
-    <script src="/js/libs/jquery-1.11.1.min.js"></script>
+    <script src="/js/libs/jquery-1.12.4.min.js"></script>
     <script src="/js/libs/bootstrap.js"></script>
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
     <script src="/js/libs/ie10-viewport-bug-workaround.js"></script>
     <script src="/js/libs/sectionalize.js"></script>
-    <script src="/js/libs/appnet.5.js"></script>
+    <script src="/js/libs/pnut.js"></script>
     <script src="/js/main.js"></script>
     <script>
       $(document).ready(marketBucket.init.load);

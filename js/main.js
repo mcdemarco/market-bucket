@@ -1,31 +1,43 @@
 //main.js for Market Bucket by @mcdemarco.
+//
+// init
+// channel
+// item
+// tags
+// list
+// user
+// ui
+
 
 var marketBucket = {};
 
 (function(context) { 
 
 	var api = {
-		client_id: 'hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr',
+		client_id: '7JYXDfqd2AlirYoVR5pbgncOolj18fvu',
 		channel_type: 'net.mcdemarco.market-bucket.list',
 		annotation_type: 'net.mcdemarco.market-bucket.settings',
 		message_annotation_type: 'net.mcdemarco.market-bucket.lists',
 		max_samples: 3,
-		max_sublists: 3,
+		max_sublists: 4,
 		message_count: 200,
 		site: 'http://market-bucket.mcdemarco.net'
 	};
 
 	var channelArray = {};
 	var messageTextArray = {};
-	var updateArgs = {include_annotations: 1};
+	var updateArgs = {include_raw: 1};
 
 
 context.init = (function () {
 
 	return {
 		checkLocalStorage: checkLocalStorage,
+		clearPage: clearPage,
 		load: load,
+		login: login,
 		logout: logout,
+		refresh: refresh,
 		reload: reload,
 		reloadChannel: reloadChannel,
 		setSortOrder: setSortOrder
@@ -61,7 +73,7 @@ context.init = (function () {
 					}
 					break;
 				case "userId":
-					var promise = $.appnet.user.get("me");
+					var promise = $.pnut.user.get("me");
 					promise.then(setLocalStorageUser, function (response) {context.ui.failAlert('Failed to retrieve user ID.');});
 					break;
 				default:
@@ -70,11 +82,34 @@ context.init = (function () {
 		}
 	}
 
+	function clearPage() {
+		//Resets the page for loading a new channel or loading sample channels after logout.
+		//Clear the form.
+		context.item.clearForm();
+		$("div#itemCheckboxes label").hide();
+		//Nuke the sublists.
+		for (var i=0; i < api.max_sublists; i++) {
+			if (i != 1)
+				$("#list_" + i).remove();
+		}
+		//Clear the main list.
+		//Assume title will be rewritten, but actively null/rewrite some bits anyway.
+		$("#listTitleSPAN").html("");
+		$("#list_1 div.formattedItem").remove();
+		$("#list_1 span.subTitle").html("");
+		$("#list_1").removeClass("col-sm-offset-2").addClass("col-sm-offset-4");
+		$(".tagBucket").html("");
+		//Clear the relevant settings.
+		$("div#memberResults").html("");
+		$("div#searchResults").html("");
+		//Clear the list controls.
+		$("div#listGroupNameWrapper").html("");
+		$("div#sublistControl").html("");
+		//...
+	}
+
 	function load() {
 		//The initialization function called on document ready.
-		var authUrl = "https://account.app.net/oauth/authenticate?client_id=" + api['client_id'] + "&response_type=token&redirect_uri=" + encodeURIComponent(api.site) + "&scope=messages:" + api.channel_type;
-
-		$("a.adn-button").attr('href',authUrl);
 		$("a.h1-link").attr('href',api.site);
 		$("a#fontBrandLink").click(function(){context.ui.navbarSetter();});
 		activateButtons();
@@ -84,8 +119,8 @@ context.init = (function () {
 			logout();
 			return;
 		}
-		$.appnet.authorize(api.accessToken,api.client_id);
-		if (!$.appnet.token.get()) {
+		$.pnut.authorize(api.accessToken,api.client_id);
+		if (!$.pnut.token.get()) {
 			logout();
 			return;
 		} else {
@@ -99,6 +134,11 @@ context.init = (function () {
 				context.ui.displaySortOrder(api.sortOrder);
 			}
 		}
+	}
+
+	function login() {
+		var authUrl = "https://pnut.io/oauth/authenticate?client_id=" + api['client_id'] + "&response_type=token&scope=messages:" + api.channel_type + "&redirect_uri=" + encodeURIComponent(api.site);
+		window.location = authUrl;
 	}
 
 	function logout() {
@@ -119,6 +159,11 @@ context.init = (function () {
 		context.channel.useSampleChannel();
 	}
 
+	function refresh(e) {
+		//Manual refresh button.
+		context.channel.getCurrent();
+	}
+
 	function reload(e) {
 		//Reload helper for UI list dropdown.
 		var newChannelId = $(e.target).val();
@@ -127,7 +172,8 @@ context.init = (function () {
 
 	function reloadChannel(newChannelId, force) {
 		//Reloader for all channel changes (UI, on create, etc.).
-		if (!force && api.currentChannel == newChannelId) return;
+		if (!force && api.currentChannel == newChannelId) 
+			return;
 		if (!channelArray.hasOwnProperty(newChannelId)) {
 			context.ui.failAlert("Failed to change the channel.");
 			return;
@@ -136,7 +182,7 @@ context.init = (function () {
 		clearPage();
 		//sample checking done by this function for itself
 		setLocalStorage("currentChannel",newChannelId);
-		context.channel.displayChannel(newChannelId);
+		context.channel.display(newChannelId);
 		context.ui.forceScroll("#sectionLists");
 	}
 
@@ -154,7 +200,9 @@ context.init = (function () {
 		$("#clearButton").click(context.item.clearForm);
 		$("#createButton").click(context.list.add);
 		$("#list_1 span[data-type='addButton']").click(context.ui.add);
+		$("#listRefreshButton").click(context.init.refresh);
 		$("#listSetSelect").change(context.init.reload);
+		$("#logInButton").click(context.init.login);
 		$("#logOutButton").click(context.init.logout);
 		$("div#controlButtons a.controlButton").click(context.ui.controlToggle);
 		$("#saveListEdits").click(context.list.edit);
@@ -167,32 +215,6 @@ context.init = (function () {
 		//save settings?
 		//Not buttons
 		$("#bucketSorterWrapper input[type=radio]").click(context.ui.sortLists);
-	}
-
-	function clearPage() {
-		//Resets the page for loading a new channel or loading sample channels after logout.
-		//Clear the form.
-		context.item.clearForm();
-		$("div#itemCheckboxes label").hide();
-		//Nuke the sublists.
-		for (var i=0; i < api.max_sublists; i++) {
-			if (i != 1)
-				$("#list_" + i).remove();
-		}
-		//Clear the main list.
-		//Assume title will be rewritten, but actively null/rewrite some bits anyway.
-		$("section#sectionLists h1").html("");
-		$("#list_1 div.formattedItem").remove();
-		$("#list_1 span.subTitle").html("");
-		$("#list_1").removeClass("col-sm-offset-2").addClass("col-sm-offset-4");
-		$(".tagBucket").html("");
-		//Clear the relevant settings.
-		$("div#memberResults").html("");
-		$("div#searchResults").html("");
-		//Clear the list controls.
-		$("div#listGroupNameWrapper").html("");
-		$("div#sublistControl").html("");
-		//...
 	}
 
 	function setLocalStorage(key, value) {
@@ -223,9 +245,10 @@ context.init = (function () {
 context.channel = (function () {
 
 	return {
-		displayChannel: displayChannel,
+		display: display,
 		get: get,
 		getAnnotations: getAnnotations,
+		getCurrent: getCurrent,
 		isSampleChannel: isSampleChannel,
 		storeChannel: storeChannel,
 		useSampleChannel: useSampleChannel
@@ -234,12 +257,12 @@ context.channel = (function () {
 	function get() {
 		//Determine channels and hand them off.
 		var args = {
-			include_annotations: 1,
+			include_raw: 1,
 			include_inactive: 0,
 			order: 'activity',
 			type: api.channel_type
 		};
-		var promise = $.appnet.channel.search(args);
+		var promise = $.pnut.channel.getUserSubscribed(args);
 		promise.then(completeChannelSearch, function (response) {context.ui.failAlert('Failed to retrieve your list(s).');}).done(context.tags.colorize);
 	}
 
@@ -247,15 +270,24 @@ context.channel = (function () {
 		//Annotations processor; public because needed for item processing.
 		//Not assuming we're the only annotation.
 		var ourAnnotations = {};
-		for (var a = 0; a < thisChannel.annotations.length; a++) {
-			if (thisChannel.annotations[a].type == api.annotation_type) {
-				ourAnnotations[api.annotation_type] = thisChannel.annotations[a].value;
+		for (var a = 0; a < thisChannel.raw.length; a++) {
+			if (thisChannel.raw[a].type == api.annotation_type) {
+				ourAnnotations[api.annotation_type] = thisChannel.raw[a].value;
 			}
-			if (thisChannel.annotations[a].type == api.message_annotation_type) {
-				ourAnnotations[api.message_annotation_type] = thisChannel.annotations[a].value;
+			if (thisChannel.raw[a].type == api.message_annotation_type) {
+				ourAnnotations[api.message_annotation_type] = thisChannel.raw[a].value;
 			}
 		}
 		return ourAnnotations;
+	}
+
+	function getCurrent() {
+		//A better process for refreshing the current channel.
+		var args = {
+			include_raw: 1
+		};
+		var promise = $.pnut.channel.get(api.currentChannel,args);
+		promise.then(completeChannel, function (response) {context.ui.failAlert('Failed to retrieve your list(s).');}).done(context.channel.display);
 	}
 
 	function isSampleChannel(channelId) {
@@ -270,20 +302,21 @@ context.channel = (function () {
 		var annotationValue = annotationsObject[api.annotation_type];
 		var messageAnnotationValue = annotationsObject.hasOwnProperty(api.message_annotation_type) ? annotationsObject[api.message_annotation_type]: {};
 		//Save data for every channel.
-		channelArray[thisChannel.id] = {"id" : thisChannel.id,
-										"name" : annotationValue["name"],
-										"owner" : thisChannel.owner,
-										"editors" : thisChannel.editors,
-										"editorIds" : thisChannel.editors.user_ids,
-									    "tagArray" : []
-									   };
-		//								"annotationValue" : annotationValue};
+		channelArray[thisChannel.id] = {
+			"id" : thisChannel.id,
+			"name" : annotationValue["name"],
+			"owner" : thisChannel.owner,
+			"editors" : thisChannel.acl,
+			"editorIds" : thisChannel.acl.full.user_ids,
+			"oldEditorIds" : thisChannel.acl.write.user_ids,
+			"tagArray" : []
+		};
 		if (annotationValue.hasOwnProperty("list_types")) {
 			channelArray[thisChannel.id].listTypes = annotationValue.list_types;
 			channelArray[thisChannel.id].lists = messageAnnotationValue.lists ?  messageAnnotationValue.lists : {};
 		}
-		if (messageAnnotationValue.hasOwnProperty("deletion_queue")) {
-			channelArray[thisChannel.id].deletionQueue = messageAnnotationValue.deletion_queue;
+		if (channelArray[thisChannel.id].oldEditorIds.length > 0 && thisChannel.owner.id == api.userId) {
+			context.user.fix(thisChannel.id);
 		}
 	}
 
@@ -300,72 +333,88 @@ context.channel = (function () {
 		//Needed to put the sample channel search canned response in a function instead of a variable.
 		var sampleChannelResponse = {"data": [
 			{"pagination_id":"10000",
-	         "is_inactive":false,
-	         "readers":{"public":false,
-	                    "user_ids":[],
-	                    "any_user":false,
-	                    "you":true,
-	                    "immutable":false},
-	         "you_muted":false,
-	         "you_can_edit":true,
-	         "has_unread":true,
-	         "editors":{"public":false,
-	                    "user_ids":[],
-	                    "any_user":false,
-	                    "you":true,
-	                    "immutable":false},
-	         "annotations":[{"type":"net.mcdemarco.market-bucket.lists",
-	                         "value":{"lists":{"0":["5080161","5080161","5080170","5080170","5080177","5080177"],
-											   "2":["5080128","5080148","5080160"]}}},
-	                        {"type":"net.mcdemarco.market-bucket.settings",
-	                         "value":{"list_types":{"0":{"title":"archive"},
-	                                                "1":{"title":"now"},
-	                                                "2":{"title":"later"}},
-	                                  "name":"Check It Twice"}}],
-	         "recent_message_id":"5080177",
-	         "writers":{"public":false,
-	                    "user_ids":[],
-	                    "any_user":false,
-	                    "you":true,
-	                    "immutable":false},
-	         "you_subscribed":true,
-	         "owner":{"username":"example_user",
-	                  "avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png",
-	                                  "width":144,
-	                                  "is_default":false,
-	                                  "height":144},
-	                  "description":{"text":"",
-	                                 "entities":{"mentions":[],
-	                                             "hashtags":[],
-	                                             "links":[]}},
-	                  "verified_link":"http://mcdemarco.net",
-	                  "locale":"en_US",
-	                  "created_at":"2013-04-06T12:31:18Z",
-	                  "id":"68560",
-	                  "canonical_url":"https://alpha.app.net/mcdemarco",
-	                  "verified_domain":"mcdemarco.net",
-	                  "cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg",
-	                                 "width":1024,
-	                                 "is_default":false,
-	                                 "height":683},
-	                  "timezone":"America/New_York",
+	     "is_inactive":false,
+			 "acl": {
+				 "full":{"immutable":false,
+								 "you":true,
+								 "user_ids":[]},
+	       "read":{"public":false,
+	               "user_ids":[],
+	               "any_user":false,
+	               "you":true,
+	               "immutable":false},
+	       "write":{"public":false,
+	                "user_ids":[],
+	                "any_user":false,
+	                "you":true,
+	                "immutable":false}
+			 },
+	     "you_muted":false,
+	     "you_can_edit":true,
+	     "has_unread":true,
+	     "editors":{"public":false,
+	                "user_ids":[],
+	                "any_user":false,
+	                "you":true,
+	                "immutable":false},
+	     "raw":[{"type":"net.mcdemarco.market-bucket.lists",
+	             "value":{"lists":{"0":["5080161","5080161","5080170","5080170","5080177","5080177"],
+																 "2":["5080128","5080148","5080160"]}}},
+	            {"type":"net.mcdemarco.market-bucket.settings",
+	             "value":{"list_types":{"0":{"title":"archive"},
+	                                    "1":{"title":"now"},
+	                                    "2":{"title":"later"}},
+	                      "name":"Check It Twice"}}],
+	     "recent_message_id":"5080177",
+	     "you_subscribed":true,
+	     "owner":{"username":"example_user",
+	              "content": {"avatar_image":{"link":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png",
+																						"width":144,
+																						"is_default":false,
+																						"height":144},
+														"description":{"text":"",
+																					 "entities":{"mentions":[],
+																											 "hashtags":[],
+																											 "links":[]}},
+														"verified_link":"http://mcdemarco.net",
+														"locale":"en_US",
+														"created_at":"2013-04-06T12:31:18Z",
+														"id":"68560",
+														"canonical_url":"https://pnut.io/@mcdemarco",
+														"verified_domain":"mcdemarco.net",
+														"cover_image":{"link":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg",
+																					 "width":1024,
+																					 "is_default":false,
+																					 "height":683},
+														"timezone":"America/New_York"
+													 },
 	                  "counts":{"following":120,
 	                            "posts":2429,
 	                            "followers":95,
 	                            "stars":346},
 	                  "type":"human",
-	                  "annotations":[],
+	                  "raw":[],
 	                  "name":"M. C. DeMarco"},
 	         "counts":{"messages":14},
 	         "type":"net.mcdemarco.market-bucket.list",
 	         "id":"0"},
 			{"pagination_id":"10000",
 			 "is_inactive":false,
-			 "readers":{"public":false,
-						"user_ids":[],
-						"any_user":false,
-						"you":true,
-						"immutable":false},
+			 "acl": {
+				 "full":{"immutable":false,
+								 "you":true,
+								 "user_ids":[]},
+				 "read":{"public":false,
+								 "user_ids":[],
+								 "any_user":false,
+								 "you":true,
+								 "immutable":false},
+				 "write":{"public":false,
+										"user_ids":[],
+										"any_user":false,
+										"you":true,
+										"immutable":false}
+			 },
 			 "you_muted":false,
 			 "you_can_edit":true,
 			 "has_unread":true,
@@ -374,17 +423,12 @@ context.channel = (function () {
 						"any_user":false,
 						"you":true,
 						"immutable":false},
-			 "annotations":[{"type":"net.mcdemarco.market-bucket.settings",
+			 "raw":[{"type":"net.mcdemarco.market-bucket.settings",
 							 "value":{"name":"Bucket List"}}],
 			 "recent_message_id":"5091227",
-			 "writers":{"public":false,
-						"user_ids":[],
-						"any_user":false,
-						"you":true,
-						"immutable":false},
 			 "you_subscribed":true,
 			 "owner":{"username":"example_user",
-					  "avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png",
+					  "avatar_image":{"link":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png",
 									  "width":144,
 									  "is_default":false,
 									  "height":144},
@@ -397,9 +441,9 @@ context.channel = (function () {
 					  "locale":"en_US",
 					  "created_at":"2013-04-06T12:31:18Z",
 					  "id":"68560",
-					  "canonical_url":"https://alpha.app.net/mcdemarco",
+					  "canonical_url":"https://pnut.io/@mcdemarco",
 					  "verified_domain":"mcdemarco.net",
-					  "cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg",
+					  "cover_image":{"link":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg",
 									 "width":1024,
 									 "is_default":false,
 									 "height":683},
@@ -409,7 +453,7 @@ context.channel = (function () {
 								"followers":96,
 								"stars":347},
 					  "type":"human",
-					  "annotations":[],
+					  "raw":[],
 					  "name":"M. C. DeMarco"},
 			 "counts":{"messages":3},
 			 "type":"net.mcdemarco.market-bucket.list",
@@ -421,26 +465,34 @@ context.channel = (function () {
 	function getSampleMessages() {
 		//Needed to put the sample message retrieval canned response in a function instead of a variable.
 		var sampleMessages = {"0":{"data":[
-				{"num_replies":0,"channel_id":"0","text":"olive oil","created_at":"2014-10-13T20:36:56Z","id":"5080177","entities":{"mentions":[],"hashtags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">olive oil</span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080177","pagination_id":"5080177","user":{"username":"example_user","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
-				{"num_replies":0,"channel_id":"0","text":"coconut oil","created_at":"2014-10-13T20:36:34Z","id":"5080170","entities":{"mentions":[],"hashtags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">coconut oil</span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080170","pagination_id":"5080170","user":{"username":"example_user","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
-				{"num_replies":0,"channel_id":"0","text":"chicken thighs #perishable","created_at":"2014-10-13T20:35:49Z","id":"5080161","entities":{"mentions":[],"hashtags":[{"name":"perishable","len":11,"pos":15}],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">chicken thighs <span data-hashtag-name=\"perishable\" itemprop=\"hashtag\">#perishable</span></span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080161","pagination_id":"5080161","user":{"username":"example_user","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
-				{"num_replies":0,"channel_id":"0","text":"batteries #RadioShack","created_at":"2014-10-13T20:35:08Z","id":"5080160","entities":{"mentions":[],"hashtags":[{"name":"radioshack","len":11,"pos":10}],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">batteries <span data-hashtag-name=\"radioshack\" itemprop=\"hashtag\">#RadioShack</span></span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080160","pagination_id":"5080160","user":{"username":"example_user","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
-				{"num_replies":0,"channel_id":"0","text":"creamer","created_at":"2014-10-13T20:34:56Z","id":"5080148","entities":{"mentions":[],"hashtags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">creamer</span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080148","pagination_id":"5080148","user":{"username":"example_user","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
-				{"num_replies":0,"channel_id":"0","text":"kitrone","created_at":"2014-10-13T20:33:18Z","id":"5080128","entities":{"mentions":[],"hashtags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">kitrone</span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080128","pagination_id":"5080128","user":{"username":"example_user","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
-				{"num_replies":0,"channel_id":"0","text":"Twinkies™","created_at":"2014-10-13T20:27:39Z","id":"5080100","entities":{"mentions":[],"hashtags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">Twinkies&#8482;</span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080100","pagination_id":"5080100","user":{"username":"example_user","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
-				{"num_replies":0,"channel_id":"0","text":"panko from #TraderJoes","created_at":"2014-10-13T20:25:49Z","id":"5080091","entities":{"mentions":[],"hashtags":[{"name":"traderjoes","len":11,"pos":11}],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">panko from <span data-hashtag-name=\"traderjoes\" itemprop=\"hashtag\">#TraderJoes</span></span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080091","pagination_id":"5080091","user":{"username":"example_user","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
-				{"num_replies":0,"channel_id":"0","text":"milk  #perishable","created_at":"2014-10-13T20:25:07Z","id":"5080090","entities":{"mentions":[],"hashtags":[{"name":"perishable","len":11,"pos":6}],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">milk  <span data-hashtag-name=\"perishable\" itemprop=\"hashtag\">#perishable</span></span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080090","pagination_id":"5080090","user":{"username":"example_user","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
-				{"num_replies":0,"channel_id":"0","text":"eggs from #MarketBasket","created_at":"2014-10-13T20:24:49Z","id":"5080089","entities":{"mentions":[],"hashtags":[{"name":"marketbasket","len":13,"pos":10}],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">eggs from <span data-hashtag-name=\"marketbasket\" itemprop=\"hashtag\">#MarketBasket</span></span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080089","pagination_id":"5080089","user":{"username":"example_user","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
-				{"num_replies":0,"channel_id":"0","text":"circuses","created_at":"2014-10-13T20:15:19Z","id":"5080015","entities":{"mentions":[],"hashtags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">circuses</span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080015","pagination_id":"5080015","user":{"username":"example_user","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
-				{"num_replies":0,"channel_id":"0","text":"bread","created_at":"2014-10-13T20:15:09Z","id":"5080013","entities":{"mentions":[],"hashtags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">bread</span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080013","pagination_id":"5080013","user":{"username":"example_user","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}}
+				{"num_replies":0,"channel_id":"0","content":{"text":"olive oil","entities":{"mentions":[],"tags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">olive oil</span>"},"id":"5080177","created_at":"2014-10-13T20:36:56Z","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080177","pagination_id":"5080177","user":{"username":"example_user","avatar_image":{"link":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"tags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://pnut.io/@mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"link":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+				{"num_replies":0,"channel_id":"0","content":{"text":"coconut oil","entities":{"mentions":[],"tags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">coconut oil</span>"},"created_at":"2014-10-13T20:36:34Z","id":"5080170","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080170","pagination_id":"5080170","user":{"username":"example_user","avatar_image":{"link":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"tags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://pnut.io/@mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"link":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+				{"num_replies":0,"channel_id":"0","content":{"text":"chicken thighs #perishable","entities":{"mentions":[],"tags":[{"text":"perishable","len":11,"pos":15}],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">chicken thighs <span data-tag-name=\"perishable\" itemprop=\"tag\">#perishable</span></span>"},"created_at":"2014-10-13T20:35:49Z","id":"5080161","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080161","pagination_id":"5080161","user":{"username":"example_user","avatar_image":{"link":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"tags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://pnut.io/@mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"link":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+				{"num_replies":0,"channel_id":"0","content":{"text":"batteries #RadioShack","entities":{"mentions":[],"tags":[{"text":"radioshack","len":11,"pos":10}],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">batteries <span data-tag-name=\"radioshack\" itemprop=\"tag\">#RadioShack</span></span>"},"created_at":"2014-10-13T20:35:08Z","id":"5080160","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080160","pagination_id":"5080160","user":{"username":"example_user","avatar_image":{"link":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"tags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://pnut.io/@mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"link":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+				{"num_replies":0,"channel_id":"0","content":{"text":"creamer","entities":{"mentions":[],"tags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">creamer</span>"},"created_at":"2014-10-13T20:34:56Z","id":"5080148","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080148","pagination_id":"5080148","user":{"username":"example_user","avatar_image":{"link":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"tags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://pnut.io/@mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"link":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+				{"num_replies":0,"channel_id":"0","content":{"text":"kitrone","entities":{"mentions":[],"tags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">kitrone</span>"},"created_at":"2014-10-13T20:33:18Z","id":"5080128","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080128","pagination_id":"5080128","user":{"username":"example_user","avatar_image":{"link":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"tags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://pnut.io/@mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"link":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+				{"num_replies":0,"channel_id":"0","content":{"text":"Twinkies™","entities":{"mentions":[],"tags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">Twinkies&#8482;</span>"},"created_at":"2014-10-13T20:27:39Z","id":"5080100","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080100","pagination_id":"5080100","user":{"username":"example_user","avatar_image":{"link":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"tags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://pnut.io/@mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"link":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+				{"num_replies":0,"channel_id":"0","content":{"text":"panko from #TraderJoes","entities":{"mentions":[],"tags":[{"text":"traderjoes","len":11,"pos":11}],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">panko from <span data-tag-name=\"traderjoes\" itemprop=\"tag\">#TraderJoes</span></span>"},"created_at":"2014-10-13T20:25:49Z","id":"5080091","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080091","pagination_id":"5080091","user":{"username":"example_user","avatar_image":{"link":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"tags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://pnut.io/@mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"link":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+				{"num_replies":0,"channel_id":"0","content":{"text":"milk  #perishable","entities":{"mentions":[],"tags":[{"text":"perishable","len":11,"pos":6}],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">milk  <span data-tag-name=\"perishable\" itemprop=\"tag\">#perishable</span></span>"},"created_at":"2014-10-13T20:25:07Z","id":"5080090","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080090","pagination_id":"5080090","user":{"username":"example_user","avatar_image":{"link":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"tags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://pnut.io/@mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"link":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+				{"num_replies":0,"channel_id":"0","content":{"text":"eggs from #MarketBasket","entities":{"mentions":[],"tags":[{"text":"marketbasket","len":13,"pos":10}],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">eggs from <span data-tag-name=\"marketbasket\" itemprop=\"tag\">#MarketBasket</span></span>"},"created_at":"2014-10-13T20:24:49Z","id":"5080089","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080089","pagination_id":"5080089","user":{"username":"example_user","avatar_image":{"link":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"tags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://pnut.io/@mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"link":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+				{"num_replies":0,"channel_id":"0","content":{"text":"circuses","entities":{"mentions":[],"tags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">circuses</span>"},"created_at":"2014-10-13T20:15:19Z","id":"5080015","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080015","pagination_id":"5080015","user":{"username":"example_user","avatar_image":{"link":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"tags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://pnut.io/@mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"link":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+				{"num_replies":0,"channel_id":"0","content":{"text":"bread","entities":{"mentions":[],"tags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">bread</span>"},"created_at":"2014-10-13T20:15:09Z","id":"5080013","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5080013","pagination_id":"5080013","user":{"username":"example_user","avatar_image":{"link":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"tags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://pnut.io/@mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"link":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2429,"followers":95,"stars":346},"type":"human","id":"68560","name":"M. C. DeMarco"}}
 			]},
 			"1":{"data":[
-				{"num_replies":0,"channel_id":"1","text":"Create my own Market Bucket list.","created_at":"2014-10-15T01:49:46Z","id":"5091227","entities":{"mentions":[],"hashtags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">Create my own Market Bucket list.</span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5091227","pagination_id":"5091227","user":{"username":"example_user","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2449,"followers":96,"stars":347},"type":"human","id":"68560","name":"M. C. DeMarco"}},
-				{"num_replies":0,"channel_id":"1","text":"Cure Ebola.","created_at":"2014-10-15T01:49:12Z","id":"5091226","entities":{"mentions":[],"hashtags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">Cure Ebola.</span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5091226","pagination_id":"5091226","user":{"username":"example_user","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2449,"followers":96,"stars":347},"type":"human","id":"68560","name":"M. C. DeMarco"}},
-				{"num_replies":0,"channel_id":"1","text":"Sell seashells by the seashore.","created_at":"2014-10-14T17:27:38Z","id":"5088189","entities":{"mentions":[],"hashtags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">Sell seashells by the seashore.</span>","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5088189","pagination_id":"5088189","user":{"username":"example_user","avatar_image":{"url":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"hashtags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://alpha.app.net/mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"url":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2449,"followers":96,"stars":347},"type":"human","id":"68560","name":"M. C. DeMarco"}}
+				{"num_replies":0,"channel_id":"1","content":{"text":"Create my own Market Bucket list.","entities":{"mentions":[],"tags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">Create my own Market Bucket list.</span>"},"created_at":"2014-10-15T01:49:46Z","id":"5091227","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5091227","pagination_id":"5091227","user":{"username":"example_user","avatar_image":{"link":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"tags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://pnut.io/@mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"link":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2449,"followers":96,"stars":347},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+				{"num_replies":0,"channel_id":"1","content":{"text":"Cure Ebola.","entities":{"mentions":[],"tags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">Cure Ebola.</span>"},"created_at":"2014-10-15T01:49:12Z","id":"5091226","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5091226","pagination_id":"5091226","user":{"username":"example_user","avatar_image":{"link":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"tags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://pnut.io/@mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"link":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2449,"followers":96,"stars":347},"type":"human","id":"68560","name":"M. C. DeMarco"}},
+				{"num_replies":0,"channel_id":"1","content":{"text":"Sell seashells by the seashore.","entities":{"mentions":[],"tags":[],"links":[]},"html":"<span itemscope=\"https://app.net/schemas/Post\">Sell seashells by the seashore.</span>"},"created_at":"2014-10-14T17:27:38Z","id":"5088189","machine_only":false,"source":{"link":"http://market-bucket.mcdemarco.net","name":"Market Bucket","client_id":"hzt2h6g8uGeXtwjKq8VgKmj8u3sztKtr"},"thread_id":"5088189","pagination_id":"5088189","user":{"username":"example_user","avatar_image":{"link":"http://market-bucket.mcdemarco.net/images/apple-touch-icon-144x144.png","width":144,"is_default":false,"height":144},"description":{"text":"","html":"","entities":{"mentions":[],"tags":[],"links":[]}},"verified_link":"http://mcdemarco.net","locale":"en_US","created_at":"2013-04-06T12:31:18Z","canonical_url":"https://pnut.io/@mcdemarco","verified_domain":"mcdemarco.net","cover_image":{"link":"http://market-bucket.mcdemarco.net/images/good-food-1024-background.jpg","width":1024,"is_default":false,"height":683},"timezone":"America/New_York","counts":{"following":120,"posts":2449,"followers":96,"stars":347},"type":"human","id":"68560","name":"M. C. DeMarco"}}
 			]}
 		};
 		return sampleMessages;
+	}
+
+	function completeChannel(response) {
+		//Like completeChannelSearch but for a single channel.
+		if (response.data) {
+			context.init.clearPage();
+			populateChannel(response.data);
+		}
 	}
 
 	function completeChannelSearch(response) {
@@ -461,12 +513,17 @@ context.channel = (function () {
 		//Populates the channel array and passes the selected channel on.
 		var annotations = getAnnotations(thisChannel);
 		//Eject if no settings annotation.
-		if (!annotations.hasOwnProperty(api.annotation_type)) return;
-		//Eject if user can't write to channel. (unlikely)
-		// ...
+		if (!annotations.hasOwnProperty(api.annotation_type)) 
+			return;
 		
 		storeChannel(thisChannel, annotations);
-		
+
+		/*Warn if user can't write to channel.
+		if (channelArray[thisChannel.id].owner.id != api.userId 
+				&& channelArray[thisChannel.id].editorIds.indexOf(api.userId) < 0)
+			context.ui.failAlert("You won't be able to move items in the '" + channelArray[thisChannel.id].name + "' list until the owner logs into Market Bucket again.");
+		*/
+
 		if (Object.keys(channelArray).length == 1) {
 			//This channel is first in the activity ordering and will be our default if one wasn't saved.
 			context.init.checkLocalStorage("currentChannel",thisChannel.id);
@@ -474,7 +531,7 @@ context.channel = (function () {
 
 		//Fetch more data if this is the right channel.
 		if (api.currentChannel && api.currentChannel == thisChannel.id) {
-			displayChannel(thisChannel.id);
+			display(thisChannel.id);
 		}
 	}
 
@@ -488,7 +545,7 @@ context.channel = (function () {
 		} 
 	}
 
-	function displayChannel(thisChannelId) {
+	function display(thisChannelId) {
 		//Display a channel based on the stored info in channelArray, and retrieve messages or use canned messages.
 		//Users in settings panel.
 		var listTypes = (channelArray[thisChannelId].listTypes ? channelArray[thisChannelId].listTypes : {});
@@ -515,8 +572,10 @@ context.channel = (function () {
 			
 			//Layout adjustment for the big screen.
 			$("div#list_1").removeClass("col-sm-offset-4");
-			if (len == 2) $("div#list_1").addClass("col-sm-offset-2");
-			if (len == 4) $("div#list_0").addClass("col-sm-offset-4");
+			if (len == 2) 
+				$("div#list_1").addClass("col-sm-offset-2");
+			if (len == 4) 
+				$("div#list_0").addClass("col-sm-offset-4");
 		}
 		
 		if (isSampleChannel(thisChannelId)) {
@@ -528,9 +587,10 @@ context.channel = (function () {
 			//Retrieve the messages from ADN.
 			var args = {
 				include_deleted: 0,
+				include_raw: 1,
 				count: api.message_count
 			};
-			var promise = $.appnet.message.getChannel(thisChannelId, args);
+			var promise = $.pnut.message.getChannel(thisChannelId, args);
 			promise.then(completeMessages, function (response) {context.ui.failAlert('Failed to retrieve items.');}).done(context.tags.display,context.ui.collapseArchive);
 		}
 	}
@@ -546,7 +606,7 @@ context.channel = (function () {
 		
 	function editCloner(index, listTypesObj) {
 		//Add a list and sublist control for the current list, if appropriate.
-		$("#sublistControl").append("<div class='form-group listControl' id='sublist_" + index + "'><div class='col-xs-4 text-right'><label class='control-label' for='sublistEdit_" + index + "'>" + (index == 0 ? "Archive" : "List " + index) + ":</label></div><div class='col-xs-3'><input type='text' id='sublistEdit_" + index + "' name='title' class='form-control listTitle' value='" + listTypesObj[index.toString()].title + "' /></div><div class='col-xs-4'><input type='text' id='sublistSubtitle_" + index + "' name='subtitle' class='form-control' value='" + (listTypesObj[index.toString()].subtitle ? listTypesObj[index.toString()].subtitle : "") + "' /></div></div>");
+		$("#sublistControl").append("<div class='form-group listControl' id='sublist_" + index + "'><div class='col-xs-4 text-right'><label class='control-label' for='sublistEdit_" + index + "'>" + (index == 0 ? "Archive" : "List " + index) + ":</label></div><div class='col-xs-3'><input type='text' id='sublistEdit_" + index + "' name='title' class='form-control listTitle' value='" + listTypesObj[index.toString()].title + "' /></div><div class='col-xs-4'><input type='text' id='sublistSubtitle_" + index + "' name='subtitle' class='form-control' value='" + (listTypesObj[index.toString()].subtitle ? listTypesObj[index.toString()].subtitle : "") + "' placeholder='Optional subtitle' /></div></div>");
 	}
 
 	function completeMessages(response) {
@@ -565,20 +625,11 @@ context.channel = (function () {
 				case undefined:
 				break;
 			}
+
 			for (var i=0; i < response.data.length; i++) {
 				var respd = response.data[i];
-				//Mock deletion check.
-				if (channelArray[respd.channel_id].hasOwnProperty("deletionQueue") && channelArray[respd.channel_id].deletionQueue.indexOf(respd.id) > -1) {
-					if (respd.user.id == api.userId) {
-						//Delete if creator and remove from queue.
-						var promise = $.appnet.message.destroy(api.currentChannel,respd.id);
-						promise.then(context.item.completeAutoDelete,  function (response) {context.ui.failAlert('Failed to delete queued item.');});
-					}
-					//In either case, don't display "deleted" item or retrieve its tags.
-					continue;
-				}
 				context.item.format(respd);
-				context.tags.collect(respd.entities.hashtags,respd.channel_id);
+				context.tags.collect(respd.content.entities.tags,respd.channel_id);
 			}
 		}
 	}
@@ -589,18 +640,19 @@ context.channel = (function () {
 		//Owner not included in the editors list, so add separately.
 		context.user.display(thisChannel.owner, "owner");
 		//User data.
-		if (thisChannel.editors.user_ids.length > 0) {
+		if (thisChannel.editors.full.user_ids.length > 0) {
 			//Retrieve the user data.
-			var promise = $.appnet.user.getList(thisChannel.editors.user_ids);
+			var promise = $.pnut.user.getList(thisChannel.editors.full.user_ids);
 			promise.then(completeUsers, function (response) {context.ui.failAlert('Failed to retrieve users.');});
 		}
 		//Ownership hath its privileges.
 		if (thisChannel.owner.id != api.userId) {
-			//There's nothing in this category right now, but deleting the list would qualify.
+			//Only the add member button so far.  Deleting the list would qualify.
 			$(".listOwner").hide();
 		} else {
 			//For list switching.
 			$("form#settingsForm a.btn").show();
+			$(".listOwner").show();
 		}
 	}
 
@@ -612,7 +664,7 @@ context.channel = (function () {
 	}
 
 	function azChannelSorter(a,b) {
-		return a.text.localeCompare(b.text);
+		return a.content.text.localeCompare(b.content.text);
 	}
 
 	function oldNewChannelSorter(a,b) {
@@ -658,7 +710,8 @@ context.item = (function () {
 			}
 		}
 		//Don't want the new buttons starting out of sync.
-		$(".settingsToggle").hide();
+		var listType = $("input[name=bucketBucket]:checked").data("list");
+		context.ui.settingsOff(listType);
 		createItem(channelId, message);
 	}
 
@@ -699,13 +752,13 @@ context.item = (function () {
 		var itemDate = new Date(respd.created_at);
 		var formattedItem = "<div class='list-group-item clearfix formattedItem' id='item_" + respd.id + "' data-creator='" + respd.user.id + "'>";
 		formattedItem += "<span class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + respd.user.username + "'>";
-		formattedItem += respd.html + "</span>";
-		formattedItem += formatButtons(respd.id, respd.channel_id, listType); 
+		formattedItem += respd.content.html + "</span>";
+		formattedItem += formatButtons(respd.id, respd.channel_id, listType);
 		formattedItem += "</div>";
 		//Append the item.
 		$("#list_" + listType + " div.list-group").append(formattedItem);
 		//Pre-format the hashtags.
-		$("#item_" + respd.id + " span[itemprop='hashtag']").each(function(index) {
+		$("#item_" + respd.id + " span[itemprop='tag']").each(function(index) {
 			if (!$(this).hasClass("tag")) {
 				$(this).addClass("tag").css("padding","1px 3px").css("border-radius","3px");
 			}
@@ -717,7 +770,7 @@ context.item = (function () {
 		//Activate the buttons.
 		activateButtons(respd.id);
 		//Store the item.
-		messageTextArray[respd.id] = respd.text;
+		messageTextArray[respd.id] = respd.content.text;
 	}
 
 	function move(e) {
@@ -742,7 +795,7 @@ context.item = (function () {
 		var newMessage = {
 			text: message
 		};
-		var promise = $.appnet.message.create(channel, newMessage);
+		var promise = $.pnut.message.create(channel, newMessage);
 		promise.then(completeItem, function (response) {context.ui.failAlert('Failed to create item.');});
 	}
 	
@@ -769,39 +822,10 @@ context.item = (function () {
 		//On active delete, check for ownership and delete if owned or add to queue if not.
 		var currentChannel = api.currentChannel;
 		if (!context.channel.isSampleChannel(currentChannel)) {
-			if ($("#item_" + itemId).data("creator") == api.userId) {
-				//Creator can delete for reals
-				var promise = $.appnet.message.destroy(currentChannel,itemId);
-				promise.then(completeDelete,  function (response) {context.ui.failAlert('Failed to delete item.');});
-			} else {
-				//Add to deleted queue
-				var updatedQueue = [];
-				if (channelArray[currentChannel].hasOwnProperty("deletionQueue")) {
-					updatedQueue = channelArray[currentChannel].deletionQueue.slice();
-				}
-				updatedQueue.push(itemId.toString());
-				var channelUpdates = {
-					include_annotations: 1,
-					annotations:  [{
-						type: api.message_annotation_type,
-						value: {'deletion_queue': updatedQueue}
-					}]
-				};
-				if (channelArray[currentChannel].hasOwnProperty("lists")) {
-					channelUpdates = {
-						include_annotations: 1,
-						annotations:  [{
-							type: api.message_annotation_type,
-							value: {'lists': channelArray[currentChannel].lists,
-									'deletion_queue': updatedQueue}
-						}]
-					};
-				}
-				var promise = $.appnet.channel.update(currentChannel, channelUpdates, updateArgs);
-				promise.then(completeUpdateLists,  function (response) {context.ui.failAlert('Failed to remove item.');});
-			}
+			var promise = $.pnut.message.destroy(currentChannel,itemId);
+			promise.then(completeDelete,  function (response) {context.ui.failAlert('Failed to delete item.');});
 		}
-		//In all cases, remove item.
+		//Remove item from UI.
 		$("#item_" + itemId).remove();
 	}
 
@@ -829,17 +853,20 @@ context.item = (function () {
 			}
 			if (targetType != 1) {
 				//need to credit the target list
-				updatedLists[targetType].push(itemId.toString());
+				if (updatedLists[targetType])
+					updatedLists[targetType].push(itemId.toString());
+				else
+					updatedLists[targetType] = [itemId.toString()];
 			}
-			//Send to ADN.
+			//Send to pnut.
 			updateLists(currentChannel,updatedLists);
 		}
 		//Move html.
 		$("#item_" + itemId).appendTo("div#list_" + targetType + " div.list-group");
 		//Need to update the buttons.
 		$("div#buttons_" + itemId).remove();
-		//Don't want the new buttons starting out of sync.
-		$("div#list_" + targetType + " .settingsToggle").hide();
+		//Don't worry about the new buttons starting out of sync b/c this fix caused issues.
+		context.ui.settingsOff(targetType);
 		$("#item_" + itemId).append(formatButtons(itemId,currentChannel,targetType));
 		activateButtons(itemId);
 	}
@@ -848,24 +875,46 @@ context.item = (function () {
 		//Add the appropriate buttons to a formatted list item.
 		if (!channelId) channelId = api.currentChannel;
 		var formattedItem = "<div id='buttons_" + itemId + "' class='pull-right'>";
+		var defaultDestList;
+		if (channelArray[channelId].hasOwnProperty("listTypes")) {
+			var len = Object.keys(channelArray[channelId].listTypes).length;
+			if (len > 1)
+				defaultDestList = (len-1).toString();
+		}
 		if (listType != "0") {
-			//Add the main checkbox.
-			formattedItem += "<button type='button' class='btn btn-default btn-xs' ";
+			if (listType != "1") {
+				//Add a move up arrow to non-first lists.
+				var destList = (parseInt(listType,10) - 1).toString();
+				formattedItem += "<button type='button' class='settingsToggle settingsToggledOff btn btn-default btn-xs' ";
+				formattedItem += " data-button='moveItem' data-destination='" + destList + "'>";
+				formattedItem += "<i class='fa fa-arrow-left'></i></button> ";
+			}
+			//Add the main checkbox to non-archive lists.
+			formattedItem += "<button type='button' class='settingsToggle settingsToggledOff btn btn-default btn-xs' ";
 			if (!channelArray[channelId].hasOwnProperty("listTypes"))
 				formattedItem += " data-button='deleteItem'>";
 			else
 				formattedItem += " data-button='moveItem' data-destination='0'>";
 			formattedItem += "<i class='fa fa-check'></i></button>";
+		} else if (typeof defaultDestList != "undefined") {
+			//Add the move arrow to the archive.
+			formattedItem += "<button type='button' class='settingsToggle settingsToggledOff btn btn-default btn-xs' ";
+			formattedItem += " data-button='moveItem' data-destination='" + defaultDestList + "'>";
+			formattedItem += "<i class='fa fa-arrow-left'></i></button>";
 		}
 		if (channelArray[channelId].hasOwnProperty("listTypes")) {
 			//Add the move options
-			formattedItem += "<div class='btn-group dropdown settingsToggle pull-right'>";
+			formattedItem += "<div class='btn-group dropdown settingsToggle settingsToggledOn pull-right'>";
 			formattedItem += "<button type='button' class='btn btn-default btn-xs dropdown-toggle' data-toggle='dropdown'>";
 			formattedItem += "<i class='fa fa-cog'></i> <span class='caret'></span></button>";
 			formattedItem += "<ul class='dropdown-menu' role='menu'>";
 			for (var li in channelArray[channelId].listTypes) {
 				if (li != listType && li != 0) 
-					formattedItem += "<li><a href='#' data-button='moveItem' data-destination='" + li + "'><i class='fa fa-arrows'></i> Move to " + channelArray[channelId].listTypes[li].title + "</a></li>";
+					formattedItem += "<li><a href='#' data-button='moveItem' data-destination='" + li + "'><i class='fa fa-arrow-" + (listType == "0" || parseInt(listType,10) > parseInt(li,10) ? "left" : "right") + "'></i> Move to " + channelArray[channelId].listTypes[li].title + "</a></li>";
+			}
+			if (listType != "0") {
+				//Add the deletion option
+				formattedItem += "<li><a href='#' data-button='moveItem'><i class='fa fa-check'></i> Archive</a></li>";
 			}
 			//Edit option
 			formattedItem += "<li class='divider'></li>";
@@ -893,67 +942,27 @@ context.item = (function () {
 		//Update the item lists on move.
 		//Vacuous moves should be blocked before this point, so we just update the lists.
 		var channelUpdates = {
-			annotations:  [{
+			raw: [{
 				type: api.message_annotation_type,
 				value: {'lists': updatedLists}
 			}]
 		};
-		if (channelArray[channelId].hasOwnProperty("deletionQueue")) {
-			channelUpdates = {
-				annotations:  [{
-					type: api.message_annotation_type,
-					value: {'lists': updatedLists,
-							'deletion_queue': channelArray[channelId].deletionQueue}
-				}]
-			};
-		}
-
-		var promise = $.appnet.channel.update(channelId, channelUpdates, updateArgs);
-		promise.then(completeUpdateLists,  function (response) {context.ui.failAlert('Failed to move item.');});
+		var promise = $.pnut.channel.update(channelId, channelUpdates, updateArgs);
+		promise.then(completeUpdateLists, function (response) {context.ui.failAlert('Failed to move item.');});
 	}
 
 	function completeUpdateLists(response) {
 		//Handle all channel sublist updates.
 		var thisChannel = response.data;
-		for (var a = 0; a < thisChannel.annotations.length; a++) {
-			if (thisChannel.annotations[a].type == api.message_annotation_type) {
-				var annotationValue = thisChannel.annotations[a].value;
+		for (var a = 0; a < thisChannel.raw.length; a++) {
+			if (thisChannel.raw[a].type == api.message_annotation_type) {
+				var annotationValue = thisChannel.raw[a].value;
 			}
 		}
 		if (annotationValue) {
 			if (annotationValue.lists)
 				channelArray[thisChannel.id].lists = annotationValue.lists;
-			if (annotationValue.deletion_queue) 
-				channelArray[thisChannel.id].deletionQueue = annotationValue.deletion_queue;
 		}
-	}
-
-	function completeAutoDelete(response) {
-		//Clean up the deletion queue.
-		//We know it existed if this was called, so no dancing around it.
-		var updatedQueue = channelArray[response.data.channel_id].deletionQueue.slice();
-		var index = updatedQueue.indexOf(response.data.id);
-		if (index > -1) updatedQueue.splice(index, 1);
-		
-		var channelUpdates = {
-			include_annotations: 1,
-			annotations:  [{
-				type: api.message_annotation_type,
-				value: {'deletion_queue': updatedQueue}
-			}]
-		};
-		if (channelArray[response.data.channel_id].hasOwnProperty("lists")) {
-			channelUpdates = {
-				include_annotations: 1,
-				annotations:  [{
-					type: api.message_annotation_type,
-					value: {'lists': channelArray[response.data.channel_id].lists,
-							'deletion_queue': updatedQueue}
-				}]
-			};
-		}
-		var promise = $.appnet.channel.update(api.currentChannel, channelUpdates, updateArgs);
-		promise.then(completeUpdateLists,  function (response) {context.ui.failAlert('Failed to remove item.');});
 	}
 
 	function completeDelete(response) {
@@ -983,7 +992,7 @@ context.tags = (function () {
 		display: display,
 		filter: filter,
 		unfilter: unfilter
-		};
+	};
 
 	//public
 
@@ -992,7 +1001,7 @@ context.tags = (function () {
 		var tag;
 		if (!channelArray[channelId].hasOwnProperty("tagArray")) channelArray[channelId].tagArray = [];
 		for (var t=0; t < currentTags.length; t++) {
-			tag = currentTags[t].name;
+			tag = currentTags[t].text;
 			if (channelArray[channelId].tagArray.indexOf(tag) < 0) {
 				channelArray[channelId].tagArray.push(tag);
 			}
@@ -1036,7 +1045,7 @@ context.tags = (function () {
 		} else {
 			//Filter further.
 			$("#sectionLists").find("div.list-group-item").each(function(index) {
-				if ($(this).find("span[data-hashtag-name='" + unhashedTag + "']").length == 0 && (!$(this).hasClass("active")))
+				if ($(this).find("span[data-tag-name='" + unhashedTag + "']").length == 0 && (!$(this).hasClass("active")))
 					$(this).hide();
 			});
 		}
@@ -1071,7 +1080,7 @@ context.tags = (function () {
 		return pastelColor;
 	}
 	
-	function getContrastYIQ(hexcolor){
+	function getContrastYIQ(hexcolor) {
 		//Get the contrast color for user-defined tag colors using the YIQ formula.
 		var r = parseInt(hexcolor.substr(0,2),16);
 		var g = parseInt(hexcolor.substr(2,2),16);
@@ -1079,6 +1088,7 @@ context.tags = (function () {
 		var yiq = ((r*299)+(g*587)+(b*114))/1000;
 		return (yiq >= 128) ? 'black' : 'white';
 	}
+
 })();
 
 
@@ -1108,7 +1118,7 @@ context.list = (function () {
 		var newChannel = {
 			type: api.channel_type,
 			auto_subscribe: true,
-			annotations:  [{
+			raw:  [{
 				type: api.annotation_type,
 				value: {'name': newListName}
 			}]
@@ -1127,18 +1137,25 @@ context.list = (function () {
 								'2': {'title':'later'}
 							   };
 				break;
+			case "4":
+				listTypesObj = {'0': {'title':'unrated'},
+								'1': {'title':'good'},
+								'2': {'title':'average'},
+								'3': {'title':'bad'}
+							   };
+				break;
 			default:
 				break;
 		}
 		if (Object.keys(listTypesObj).length > 0) {
-			newChannel.annotations = [{
+			newChannel.raw = [{
 				type: api.annotation_type,
 				value: {'name': newListName,
 					    'list_types': listTypesObj }
 			}];
 		}
 		//Create it!
-		var promise = $.appnet.channel.create(newChannel,updateArgs);
+		var promise = $.pnut.channel.create(newChannel,updateArgs);
 		promise.then(completeCreateChannel, function (response) {context.ui.failAlert('Failed to create new list.');});
 	}
 
@@ -1200,7 +1217,7 @@ context.list = (function () {
 		//Do the actual list edits (called after form checking).
 		var newName = $("#listGroupName").val();
 		var channelEdits = {
-			annotations:  [{
+			raw:  [{
 				type: api.annotation_type,
 				value: { 'name': newName }
 			}]
@@ -1213,16 +1230,16 @@ context.list = (function () {
 		}
 		if (Object.keys(sublistObject).length > 0) {
 			channelEdits = {
-				annotations:  [{
+				raw:  [{
 					type: api.annotation_type,
 					value: { 'name': newName,
-							 'list_types': sublistObject
-						   }
+									 'list_types': sublistObject
+								 }
 				}]
 			};
 
 		}
-		var promise = $.appnet.channel.update(currentChannel, channelEdits, updateArgs);
+		var promise = $.pnut.channel.update(currentChannel, channelEdits, updateArgs);
 		promise.then(completeEditLists,  function (response) {context.ui.failAlert('Failed to update list.');});
 	}
 
@@ -1254,22 +1271,23 @@ context.user = (function () {
 	return {
 		add: add,
 		display: display,
+		fix: fix,
 		remove: remove,
 		search: search
 	};
 
 	//public
 	function add(e) {
-		//Add a user on UI request (from search list).
+		//Add a user on UI request (from search list) to full.
 		var currentChannel = api.currentChannel;
 		var userId = $(e.target).closest("a[data-user]").data("user");
 		var newUsers = channelArray[currentChannel].editorIds.slice();
 		if (!context.channel.isSampleChannel(currentChannel)) {
 			newUsers.push(userId);
 			var userUpdates = {
-				editors: {user_ids: newUsers} 
+				acl: {full: {user_ids: newUsers}} 
 			};
-			var promise = $.appnet.channel.update(currentChannel,userUpdates);
+			var promise = $.pnut.channel.update(currentChannel,userUpdates);
 			promise.then(completeAddUser, function (response) {context.ui.failAlert('Addition of member failed.');});
 		}
 		var userRow = $("div#searchResults div#userRow_search_" + userId).detach();
@@ -1282,7 +1300,7 @@ context.user = (function () {
 		var resultLocation = "div#memberResults";
 		var rowId = "userRow_" + (type ? type + "_" : "") + result.id;
 		var resultString = "<div class='form-group memberRow' id='" + rowId + "'>";
-		resultString += "<div class='col-xs-4 col-md-5 text-right'>" + (result.avatar_image.is_default ? "" : "<img src='" + result.avatar_image.url + "' class='avatarImg' />") + "</div>";
+		resultString += "<div class='col-xs-4 col-md-5 text-right'>" + (result.content.avatar_image.is_default ? "" : "<img src='" + result.content.avatar_image.link + "' class='avatarImg' />") + "</div>";
 		resultString += "<div class='col-xs-4 col-md-2 text-center'>@" + result.username + (result.name ? "<br /><span class='realName'>" + result.name + "</span>" : "" ) + "</div>";
 		resultString += "<div class='col-xs-4 col-md-5 text-left'>";
 		if (type && type=="search") {
@@ -1297,6 +1315,20 @@ context.user = (function () {
 		activateButtons(rowId);
 	}
 
+	function fix(channelId) {
+		//Repair write users; make them full users.
+		var newEditorIds =	channelArray[channelId].editorIds.concat(channelArray[channelId].oldEditorIds);
+		var userUpdates = {
+			acl: {
+				full: {user_ids: newEditorIds},
+				write: {user_ids: []}
+			} 
+		};
+		var promise = $.pnut.channel.update(channelId,userUpdates);
+		//We can use the promise recipient from the regular add function to update the channel.
+		promise.then(completeAddUser, function (response) {context.ui.failAlert('Channel repair failed.');});
+	}
+
 	function remove(e) {
 		//Handle UI request to remove a user.
 		var userId = $(e.target).closest("a[data-user]").data("user");
@@ -1305,15 +1337,15 @@ context.user = (function () {
 	}
 
 	function search() {
-		//Search for ADN users in member control.
+		//Search for pnut users in member control.
 		if (!api.accessToken) {
 			context.ui.failAlert("Please log in to search for users.");
 			return;
 		}
 
 		$("div#searchResults").html("");
-		var searchArgs = {q: $("input#userSearch").val(), count: 10};
-		var promise = $.appnet.user.search(searchArgs);
+		//No longer a search b/c no search in pnut yet.
+		var promise = $.pnut.user.get($("input#userSearch").val());
 		promise.then(completeSearch, function (response) {context.ui.failAlert('Search request failed.');});
 	}
 
@@ -1328,7 +1360,9 @@ context.user = (function () {
 	function completeAddUser(response) {
 		//Update the channel array based on the response.
 		channelArray[response.data.id].editors = response.data.editors;
-		channelArray[response.data.id].editorIds = response.data.editors.user_ids;
+		channelArray[response.data.id].editorIds = response.data.acl.full.user_ids;
+		//Re: fixing.
+		channelArray[response.data.id].oldEditorIds = response.data.acl.write.user_ids;
 	}
 
 	function removeUserFromChannel(userId, channelId) {
@@ -1341,7 +1375,7 @@ context.user = (function () {
 			var userUpdates = {
 				editors: {user_ids: newUsers} 
 			};
-			var promise = $.appnet.channel.update(channelId,userUpdates);
+			var promise = $.pnut.channel.update(channelId,userUpdates);
 			promise.then(completeRemoveUser, function (response) {context.ui.failAlert('Removal of member failed.');});
 		}
 		//Remove the user from the UI.
@@ -1355,13 +1389,11 @@ context.user = (function () {
 	}
 
 	function completeSearch(response) {
-		//Process search results into the UI.
+		//Process search results into the UI.  (Now a single user.)
 		if (response.data.length == 0) {
 			$("div#searchResults").html("<p>No users found.</p>");
 		} else {
-			for (var u=0; u < response.data.length; u++) {
-				display(response.data[u], "search");
-			}
+				display(response.data, "search");
 		}
 	}
 
@@ -1385,6 +1417,7 @@ context.ui = (function () {
 		navbarSetter: navbarSetter,
 		pushHistory: pushHistory,
 		settingsToggle: settingsToggle,
+		settingsOff: settingsOff,
 		sortLists: sortLists,
 		tagButton: tagButton,
 		uncollapseArchive: uncollapseArchive
@@ -1464,7 +1497,7 @@ context.ui = (function () {
 
 	function nameList(channelId) {
 		//Process the channel name itself. Pass in the whole input for the editor to preserve defaultValue.
-		$("section#sectionLists h1").html(channelArray[channelId].name);
+		$("#listTitleSPAN").html(channelArray[channelId].name);
 		$("div#listGroupNameWrapper").html("<input type='text' id='listGroupName' class='form-control listTitle' value='" + channelArray[channelId].name + "' />");
 		//If  nameSublist is called, this will be re-filled.
 		$("div#list_1 span.mainTitle").html("<i class='fa fa-fw'></i>");
@@ -1497,8 +1530,21 @@ context.ui = (function () {
 			history.pushState({}, document.title, newLocation);
 	}
 
+	function settingsOff(list) {
+		//Toggle settings off IF ON, in order to add buttons or items in the default state.
+		//If list is passed in, toggle only the one list.
+		//Otherwise toggle all.
+		if (list) {
+			$("div#list_" + list + " .settingsToggledOff").show();
+			$("div#list_" + list + " .settingsToggledOn").hide();
+		} else {
+			$(".settingsToggledOff").show();
+			$(".settingsToggledOn").hide();
+		}
+	}
+	
 	function settingsToggle(e) {
-		//Handle the settings buttons on the sublists.
+		//Handle the settings buttons on the sublists.  This toggles everything.
 		e.preventDefault();
 		$(e.target).closest("div.bucketListDiv").find(".settingsToggle").toggle();
 		if ($(e.target).closest("div.bucketListDiv").find(".settingsToggle").length == 0)
