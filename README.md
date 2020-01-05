@@ -4,11 +4,19 @@ Market Bucket is a client-side web app for making and sharing lists.  It uses pn
 
 A pnut.io client id is required to run your own copy.  There is no build process; the code is the code.
 
+## ToDo
+
+The ToDo list is in the [wiki](https://bitbucket.org/mcdemarco/market-bucket/wiki/Home).
+
 ## Versions
 
 ### Pnut.io
 
 #### Latest!
+
+2.2.3: Added explicit list defaulting (per browser) and fixed intended default to the last active list set (as opposed to last used in that browser).
+
+#### Aug 2019
 
 2.2.2: Fixed annotations not being retrieved on refresh and updated libraries to latest minor versions (or latest version where not semantic-versioned).
 
