@@ -32,7 +32,7 @@ var marketBucket = {};
 context.init = (function () {
 
 	return {
-		checkLocalStorage: checkLocalStorage,
+		checkStorage: checkStorage,
 		clearPage: clearPage,
 		load: load,
 		login: login,
@@ -40,12 +40,27 @@ context.init = (function () {
 		refresh: refresh,
 		reload: reload,
 		reloadChannel: reloadChannel,
-		setSortOrder: setSortOrder
+		setSortOrder: setSortOrder,
+		unsetStorage: unsetStorage
 	};
 
-	function checkLocalStorage(key, value) {
+	function checkStorage(key, value) {
 		//Defragmented into one function.  Only the channel part needs to be public.
-		if (localStorage && localStorage[key]) {
+		//We use sessionStorage to decide whether to use currentChannel or reset to last used/defaultChannel.
+		//Hopefully if localStorage is there, sessionStorage is too.
+		if (key == "currentChannel" && localStorage && localStorage[key]) {
+			//The currentChannel may still be in localStorage; if so we move and remove it.
+			try {
+				api[key] = localStorage[key];
+				sessionStorage[key] = api[key];
+				unsetStorage(key);
+			}
+			catch (e) {}
+		} else if (key == "currentChannel" && sessionStorage && sessionStorage[key]) {
+			//currentChannel moved to sessionStorage, replaced by defaultChannel.
+			try {api[key] = sessionStorage[key];}
+			catch (e) {}
+		} else if (key != "currentChannel" && localStorage && localStorage[key]) {
 			try {api[key] = localStorage[key];} 
 			catch (e) {}
 		} else {
@@ -59,9 +74,22 @@ context.init = (function () {
 					break;
 				case "currentChannel":
 					api.currentChannel = value;
+					//It's theoretically ok to store a sample channel as the current channel, 
+					//but leaving the restriction in anyway.
+					if (sessionStorage && value && !context.channel.isSampleChannel(value)) {
+						try {
+							sessionStorage["currentChannel"] = value;
+						}
+						catch (e) {}
+					}
+					break;
+				case "defaultChannel":
+					api.defaultChannel = value;
 					//Don't store a sample channel; only a real one.
 					if (localStorage && value && !context.channel.isSampleChannel(value)) {
-						try {localStorage["currentChannel"] = value;}
+						try {
+							localStorage["defaultChannel"] = value;
+						}
 						catch (e) {}
 					}
 					break;
@@ -74,7 +102,7 @@ context.init = (function () {
 					break;
 				case "userId":
 					var promise = $.pnut.user.get("me");
-					promise.then(setLocalStorageUser, function (response) {context.ui.failAlert('Failed to retrieve user ID.');});
+					promise.then(setStorageUser, function (response) {context.ui.failAlert('Failed to retrieve user ID.');});
 					break;
 				default:
 					break;
@@ -114,7 +142,7 @@ context.init = (function () {
 		$("a#fontBrandLink").click(function(){context.ui.navbarSetter();});
 		activateButtons();
 
-		checkLocalStorage("accessToken");
+		checkStorage("accessToken");
 		if (!api.accessToken) {
 			logout();
 			return;
@@ -126,10 +154,14 @@ context.init = (function () {
 		} else {
 			context.ui.pushHistory(api.site);
 			$(".loggedOut").hide();
+			checkStorage("defaultChannel");
+			//If there's a default channel, it will get selected, so set UI to match.
+			if (api.defaultChannel)
+				context.ui.defaultToggle();
 			context.channel.get();
 			$(".loggedIn").show('slow');
-			checkLocalStorage("userId");
-			checkLocalStorage("sortOrder");
+			checkStorage("userId");
+			checkStorage("sortOrder");
 			if (api.sortOrder) {
 				context.ui.displaySortOrder(api.sortOrder);
 			}
@@ -181,15 +213,23 @@ context.init = (function () {
 		//Now we're ready to restore to an initializable state.
 		clearPage();
 		//sample checking done by this function for itself
-		setLocalStorage("currentChannel",newChannelId);
+		setStorage("currentChannel",newChannelId);
 		context.channel.display(newChannelId);
 		context.ui.forceScroll("#sectionLists");
 	}
 
 	function setSortOrder(order) {
-		setLocalStorage("sortOrder", order);
+		setStorage("sortOrder", order);
 		reloadChannel(api.currentChannel, true);
 		context.ui.displaySortOrder(order);
+	}
+
+	function unsetStorage(key) {
+		//Only for localStorage.
+		if (localStorage && localStorage.hasOwnProperty(key)) {
+			try {localStorage.removeItem(key);}
+			catch (e) {}
+		}
 	}
 
 	//private
@@ -217,21 +257,27 @@ context.init = (function () {
 		$("#bucketSorterWrapper input[type=radio]").click(context.ui.sortLists);
 	}
 
-	function setLocalStorage(key, value) {
+	function setStorage(key, value) {
 		//Explicit setter for local storage, which is normally set during a check.
 		api[key] = value;
 		if (localStorage) {
-			if (key == "currentChannel" && context.channel.isSampleChannel(value)) {
-				//Don't store the demo channel in local storage.
-				return;
+			if (key == "currentChannel") {
+				if (context.channel.isSampleChannel(value)) {
+					//Don't store the demo channel (see checkStorage for details).
+					return;
+				} else {
+					//Now stored in sessionStorage, not localStorage.
+					try {sessionStorage[key] = value;}
+					catch (e) {}
+				}
 			}
-			//Store the new value.
+			//Else store the new value in localStorage.
 			try {localStorage[key] = value;}
 			catch (e) {}
 		}
 	}
 
-	function setLocalStorageUser(response) {
+	function setStorageUser(response) {
 		//Callback for the local user query.
 		api.userId = response.data.id;
 		if (api.userId && localStorage) {
@@ -526,7 +572,7 @@ context.channel = (function () {
 
 		if (Object.keys(channelArray).length == 1) {
 			//This channel is first in the activity ordering and will be our default if one wasn't saved.
-			context.init.checkLocalStorage("currentChannel",thisChannel.id);
+			context.init.checkStorage("currentChannel",api.defaultChannel ? api.defaultChannel : thisChannel.id);
 		}
 
 		//Fetch more data if this is the right channel.
