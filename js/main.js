@@ -245,6 +245,7 @@ context.init = (function () {
 		$("#logInButton").click(context.init.login);
 		$("#logOutButton").click(context.init.logout);
 		$("div#controlButtons a.controlButton").click(context.ui.controlToggle);
+		$("span#defaultToggle").click(context.list.defaultToggle);
 		$("#saveListEdits").click(context.list.edit);
 		$("#searchUsers").click(context.user.search);
 		$("#tagSearchClearButton").click(context.tags.unfilter);
@@ -1142,6 +1143,7 @@ context.list = (function () {
 
 	return {
 		add: add,
+		defaultToggle: defaultToggle,
 		edit: edit,
 		remove: remove
 	};
@@ -1203,6 +1205,18 @@ context.list = (function () {
 		//Create it!
 		var promise = $.pnut.channel.create(newChannel,updateArgs);
 		promise.then(completeCreateChannel, function (response) {context.ui.failAlert('Failed to create new list.');});
+	}
+
+	function defaultToggle(e) {
+		//Swap the defaulting (smartly).
+		if (api.defaultChannel && api.defaultChannel == api.currentChannel) {
+			context.init.unsetStorage("defaultChannel");
+		} else {
+			//Either there's no default, or we're switching it to a new value.
+			context.init.checkStorage("defaultChannel", api.currentChannel);
+		}
+		//Swap the UI (dumbly).
+		context.ui.defaultToggle();
 	}
 
 	function edit(e) {
@@ -1454,6 +1468,7 @@ context.ui = (function () {
 		addMember: addMember,
 		collapseArchive: collapseArchive,
 		controlToggle: controlToggle,
+		defaultToggle: defaultToggle,
 		displaySortOrder: displaySortOrder,
 		failAlert: failAlert,
 		forceScroll: forceScroll,
@@ -1513,6 +1528,18 @@ context.ui = (function () {
 			//Show one.
 			$(".control").hide();
 			$("div#" + control).show();
+		}
+	}
+
+	function defaultToggle() {
+		//Handle the UI default list toggle buttons.
+		$("span#defaultToggle i").toggleClass("fa-star fa-star-o");
+		if ($("span#defaultToggle i").hasClass("fa-star-o")) {
+			//Toggled on.
+			$("span#defaultToggle").attr("title", "Make this my default list(s).");
+		} else {
+			//Toggled off.
+			$("span#defaultToggle").attr("title", "Your default list(s). (Click to remove default.)");
 		}
 	}
 
