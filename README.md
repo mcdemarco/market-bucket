@@ -10,6 +10,10 @@ A pnut.io client id is required to run your own copy.  There is no build process
 
 #### Latest!
 
+2.2.3: Fixed alphabetical sort issues on some OSes.
+
+#### May 2020
+
 2.2.2: Fixed annotations not being retrieved on refresh and updated libraries to latest minor versions (or latest version where not semantic-versioned).
 
 #### March/April 2019

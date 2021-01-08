@@ -664,7 +664,12 @@ context.channel = (function () {
 	}
 
 	function azChannelSorter(a,b) {
-		return a.content.text.localeCompare(b.content.text);
+		try {
+			return a.content.text.localeCompare(b.content.text, 'en', {sensitivity: 'base'});
+		} catch(e) {
+			//This is case sensitive.
+			return a.content.text.localeCompare(b.content.text);
+		}
 	}
 
 	function oldNewChannelSorter(a,b) {
