@@ -10,7 +10,9 @@ A pnut.io client id is required to run your own copy.  There is no build process
 
 #### Latest!
 
-2.2.3: Fixed alphabetical sort issues on some OSes.
+#### Jan 2021
+
+2.2.4: Fixed alphabetical sort issues on some OSes.
 
 #### May 2020
 
@@ -18,7 +20,7 @@ A pnut.io client id is required to run your own copy.  There is no build process
 
 #### March/April 2019
 
-2.2.1: Better buttons bugfixed.
+2.2.1: Better buttons bugfixed.    
 2.2.0: Better buttons.
 
 ### October 2017
