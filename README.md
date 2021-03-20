@@ -14,6 +14,8 @@ The ToDo list is in the [wiki](https://bitbucket.org/mcdemarco/market-bucket/wik
 
 #### Latest!
 
+#### Jan 2020
+
 2.2.3: Added explicit list defaulting (per browser) and fixed intended default to the last active list set (as opposed to last used in that browser).
 
 #### Aug 2019
