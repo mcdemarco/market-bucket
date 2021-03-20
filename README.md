@@ -14,7 +14,11 @@ The ToDo list is in the [wiki](https://bitbucket.org/mcdemarco/market-bucket/wik
 
 #### Latest!
 
-#### Jan 2020
+#### Jan 2021
+
+2.2.4: Fixed alphabetical sort issues on some OSes.
+
+#### May 2020
 
 2.2.3: Added explicit list defaulting (per browser) and fixed intended default to the last active list set (as opposed to last used in that browser).
 
@@ -24,7 +28,7 @@ The ToDo list is in the [wiki](https://bitbucket.org/mcdemarco/market-bucket/wik
 
 #### March/April 2019
 
-2.2.1: Better buttons bugfixed.
+2.2.1: Better buttons bugfixed.    
 2.2.0: Better buttons.
 
 ### October 2017
