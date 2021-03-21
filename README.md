@@ -14,6 +14,8 @@ The ToDo list is in the [wiki](https://bitbucket.org/mcdemarco/market-bucket/wik
 
 #### Latest!
 
+2.2.5: Fix issue with long lists. (March 2021)
+
 #### Jan 2021
 
 2.2.4: Fixed alphabetical sort issues on some OSes.

@@ -334,7 +334,7 @@ context.channel = (function () {
 			include_raw: 1
 		};
 		var promise = $.pnut.channel.get(api.currentChannel,args);
-		promise.then(completeChannel, function (response) {context.ui.failAlert('Failed to retrieve your list(s).');}).done(context.channel.display);
+		promise.then(completeChannel, function (response) {context.ui.failAlert('Failed to retrieve your list(s).');}); //.done(context.channel.display);
 	}
 
 	function isSampleChannel(channelId) {
@@ -578,6 +578,7 @@ context.channel = (function () {
 
 		//Fetch more data if this is the right channel.
 		if (api.currentChannel && api.currentChannel == thisChannel.id) {
+			console.log("displaying current channel");
 			display(thisChannel.id);
 		}
 	}
@@ -595,7 +596,7 @@ context.channel = (function () {
 	function display(thisChannelId) {
 		//Display a channel based on the stored info in channelArray, and retrieve messages or use canned messages.
 		//Users in settings panel.
-		var listTypes = (channelArray[thisChannelId].listTypes ? channelArray[thisChannelId].listTypes : {});
+		var listTypes = (channelArray[thisChannelId] && channelArray[thisChannelId].hasOwnProperty("listTypes") ? channelArray[thisChannelId].listTypes : {});
 		processChannelUsers(thisChannelId);
 		
 		context.ui.nameList(thisChannelId);
@@ -624,7 +625,10 @@ context.channel = (function () {
 			if (len == 4) 
 				$("div#list_0").addClass("col-sm-offset-4");
 		}
+		displayMessages(thisChannelId);
+	}
 		
+	function displayMessages(thisChannelId) {
 		if (isSampleChannel(thisChannelId)) {
 			//Use sample messages.
 			var theseMessages = getSampleMessages();
@@ -638,7 +642,7 @@ context.channel = (function () {
 				count: api.message_count
 			};
 			var promise = $.pnut.message.getChannel(thisChannelId, args);
-			promise.then(completeMessages, function (response) {context.ui.failAlert('Failed to retrieve items.');}).done(context.tags.display,context.ui.collapseArchive);
+			promise.then(function(response) {completeMessagesCheck(response,[]);}, function (response) {context.ui.failAlert('Failed to retrieve items.');});//.done(context.tags.display,context.ui.collapseArchive);
 		}
 	}
 	
@@ -656,16 +660,49 @@ context.channel = (function () {
 		$("#sublistControl").append("<div class='form-group listControl' id='sublist_" + index + "'><div class='col-xs-4 text-right'><label class='control-label' for='sublistEdit_" + index + "'>" + (index == 0 ? "Archive" : "List " + index) + ":</label></div><div class='col-xs-3'><input type='text' id='sublistEdit_" + index + "' name='title' class='form-control listTitle' value='" + listTypesObj[index.toString()].title + "' /></div><div class='col-xs-4'><input type='text' id='sublistSubtitle_" + index + "' name='subtitle' class='form-control' value='" + (listTypesObj[index.toString()].subtitle ? listTypesObj[index.toString()].subtitle : "") + "' placeholder='Optional subtitle' /></div></div>");
 	}
 
-	function completeMessages(response) {
-		//Populate the UI for an individual retrieved message list.
+	function completeMessagesCheck(response, data) {
+		//Handle the current response.
 		if (response.data.length > 0) {
+			if (data) {
+				//Append new data.
+				data = data.concat(JSON.parse(JSON.stringify(response.data)));
+			} else {
+				//Initialize.
+				data = JSON.parse(JSON.stringify(response.data));
+			}
+		} else {
+			//There wasn't more?  There was nothing at all?
+			if (!data)
+				data = [];
+		}
+		//Check for more.
+		if (response.meta && response.meta.more == true) {
+			var args = {
+				include_deleted: 0,
+				include_raw: 1,
+				count: api.message_count,
+				before_id: response.meta.min_id
+			};
+			var thisChannelId = data[0].channel_id;
+			var subpromise = $.pnut.message.getChannel(thisChannelId, args);
+			subpromise.then(function(subresponse) {completeMessagesCheck(subresponse, data)}, function (response) {context.ui.failAlert('Failed to retrieve additional items.');}); //.done(context.tags.display,context.ui.collapseArchive);
+		} else {
+			//No more, so finish up.
+			completeMessages(data);
+		}
+		
+	}
+
+	function completeMessages(data) {
+		//Populate the UI for an individual retrieved message list.
+		if (data.length > 0) {
 			switch (api.sortOrder) {
 				case "az":
-				response.data.sort(azChannelSorter);
+				data.sort(azChannelSorter);
 				break;
 
 				case "on":
-				response.data.sort(oldNewChannelSorter);
+				data.sort(oldNewChannelSorter);
 				break;
 
 				case "no":
@@ -673,11 +710,13 @@ context.channel = (function () {
 				break;
 			}
 
-			for (var i=0; i < response.data.length; i++) {
-				var respd = response.data[i];
+			for (var i=0; i < data.length; i++) {
+				var respd = data[i];
 				context.item.format(respd);
 				context.tags.collect(respd.content.entities.tags,respd.channel_id);
 			}
+			context.tags.display();
+			context.ui.collapseArchive();
 		}
 	}
 
