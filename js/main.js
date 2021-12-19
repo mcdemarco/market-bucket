@@ -4,6 +4,7 @@
 // channel
 // item
 // tags
+// search
 // list
 // user
 // ui
@@ -193,6 +194,7 @@ context.init = (function () {
 
 	function refresh(e) {
 		//Manual refresh button.
+		context.search.unfilter(e);
 		context.channel.getCurrent();
 	}
 
@@ -248,7 +250,8 @@ context.init = (function () {
 		$("span#defaultToggle").click(context.list.defaultToggle);
 		$("#saveListEdits").click(context.list.edit);
 		$("#searchUsers").click(context.user.search);
-		$("#tagSearchClearButton").click(context.tags.unfilter);
+		$("#searchClearButton").click(context.search.unfilter);
+		$("#textSearchButton").click(context.search.filter);
 		//Stuff we need to be .live.
 		$("#sectionLists").on("click","span.settingsButton",context.ui.settingsToggle);
 		$("#sectionLists").on("click","span.collapseButton",context.ui.collapseArchive);
@@ -578,7 +581,6 @@ context.channel = (function () {
 
 		//Fetch more data if this is the right channel.
 		if (api.currentChannel && api.currentChannel == thisChannel.id) {
-			console.log("displaying current channel");
 			display(thisChannel.id);
 		}
 	}
@@ -1081,8 +1083,7 @@ context.tags = (function () {
 		collect: collect,
 		colorize: colorize,
 		display: display,
-		filter: filter,
-		unfilter: unfilter
+		filter: filter
 	};
 
 	//public
@@ -1116,7 +1117,7 @@ context.tags = (function () {
 			channelId = api.currentChannel;
 		//Display unique tags.
 		if (channelArray[channelId].tagArray.length == 0) {
-			$("#tagSearchRow").hide();
+			$("#searchRow").hide();
 		} else {
 			//Note this sorts the original array.
 			var sortedArray = channelArray[channelId].tagArray.sort();
@@ -1125,29 +1126,30 @@ context.tags = (function () {
 			}
 			colorize();
 			activateTagButtons();
-			$("#tagSearchRow").show();
+			$("#searchRow").show();
 		}
 	}
 	
 	function filter(unhashedTag) {
-		//Filter and unfilter based on tag.
+		
+		//Filter based on tag.
 		if (!unhashedTag) {
-			unfilter();
+			return;
 		} else {
 			//Filter further.
 			$("#sectionLists").find("div.list-group-item").each(function(index) {
 				if ($(this).find("span[data-tag-name='" + unhashedTag + "']").length == 0 && (!$(this).hasClass("active")))
-					$(this).hide();
+					$(this).addClass("hideForSearch").hide();
+				else {
+					//Show archived items.
+					if (!$(this).hasClass("hideForSearch"))  
+						$(this).show();
+				}
 			});
 		}
 		context.ui.forceScroll("#sectionLists");
 	}
 	
-	function unfilter() {
-		//Reset filtration.
-		$("#sectionLists").find("div.list-group-item").show();
-	}
-
 	//private
 	function displayTag(unhashedTag) {
 		//Display tags individually as part of the tag collection process.
@@ -1178,6 +1180,58 @@ context.tags = (function () {
 		var b = parseInt(hexcolor.substr(4,2),16);
 		var yiq = ((r*299)+(g*587)+(b*114))/1000;
 		return (yiq >= 128) ? 'black' : 'white';
+	}
+
+})();
+
+
+context.search = (function () {
+
+	return {
+		filter: filter,
+		unfilter: unfilter
+	};
+
+	//public
+
+	function filter() {
+		//TODO: live search with debounce (search without submitting).
+
+		var term = $.trim($("#textSearchField").val().toLowerCase());
+		//Filter based on search term.
+		if (!term) {
+			return;
+		} else {
+			//Filter further.
+			$("#sectionLists").find("div.list-group-item.formattedItem").each(function(index) {
+				var currentItem = $(this);
+				var textIn = currentItem.find("span.list-group-item-text span[itemtype='https://pnut.io/schemas/Post']");
+				textIn.contents().each(function() {
+					if (this.nodeType == Node.TEXT_NODE && $.trim(this.textContent).length) {
+						//console.log($.trim(this.textContent));
+						if (this.textContent.toLowerCase().indexOf(term) === -1)
+							currentItem.addClass("hideForSearch").hide();
+						else {
+							//Show archived items.
+							if (!currentItem.hasClass("hideForSearch"))  
+								currentItem.show();
+						}
+					}
+				});
+			});
+		}
+
+		//While not live searching:
+		context.ui.forceScroll("#sectionLists");
+	}
+	
+	function unfilter(e) {
+		//Reset filtration.  (Affects tag search and text search.)
+		$("#sectionLists").find("div.list-group-item").filter(".hideForSearch").not(".hideForCollapse").show();
+		//Reset classes.
+		$("div.formattedItem").removeClass("hideForSearch");
+		//Clear search.
+		$("#textSearchField").val("");
 	}
 
 })();
@@ -1553,7 +1607,7 @@ context.ui = (function () {
 
 		//Test for presence of the archive purely in the UI.
 		if ($("div#list_0 div.list-group").children().length > targetCount) {
-			$("#list_0 div.formattedItem:gt(" + targetCount + ")").hide();
+			$("#list_0 div.formattedItem:gt(" + targetCount + ")").addClass("hideForCollapse").hide();
 			if ($("#uncollapseArchiveWrapper").length == 0)
 				$("#list_0 div.list-group").append(formattedButton);
 			
@@ -1689,7 +1743,7 @@ context.ui = (function () {
 		//Undo the archive concealment.
 		var targetCount = 7;
 		$("div#uncollapseArchiveWrapper").remove();
-		$("#list_0 div.formattedItem").show();
+		$("#list_0 div.formattedItem").removeClass("hideForCollapse").filter(":not(.hideForSearch)").show();
 		//Show a re-collapse button.
 		$("div#list_0 span.collapseButton").show();
 	}

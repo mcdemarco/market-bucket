@@ -47,7 +47,7 @@
       <ul class="nav navbar-nav navbar-left">
         <li class="loggedOut"><a href="#sectionBlurb"><span class="hidden-xs">Idea</span><span class="visible-xs-block" title="Idea"><i class="fa fa-lightbulb-o"></i></a></li>
         <li><a href="#sectionLists"><span class="hidden-xs">Lists</span><span class="visible-xs-block" title="Lists"><i class="fa fa-list"></i></span></a></li>
-        <li class="loggedIn" title="tag search"><a href="#tagSearchRow"><span class="hidden-xs">Search</span><span class="visible-xs-block" title="Search"><i class="fa fa-search"></i></span></a></li>
+        <li class="loggedIn" title="tag search"><a href="#searchRow"><span class="hidden-xs">Search</span><span class="visible-xs-block" title="Search"><i class="fa fa-search"></i></span></a></li>
         <li class="loggedIn"><a href="#sectionAdd"><span class="hidden-xs">Add</span><span class="visible-xs-block" title="Add"><i class="fa fa-plus"></i></span></a></li>
         <li class="loggedIn"><a href="#sectionSettings"><span class="hidden-xs">Switch</span><span class="visible-xs-block" title="Switch lists"><i class="fa fa-exchange"></i></span></a></li>
         <li class="loggedOut"><a href="#sectionAbout"><span class="hidden-xs">About</span><span class="visible-xs-block" title="About"><i class="fa fa-info"></i></span></a></li>
@@ -124,11 +124,28 @@
 				</div>
       </div><!--/row-->
 			
-<div class="row" id="tagSearchRow">
+<div class="row" id="searchRow">
+	<div class="col-sm-10 col-sm-offset-1 col-xs-12 div-trans text-center">
+		<div class="form-group control">
+			<div class="col-xs-4 text-right">
+				<label class="font-brand" style="font-weight:normal;" for="textSearchField">Text Search:</label>
+			</div>
+			<div class="col-xs-4">
+				<input type="text" id="textSearchField" name="textSearchField" class="form-control" value="">
+			</div>
+			<div class="col-xs-4 text-left">
+				<a class="btn btn-default btn-sm controlButton" href="javascript:void(0);">
+					<i class="fa fa-search" id="textSearchButton" title="Search by text"></i>
+				</a>
+			</div>
+		</div>
+	</div>
 	<div class="col-sm-10 col-sm-offset-1 col-xs-12 div-trans text-center">
 	  <span class="font-brand">Tag Search:</span>
 	  <div class="tagBucket" style="display:inline-block;padding:3px;" title="Click a tag to see only those items listed."></div>
-	  <button type="button" class="btn btn-default btn-sm" id="tagSearchClearButton" title="Clear tag search results">Clear Search</button>
+	</div>
+	<div class="col-sm-10 col-sm-offset-1 col-xs-12 div-trans text-center">
+	  <button type="button" class="btn btn-default btn-sm" id="searchClearButton" title="Clear search results">Clear Search</button>
 	</div>
 	<div class="col-sm-10 col-sm-offset-1 col-xs-12 div-trans text-center" id="bucketSorterWrapper">
 	  <span class="font-brand">Sort:</span>
