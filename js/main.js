@@ -255,9 +255,9 @@ context.init = (function () {
 		$("#searchClearButton").click(context.search.unfilter);
 		$("#textSearchButton").click(context.search.filter);
 		//Stuff we need to be .live.
-		$("#sectionLists").on("click","span.settingsButton",context.ui.settingsToggle);
 		$("#sectionLists").on("click","span.collapseButton",context.ui.collapseArchive);
 		$("#sectionLists").on("click","span.uncollapseButton",context.ui.uncollapseArchive);
+		$("#sectionLists").on("click","div.formattedItem",context.item.settingsToggle);
 		//save settings?
 
 		//Not buttons
@@ -788,7 +788,8 @@ context.item = (function () {
 		deleteIt: deleteIt,
 		edit: edit,
 		format: format,
-		move: move
+		move: move,
+		settingsToggle: settingsToggle
 	};
 
 	//public
@@ -813,7 +814,7 @@ context.item = (function () {
 		}
 		//Don't want the new buttons starting out of sync.
 		var listType = $("input[name=bucketBucket]:checked").data("list");
-		context.ui.settingsOff(listType);
+		context.ui.settingsOff();
 		createItem(channelId, message);
 	}
 
@@ -884,6 +885,14 @@ context.item = (function () {
 		moveItem(itemId, targetType);
 	}
 
+	function settingsToggle(e) {
+		//Handle the ellipsis (formerly settings) buttons on items (formerly sublist-wide).
+		if ($(e.target).closest("button").length > 0)
+			return;
+		e.preventDefault();
+		$(e.target).closest("div.formattedItem").find(".settingsToggle").toggle();
+	}
+	
 	//private
 
 	function createItem(channel,message) {
@@ -1015,12 +1024,12 @@ context.item = (function () {
 		if (channelArray[channelId].hasOwnProperty("listTypes")) {
 			//Add the move options
 			formattedItem += "<div class='btn-group dropdown settingsToggle settingsToggledOn pull-right'>";
-			formattedItem += "<button type='button' class='btn btn-default btn-xs dropdown-toggle' data-toggle='dropdown'>";
-			formattedItem += "<i class='fa fa-ellipsis-h'></i> <span class='caret'></span></button>";
+			formattedItem += " <button type='button' class='btn btn-default btn-xs dropdown-toggle' data-toggle='dropdown'>";
+			formattedItem += "<i class='fa fa-ellipsis-h'></i></button>";
 			formattedItem += "<ul class='dropdown-menu' role='menu'>";
 			for (var li in channelArray[channelId].listTypes) {
 				if (li != listType && li != 0) 
-					formattedItem += "<li><a href='#' data-button='moveItem' data-destination='" + li + "'><i class='fa fa-arrow-" + (listType == "0" || parseInt(listType,10) > parseInt(li,10) ? "left" : "right") + "'></i> Move to " + channelArray[channelId].listTypes[li].title + "</a></li>";
+					formattedItem += "<li><a href='#' data-button='moveItem' data-destination='" + li + "'><i class='fa fa-" + (listType == "0" || parseInt(listType,10) > parseInt(li,10) ? (channelArray[channelId].listTypes.length > 2 && li == 1 ? "backward" : "arrow-left") : "arrow-right") + "'></i> Move to " + channelArray[channelId].listTypes[li].title + "</a></li>";
 			}
 			if (listType != "0") {
 				//Add the deletion option
@@ -1592,7 +1601,6 @@ context.ui = (function () {
 		nameSublist: nameSublist,
 		navbarSetter: navbarSetter,
 		pushHistory: pushHistory,
-		settingsToggle: settingsToggle,
 		settingsOff: settingsOff,
 		sortLists: sortLists,
 		tagButton: tagButton,
@@ -1718,27 +1726,12 @@ context.ui = (function () {
 			history.pushState({}, document.title, newLocation);
 	}
 
-	function settingsOff(list) {
-		//Toggle settings off IF ON, in order to add buttons or items in the default state.
-		//If list is passed in, toggle only the one list.
-		//Otherwise toggle all.
-		if (list) {
-			$("div#list_" + list + " .settingsToggledOff").show();
-			$("div#list_" + list + " .settingsToggledOn").hide();
-		} else {
-			$(".settingsToggledOff").show();
-			$(".settingsToggledOn").hide();
-		}
+	function settingsOff() {
+		//Toggle all settings off, in order to add buttons or items in the default state.
+		$(".settingsToggledOff").show();
+		$(".settingsToggledOn").hide();
 	}
-	
-	function settingsToggle(e) {
-		//Handle the settings buttons on the sublists.  This toggles everything.
-		e.preventDefault();
-		$(e.target).closest("div.bucketListDiv").find(".settingsToggle").toggle();
-		if ($(e.target).closest("div.bucketListDiv").find(".settingsToggle").length == 0)
-			context.ui.forceScroll("#sectionSettings");
-	}
-	
+
 	function sortLists(e) {
 		//Handle the sort radio on the list.
 		var sortCode = $(e.target).val();
