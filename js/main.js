@@ -134,6 +134,8 @@ context.init = (function () {
 		//Clear the list controls.
 		$("div#listGroupNameWrapper").html("");
 		$("div#sublistControl").html("");
+		//Clear search form field.
+		$("input#textSearchField").val("");
 		//...
 	}
 
@@ -257,8 +259,15 @@ context.init = (function () {
 		$("#sectionLists").on("click","span.collapseButton",context.ui.collapseArchive);
 		$("#sectionLists").on("click","span.uncollapseButton",context.ui.uncollapseArchive);
 		//save settings?
+
 		//Not buttons
 		$("#bucketSorterWrapper input[type=radio]").click(context.ui.sortLists);
+
+		$("#textSearchField").on('keyup', function (e) {
+			if (e.key === 'Enter' || e.keyCode === 13) {
+        context.search.filter();
+			}
+		});
 	}
 
 	function setStorage(key, value) {
@@ -817,13 +826,14 @@ context.item = (function () {
 
 	function deleteIt(e) {
 		//Handle the UI call to delete an item.
-		var itemId = $(e.target).closest("div.formattedItem").prop("id").split("item_")[1];
+		var itemId = $(e.target).closest("div.formattedItem").data("itemid");
 		deleteItem(itemId);
 	}
 
 	function edit(e) {
 		//Handle the UI call to edit an item.
-		var itemId = $(e.target).closest("div.formattedItem").prop("id").split("item_")[1];
+		var itemId = $(e.target).closest("div.formattedItem").data("itemid");
+		console.log(itemId);
 		editItem(itemId);
 	}
 
@@ -843,7 +853,8 @@ context.item = (function () {
 		}
 		
 		var itemDate = new Date(respd.created_at);
-		var formattedItem = "<div class='list-group-item clearfix formattedItem' id='item_" + respd.id + "' data-creator='" + respd.user.id + "'>";
+		var formattedItem = "<div class='list-group-item clearfix formattedItem' id='item_" + respd.id + "'";
+		formattedItem += " data-itemid='" + respd.id + "' data-creator='" + respd.user.id + "'>";
 		formattedItem += "<span class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + respd.user.username + "'>";
 		formattedItem += respd.content.html + "</span>";
 		formattedItem += formatButtons(respd.id, respd.channel_id, listType);
@@ -868,7 +879,7 @@ context.item = (function () {
 
 	function move(e) {
 		//Handle the UI call to move an item.
-		var itemId = $(e.target).closest("div.formattedItem").prop("id").split("item_")[1];
+		var itemId = $(e.target).closest("div.formattedItem").data("itemid");
 		var targetType = $(e.target).closest("[data-destination]").data("destination");
 		moveItem(itemId, targetType);
 	}
@@ -990,7 +1001,13 @@ context.item = (function () {
 				formattedItem += " data-button='moveItem' data-destination='0'>";
 			formattedItem += "<i class='fa fa-check'></i></button>";
 		} else if (typeof defaultDestList != "undefined") {
-			//Add the move arrow to the archive.
+			//Add the move arrow(s) to the archive.
+			if (defaultDestList != "1") {
+				//Add a second move option.
+				formattedItem += "<button type='button' class='settingsToggle settingsToggledOff btn btn-default btn-xs' ";
+				formattedItem += " data-button='moveItem' data-destination='1'>";
+				formattedItem += "<i class='fa fa-backward'></i></button> ";
+			}
 			formattedItem += "<button type='button' class='settingsToggle settingsToggledOff btn btn-default btn-xs' ";
 			formattedItem += " data-button='moveItem' data-destination='" + defaultDestList + "'>";
 			formattedItem += "<i class='fa fa-arrow-left'></i></button>";
@@ -999,7 +1016,7 @@ context.item = (function () {
 			//Add the move options
 			formattedItem += "<div class='btn-group dropdown settingsToggle settingsToggledOn pull-right'>";
 			formattedItem += "<button type='button' class='btn btn-default btn-xs dropdown-toggle' data-toggle='dropdown'>";
-			formattedItem += "<i class='fa fa-cog'></i> <span class='caret'></span></button>";
+			formattedItem += "<i class='fa fa-ellipsis-h'></i> <span class='caret'></span></button>";
 			formattedItem += "<ul class='dropdown-menu' role='menu'>";
 			for (var li in channelArray[channelId].listTypes) {
 				if (li != listType && li != 0) 
@@ -1012,10 +1029,10 @@ context.item = (function () {
 			//Edit option
 			formattedItem += "<li class='divider'></li>";
 			formattedItem += "<li><a href='#' data-button='editItem'><i class='fa fa-pencil'></i> Edit</a></li>";
-			if (listType == "0") {
-				//Add the deletion option
-				formattedItem += "<li><a href='#' data-button='deleteItem'><i class='fa fa-times'></i> Delete</a></li>";
-			}
+
+			//Add the deletion option to all lists
+			formattedItem += "<li><a href='#' data-button='deleteItem'><i class='fa fa-times'></i> Delete</a></li>";
+
 			formattedItem += "</ul></div>";
 		}
 		formattedItem += "</div>";
