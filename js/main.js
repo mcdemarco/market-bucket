@@ -1028,11 +1028,14 @@ context.item = (function () {
 			formattedItem += "<i class='fa fa-ellipsis-h'></i></button>";
 			formattedItem += "<ul class='dropdown-menu' role='menu'>";
 			for (var li in channelArray[channelId].listTypes) {
-				if (li != listType && li != 0) 
-					formattedItem += "<li><a href='#' data-button='moveItem' data-destination='" + li + "'><i class='fa fa-" + (listType == "0" || parseInt(listType,10) > parseInt(li,10) ? (channelArray[channelId].listTypes.length > 2 && li == 1 ? "backward" : "arrow-left") : "arrow-right") + "'></i> Move to " + channelArray[channelId].listTypes[li].title + "</a></li>";
+				if (li != listType && li != 0) {
+					formattedItem += "<li><a href='#' data-button='moveItem' data-destination='" + li + "'>";
+					formattedItem += "<i class='fa fa-" + (listType == "0" || parseInt(listType,10) > parseInt(li,10) ? (channelArray[channelId].listTypes.length > 2 && li == "1" && listType == "0" ? "backward" : "arrow-left") : "arrow-right") + "'></i>";
+					formattedItem += " Move to " + channelArray[channelId].listTypes[li].title + "</a></li>";
+				}
 			}
 			if (listType != "0") {
-				//Add the deletion option
+				//Add the archive option
 				formattedItem += "<li><a href='#' data-button='moveItem'><i class='fa fa-check'></i> Archive</a></li>";
 			}
 			//Edit option
