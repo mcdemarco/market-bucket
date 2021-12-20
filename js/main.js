@@ -28,6 +28,7 @@ var marketBucket = {};
 	var channelArray = {};
 	var messageTextArray = {};
 	var updateArgs = {include_raw: 1};
+	var version = "2.3.0-alpha";
 
 
 context.init = (function () {
@@ -144,6 +145,7 @@ context.init = (function () {
 		$("a.h1-link").attr('href',api.site);
 		$("a#fontBrandLink").click(function(){context.ui.navbarSetter();});
 		activateButtons();
+		$("#version").html(version);
 
 		checkStorage("accessToken");
 		if (!api.accessToken) {
