@@ -254,10 +254,17 @@ context.init = (function () {
 		$("#searchUsers").click(context.user.search);
 		$("#searchClearButton").click(context.search.unfilter);
 		$("#textSearchButton").click(context.search.filter);
+
 		//Stuff we need to be .live.
 		$("#sectionLists").on("click","span.collapseButton",context.ui.collapseArchive);
 		$("#sectionLists").on("click","span.uncollapseButton",context.ui.uncollapseArchive);
 		$("#sectionLists").on("click","div.formattedItem",context.item.settingsToggle);
+		$("#sectionLists").on("click","div.formattedItem button[data-button='moveItem']",context.item.move);
+		$("#sectionLists").on("click","div.formattedItem a[data-button='moveItem']",context.item.move);
+		$("#sectionLists").on("click","div.formattedItem button[data-button='deleteItem']",context.item.deleteIt);
+		$("#sectionLists").on("click","div.formattedItem a[data-button='deleteItem']",context.item.deleteIt);
+		$("#sectionLists").on("click","div.formattedItem a[data-button='editItem']",context.item.edit);
+
 		//save settings?
 
 		//Not buttons
@@ -872,8 +879,6 @@ context.item = (function () {
 				context.ui.itemTag($(this).data("hashtagName"));
 			});
 		});
-		//Activate the buttons.
-		activateButtons(respd.id);
 		//Store the item.
 		messageTextArray[respd.id] = respd.content.text;
 	}
@@ -979,9 +984,8 @@ context.item = (function () {
 		//Need to update the buttons.
 		$("div#buttons_" + itemId).remove();
 		//Don't worry about the new buttons starting out of sync b/c this fix caused issues.
-		context.ui.settingsOff(targetType);
+		context.ui.settingsOff();
 		$("#item_" + itemId).append(formatButtons(itemId,currentChannel,targetType));
-		activateButtons(itemId);
 	}
 
 	function formatButtons(itemId, channelId, listType) {
@@ -1049,15 +1053,6 @@ context.item = (function () {
 		}
 		formattedItem += "</div>";
 		return formattedItem;
-	}
-
-	function activateButtons(itemId) {
-		//Maybe could do this on init?
-		$("#item_" + itemId + " button[data-button='moveItem']").click(context.item.move);
-		$("#item_" + itemId + " a[data-button='moveItem']").click(context.item.move);
-		$("#item_" + itemId + " button[data-button='deleteItem']").click(context.item.deleteIt);
-		$("#item_" + itemId + " a[data-button='deleteItem']").click(context.item.deleteIt);
-		$("#item_" + itemId + " a[data-button='editItem']").click(context.item.edit);
 	}
 
 	function updateLists(channelId,updatedLists) {
