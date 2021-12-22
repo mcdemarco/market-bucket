@@ -1220,7 +1220,7 @@ context.search = (function () {
 
 	//public
 
-	function filter() {
+	function filter(e) {
 		//TODO: live search with debounce (search without submitting).
 
 		var term = $.trim($("#textSearchField").val().toLowerCase());
@@ -1248,6 +1248,7 @@ context.search = (function () {
 		}
 
 		//While not live searching:
+		$("#textSearchField").blur();
 		context.ui.forceScroll("#sectionLists");
 	}
 	
