@@ -220,6 +220,10 @@ div.settingsToggle {
 
 div.list-group-item {
     color: #333;
+    user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-user-select: none;
 }
 
 div.list-group-item:hover, 

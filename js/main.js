@@ -4,6 +4,7 @@
 // channel
 // item
 // tags
+// search
 // list
 // user
 // ui
@@ -27,6 +28,7 @@ var marketBucket = {};
 	var channelArray = {};
 	var messageTextArray = {};
 	var updateArgs = {include_raw: 1};
+	var version = "2.3.0-alpha";
 
 
 context.init = (function () {
@@ -133,6 +135,8 @@ context.init = (function () {
 		//Clear the list controls.
 		$("div#listGroupNameWrapper").html("");
 		$("div#sublistControl").html("");
+		//Clear search form field.
+		$("input#textSearchField").val("");
 		//...
 	}
 
@@ -141,6 +145,7 @@ context.init = (function () {
 		$("a.h1-link").attr('href',api.site);
 		$("a#fontBrandLink").click(function(){context.ui.navbarSetter();});
 		activateButtons();
+		$("#version").html(version);
 
 		checkStorage("accessToken");
 		if (!api.accessToken) {
@@ -193,6 +198,7 @@ context.init = (function () {
 
 	function refresh(e) {
 		//Manual refresh button.
+		context.search.unfilter(e);
 		context.channel.getCurrent();
 	}
 
@@ -248,14 +254,29 @@ context.init = (function () {
 		$("span#defaultToggle").click(context.list.defaultToggle);
 		$("#saveListEdits").click(context.list.edit);
 		$("#searchUsers").click(context.user.search);
-		$("#tagSearchClearButton").click(context.tags.unfilter);
+		$("#searchClearButton").click(context.search.unfilter);
+		$("#textSearchButton").click(context.search.filter);
+
 		//Stuff we need to be .live.
-		$("#sectionLists").on("click","span.settingsButton",context.ui.settingsToggle);
 		$("#sectionLists").on("click","span.collapseButton",context.ui.collapseArchive);
 		$("#sectionLists").on("click","span.uncollapseButton",context.ui.uncollapseArchive);
+		$("#sectionLists").on("click","div.formattedItem",context.item.settingsToggle);
+		$("#sectionLists").on("click","div.formattedItem button[data-button='moveItem']",context.item.move);
+		$("#sectionLists").on("click","div.formattedItem a[data-button='moveItem']",context.item.move);
+		$("#sectionLists").on("click","div.formattedItem button[data-button='deleteItem']",context.item.deleteIt);
+		$("#sectionLists").on("click","div.formattedItem a[data-button='deleteItem']",context.item.deleteIt);
+		$("#sectionLists").on("click","div.formattedItem a[data-button='editItem']",context.item.edit);
+
 		//save settings?
+
 		//Not buttons
 		$("#bucketSorterWrapper input[type=radio]").click(context.ui.sortLists);
+
+		$("#textSearchField").on('keyup', function (e) {
+			if (e.key === 'Enter' || e.keyCode === 13) {
+        context.search.filter();
+			}
+		});
 	}
 
 	function setStorage(key, value) {
@@ -578,7 +599,6 @@ context.channel = (function () {
 
 		//Fetch more data if this is the right channel.
 		if (api.currentChannel && api.currentChannel == thisChannel.id) {
-			console.log("displaying current channel");
 			display(thisChannel.id);
 		}
 	}
@@ -777,7 +797,8 @@ context.item = (function () {
 		deleteIt: deleteIt,
 		edit: edit,
 		format: format,
-		move: move
+		move: move,
+		settingsToggle: settingsToggle
 	};
 
 	//public
@@ -802,7 +823,7 @@ context.item = (function () {
 		}
 		//Don't want the new buttons starting out of sync.
 		var listType = $("input[name=bucketBucket]:checked").data("list");
-		context.ui.settingsOff(listType);
+		context.ui.settingsOff();
 		createItem(channelId, message);
 	}
 
@@ -815,13 +836,14 @@ context.item = (function () {
 
 	function deleteIt(e) {
 		//Handle the UI call to delete an item.
-		var itemId = $(e.target).closest("div.formattedItem").prop("id").split("item_")[1];
+		var itemId = $(e.target).closest("div.formattedItem").data("itemid");
 		deleteItem(itemId);
 	}
 
 	function edit(e) {
 		//Handle the UI call to edit an item.
-		var itemId = $(e.target).closest("div.formattedItem").prop("id").split("item_")[1];
+		var itemId = $(e.target).closest("div.formattedItem").data("itemid");
+		console.log(itemId);
 		editItem(itemId);
 	}
 
@@ -841,7 +863,8 @@ context.item = (function () {
 		}
 		
 		var itemDate = new Date(respd.created_at);
-		var formattedItem = "<div class='list-group-item clearfix formattedItem' id='item_" + respd.id + "' data-creator='" + respd.user.id + "'>";
+		var formattedItem = "<div class='list-group-item clearfix formattedItem' id='item_" + respd.id + "'";
+		formattedItem += " data-itemid='" + respd.id + "' data-creator='" + respd.user.id + "'>";
 		formattedItem += "<span class='list-group-item-text' title='Added " + itemDate.toLocaleString() + " by " + respd.user.username + "'>";
 		formattedItem += respd.content.html + "</span>";
 		formattedItem += formatButtons(respd.id, respd.channel_id, listType);
@@ -858,19 +881,25 @@ context.item = (function () {
 				context.ui.itemTag($(this).data("hashtagName"));
 			});
 		});
-		//Activate the buttons.
-		activateButtons(respd.id);
 		//Store the item.
 		messageTextArray[respd.id] = respd.content.text;
 	}
 
 	function move(e) {
 		//Handle the UI call to move an item.
-		var itemId = $(e.target).closest("div.formattedItem").prop("id").split("item_")[1];
+		var itemId = $(e.target).closest("div.formattedItem").data("itemid");
 		var targetType = $(e.target).closest("[data-destination]").data("destination");
 		moveItem(itemId, targetType);
 	}
 
+	function settingsToggle(e) {
+		//Handle the ellipsis (formerly settings) buttons on items (formerly sublist-wide).
+		if ($(e.target).closest("button").length > 0)
+			return;
+		e.preventDefault();
+		$(e.target).closest("div.formattedItem").find(".settingsToggle").toggle();
+	}
+	
 	//private
 
 	function createItem(channel,message) {
@@ -957,9 +986,8 @@ context.item = (function () {
 		//Need to update the buttons.
 		$("div#buttons_" + itemId).remove();
 		//Don't worry about the new buttons starting out of sync b/c this fix caused issues.
-		context.ui.settingsOff(targetType);
+		context.ui.settingsOff();
 		$("#item_" + itemId).append(formatButtons(itemId,currentChannel,targetType));
-		activateButtons(itemId);
 	}
 
 	function formatButtons(itemId, channelId, listType) {
@@ -988,7 +1016,13 @@ context.item = (function () {
 				formattedItem += " data-button='moveItem' data-destination='0'>";
 			formattedItem += "<i class='fa fa-check'></i></button>";
 		} else if (typeof defaultDestList != "undefined") {
-			//Add the move arrow to the archive.
+			//Add the move arrow(s) to the archive.
+			if (defaultDestList != "1") {
+				//Add a second move option.
+				formattedItem += "<button type='button' class='settingsToggle settingsToggledOff btn btn-default btn-xs' ";
+				formattedItem += " data-button='moveItem' data-destination='1'>";
+				formattedItem += "<i class='fa fa-backward'></i></button> ";
+			}
 			formattedItem += "<button type='button' class='settingsToggle settingsToggledOff btn btn-default btn-xs' ";
 			formattedItem += " data-button='moveItem' data-destination='" + defaultDestList + "'>";
 			formattedItem += "<i class='fa fa-arrow-left'></i></button>";
@@ -996,37 +1030,31 @@ context.item = (function () {
 		if (channelArray[channelId].hasOwnProperty("listTypes")) {
 			//Add the move options
 			formattedItem += "<div class='btn-group dropdown settingsToggle settingsToggledOn pull-right'>";
-			formattedItem += "<button type='button' class='btn btn-default btn-xs dropdown-toggle' data-toggle='dropdown'>";
-			formattedItem += "<i class='fa fa-cog'></i> <span class='caret'></span></button>";
+			formattedItem += " <button type='button' class='btn btn-default btn-xs dropdown-toggle' data-toggle='dropdown'>";
+			formattedItem += "<i class='fa fa-ellipsis-h'></i></button>";
 			formattedItem += "<ul class='dropdown-menu' role='menu'>";
 			for (var li in channelArray[channelId].listTypes) {
-				if (li != listType && li != 0) 
-					formattedItem += "<li><a href='#' data-button='moveItem' data-destination='" + li + "'><i class='fa fa-arrow-" + (listType == "0" || parseInt(listType,10) > parseInt(li,10) ? "left" : "right") + "'></i> Move to " + channelArray[channelId].listTypes[li].title + "</a></li>";
+				if (li != listType && li != 0) {
+					formattedItem += "<li><a href='#' data-button='moveItem' data-destination='" + li + "'>";
+					formattedItem += "<i class='fa fa-" + (listType == "0" || parseInt(listType,10) > parseInt(li,10) ? (channelArray[channelId].listTypes.length > 2 && li == "1" && listType == "0" ? "backward" : "arrow-left") : "arrow-right") + "'></i>";
+					formattedItem += " Move to " + channelArray[channelId].listTypes[li].title + "</a></li>";
+				}
 			}
 			if (listType != "0") {
-				//Add the deletion option
+				//Add the archive option
 				formattedItem += "<li><a href='#' data-button='moveItem'><i class='fa fa-check'></i> Archive</a></li>";
 			}
 			//Edit option
 			formattedItem += "<li class='divider'></li>";
 			formattedItem += "<li><a href='#' data-button='editItem'><i class='fa fa-pencil'></i> Edit</a></li>";
-			if (listType == "0") {
-				//Add the deletion option
-				formattedItem += "<li><a href='#' data-button='deleteItem'><i class='fa fa-times'></i> Delete</a></li>";
-			}
+
+			//Add the deletion option to all lists
+			formattedItem += "<li><a href='#' data-button='deleteItem'><i class='fa fa-times'></i> Delete</a></li>";
+
 			formattedItem += "</ul></div>";
 		}
 		formattedItem += "</div>";
 		return formattedItem;
-	}
-
-	function activateButtons(itemId) {
-		//Maybe could do this on init?
-		$("#item_" + itemId + " button[data-button='moveItem']").click(context.item.move);
-		$("#item_" + itemId + " a[data-button='moveItem']").click(context.item.move);
-		$("#item_" + itemId + " button[data-button='deleteItem']").click(context.item.deleteIt);
-		$("#item_" + itemId + " a[data-button='deleteItem']").click(context.item.deleteIt);
-		$("#item_" + itemId + " a[data-button='editItem']").click(context.item.edit);
 	}
 
 	function updateLists(channelId,updatedLists) {
@@ -1081,8 +1109,7 @@ context.tags = (function () {
 		collect: collect,
 		colorize: colorize,
 		display: display,
-		filter: filter,
-		unfilter: unfilter
+		filter: filter
 	};
 
 	//public
@@ -1116,7 +1143,7 @@ context.tags = (function () {
 			channelId = api.currentChannel;
 		//Display unique tags.
 		if (channelArray[channelId].tagArray.length == 0) {
-			$("#tagSearchRow").hide();
+			$("#searchRow").hide();
 		} else {
 			//Note this sorts the original array.
 			var sortedArray = channelArray[channelId].tagArray.sort();
@@ -1125,29 +1152,30 @@ context.tags = (function () {
 			}
 			colorize();
 			activateTagButtons();
-			$("#tagSearchRow").show();
+			$("#searchRow").show();
 		}
 	}
 	
 	function filter(unhashedTag) {
-		//Filter and unfilter based on tag.
+		
+		//Filter based on tag.
 		if (!unhashedTag) {
-			unfilter();
+			return;
 		} else {
 			//Filter further.
 			$("#sectionLists").find("div.list-group-item").each(function(index) {
 				if ($(this).find("span[data-tag-name='" + unhashedTag + "']").length == 0 && (!$(this).hasClass("active")))
-					$(this).hide();
+					$(this).addClass("hideForSearch").hide();
+				else {
+					//Show archived items.
+					if (!$(this).hasClass("hideForSearch"))  
+						$(this).show();
+				}
 			});
 		}
 		context.ui.forceScroll("#sectionLists");
 	}
 	
-	function unfilter() {
-		//Reset filtration.
-		$("#sectionLists").find("div.list-group-item").show();
-	}
-
 	//private
 	function displayTag(unhashedTag) {
 		//Display tags individually as part of the tag collection process.
@@ -1178,6 +1206,59 @@ context.tags = (function () {
 		var b = parseInt(hexcolor.substr(4,2),16);
 		var yiq = ((r*299)+(g*587)+(b*114))/1000;
 		return (yiq >= 128) ? 'black' : 'white';
+	}
+
+})();
+
+
+context.search = (function () {
+
+	return {
+		filter: filter,
+		unfilter: unfilter
+	};
+
+	//public
+
+	function filter(e) {
+		//TODO: live search with debounce (search without submitting).
+
+		var term = $.trim($("#textSearchField").val().toLowerCase());
+		//Filter based on search term.
+		if (!term) {
+			return;
+		} else {
+			//Filter further.
+			$("#sectionLists").find("div.list-group-item.formattedItem").each(function(index) {
+				var currentItem = $(this);
+				var textIn = currentItem.find("span.list-group-item-text span[itemtype='https://pnut.io/schemas/Post']");
+				textIn.contents().each(function() {
+					if (this.nodeType == Node.TEXT_NODE && $.trim(this.textContent).length) {
+						//console.log($.trim(this.textContent));
+						if (this.textContent.toLowerCase().indexOf(term) === -1)
+							currentItem.addClass("hideForSearch").hide();
+						else {
+							//Show archived items.
+							if (!currentItem.hasClass("hideForSearch"))  
+								currentItem.show();
+						}
+					}
+				});
+			});
+		}
+
+		//While not live searching:
+		$("#textSearchField").blur();
+		context.ui.forceScroll("#sectionLists");
+	}
+	
+	function unfilter(e) {
+		//Reset filtration.  (Affects tag search and text search.)
+		$("#sectionLists").find("div.list-group-item").filter(".hideForSearch").not(".hideForCollapse").show();
+		//Reset classes.
+		$("div.formattedItem").removeClass("hideForSearch");
+		//Clear search.
+		$("#textSearchField").val("");
 	}
 
 })();
@@ -1521,7 +1602,6 @@ context.ui = (function () {
 		nameSublist: nameSublist,
 		navbarSetter: navbarSetter,
 		pushHistory: pushHistory,
-		settingsToggle: settingsToggle,
 		settingsOff: settingsOff,
 		sortLists: sortLists,
 		tagButton: tagButton,
@@ -1553,7 +1633,7 @@ context.ui = (function () {
 
 		//Test for presence of the archive purely in the UI.
 		if ($("div#list_0 div.list-group").children().length > targetCount) {
-			$("#list_0 div.formattedItem:gt(" + targetCount + ")").hide();
+			$("#list_0 div.formattedItem:gt(" + targetCount + ")").addClass("hideForCollapse").hide();
 			if ($("#uncollapseArchiveWrapper").length == 0)
 				$("#list_0 div.list-group").append(formattedButton);
 			
@@ -1647,27 +1727,12 @@ context.ui = (function () {
 			history.pushState({}, document.title, newLocation);
 	}
 
-	function settingsOff(list) {
-		//Toggle settings off IF ON, in order to add buttons or items in the default state.
-		//If list is passed in, toggle only the one list.
-		//Otherwise toggle all.
-		if (list) {
-			$("div#list_" + list + " .settingsToggledOff").show();
-			$("div#list_" + list + " .settingsToggledOn").hide();
-		} else {
-			$(".settingsToggledOff").show();
-			$(".settingsToggledOn").hide();
-		}
+	function settingsOff() {
+		//Toggle all settings off, in order to add buttons or items in the default state.
+		$(".settingsToggledOff").show();
+		$(".settingsToggledOn").hide();
 	}
-	
-	function settingsToggle(e) {
-		//Handle the settings buttons on the sublists.  This toggles everything.
-		e.preventDefault();
-		$(e.target).closest("div.bucketListDiv").find(".settingsToggle").toggle();
-		if ($(e.target).closest("div.bucketListDiv").find(".settingsToggle").length == 0)
-			context.ui.forceScroll("#sectionSettings");
-	}
-	
+
 	function sortLists(e) {
 		//Handle the sort radio on the list.
 		var sortCode = $(e.target).val();
@@ -1689,7 +1754,7 @@ context.ui = (function () {
 		//Undo the archive concealment.
 		var targetCount = 7;
 		$("div#uncollapseArchiveWrapper").remove();
-		$("#list_0 div.formattedItem").show();
+		$("#list_0 div.formattedItem").removeClass("hideForCollapse").filter(":not(.hideForSearch)").show();
 		//Show a re-collapse button.
 		$("div#list_0 span.collapseButton").show();
 	}
