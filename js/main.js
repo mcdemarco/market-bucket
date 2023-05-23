@@ -1224,7 +1224,7 @@ context.search = (function () {
 		//TODO: live search with debounce (search without submitting).
 
 		var term = $.trim($("#textSearchField").val().toLowerCase());
-		//Filter based on search term.
+		//Filter lists based on search term.
 		if (!term) {
 			return;
 		} else {
@@ -1234,13 +1234,13 @@ context.search = (function () {
 				var textIn = currentItem.find("span.list-group-item-text span[itemtype='https://pnut.io/schemas/Post']");
 				textIn.contents().each(function() {
 					if (this.nodeType == Node.TEXT_NODE && $.trim(this.textContent).length) {
-						//console.log($.trim(this.textContent));
-						if (this.textContent.toLowerCase().indexOf(term) === -1)
+						if (this.textContent.toLowerCase().indexOf(term) === -1) {
 							currentItem.addClass("hideForSearch").hide();
-						else {
-							//Show archived items.
-							if (!currentItem.hasClass("hideForSearch"))  
-								currentItem.show();
+						} else {
+							//Make text search self-reset.
+							currentItem.removeClass("hideForSearch").show();
+							//We don't want to check more text chunks if we've already found a match, so continue:
+							return false;
 						}
 					}
 				});
