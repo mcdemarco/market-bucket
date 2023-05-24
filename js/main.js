@@ -28,7 +28,7 @@ var marketBucket = {};
 	var channelArray = {};
 	var messageTextArray = {};
 	var updateArgs = {include_raw: 1};
-	var version = "2.3.1-beta";
+	var version = "2.3.1";
 
 
 context.init = (function () {
