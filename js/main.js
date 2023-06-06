@@ -1042,7 +1042,7 @@ context.item = (function () {
 			}
 			if (listType != "0") {
 				//Add the archive option
-				formattedItem += "<li><a href='#' data-button='moveItem'><i class='fa fa-check'></i> Archive</a></li>";
+				formattedItem += "<li><a href='#' data-button='moveItem' data-destination='0'><i class='fa fa-check'></i> Archive</a></li>";
 			}
 			//Edit option
 			formattedItem += "<li class='divider'></li>";
