@@ -28,7 +28,7 @@ var marketBucket = {};
 	var channelArray = {};
 	var messageTextArray = {};
 	var updateArgs = {include_raw: 1};
-	var version = "2.3.1-beta";
+	var version = "2.3.1";
 
 
 context.init = (function () {
@@ -1027,12 +1027,15 @@ context.item = (function () {
 			formattedItem += " data-button='moveItem' data-destination='" + defaultDestList + "'>";
 			formattedItem += "<i class='fa fa-arrow-left'></i></button>";
 		}
+
+		//Settings section
+		formattedItem += "<div class='btn-group dropdown settingsToggle settingsToggledOn pull-right'>";
+		formattedItem += " <button type='button' class='btn btn-default btn-xs dropdown-toggle' data-toggle='dropdown'>";
+		formattedItem += "<i class='fa fa-ellipsis-h'></i></button>";
+		formattedItem += "<ul class='dropdown-menu' role='menu'>";
+
 		if (channelArray[channelId].hasOwnProperty("listTypes")) {
 			//Add the move options
-			formattedItem += "<div class='btn-group dropdown settingsToggle settingsToggledOn pull-right'>";
-			formattedItem += " <button type='button' class='btn btn-default btn-xs dropdown-toggle' data-toggle='dropdown'>";
-			formattedItem += "<i class='fa fa-ellipsis-h'></i></button>";
-			formattedItem += "<ul class='dropdown-menu' role='menu'>";
 			for (var li in channelArray[channelId].listTypes) {
 				if (li != listType && li != 0) {
 					formattedItem += "<li><a href='#' data-button='moveItem' data-destination='" + li + "'>";
@@ -1042,7 +1045,7 @@ context.item = (function () {
 			}
 			if (listType != "0") {
 				//Add the archive option
-				formattedItem += "<li><a href='#' data-button='moveItem'><i class='fa fa-check'></i> Archive</a></li>";
+				formattedItem += "<li><a href='#' data-button='moveItem' data-destination='0'><i class='fa fa-check'></i> Archive</a></li>";
 			}
 			//Edit option
 			formattedItem += "<li class='divider'></li>";
@@ -1050,9 +1053,13 @@ context.item = (function () {
 
 			//Add the deletion option to all lists
 			formattedItem += "<li><a href='#' data-button='deleteItem'><i class='fa fa-times'></i> Delete</a></li>";
-
-			formattedItem += "</ul></div>";
+		} else {
+			//Add just the edit button.
+			formattedItem += "<li><a href='#' data-button='editItem'><i class='fa fa-pencil'></i> Edit</a></li>";
 		}
+		//end of settings menu
+		formattedItem += "</ul></div>";
+
 		formattedItem += "</div>";
 		return formattedItem;
 	}
@@ -1243,6 +1250,7 @@ context.search = (function () {
 							return false;
 						}
 					}
+					return true;
 				});
 			});
 		}
