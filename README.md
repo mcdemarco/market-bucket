@@ -2,11 +2,15 @@
 
 Market Bucket is a client-side web app for making and sharing lists.  It uses pnut.io (replacing app.net) for a data store.  
 
-A pnut.io client id is required to run your own copy.  There is no build process; the code is the code.
+A pnut.io client id is required to run your own copy.
+
+There is no build process; the code is the code.  If you edit the scss, you should use sass to recompile it:
+
+	sass sectionalize.scss sectionalize.css
 
 ## ToDo
 
-The ToDo list is in the [wiki](https://bitbucket.org/mcdemarco/market-bucket/wiki/Home).
+The old ToDo list is in the [wiki](https://github.com/mcdemarco/market-bucket/wiki); new ToDos are [GitHub issues](https://github.com/mcdemarco/market-bucket/issues).
 
 ## Versions
 
@@ -14,9 +18,17 @@ The ToDo list is in the [wiki](https://bitbucket.org/mcdemarco/market-bucket/wik
 
 #### Latest!
 
-2.2.5: Fix issue with long lists. (March 2021)
+2.3.1: Improved text search. (May 2023)
 
-#### Jan 2021
+#### December 2021
+
+2.3.0: Add text search and modify button operation. (December 2021)
+
+#### March 2021
+
+2.2.5: Fix issue with long lists. 
+
+#### January 2021
 
 2.2.4: Fixed alphabetical sort issues on some OSes.
 
@@ -24,7 +36,7 @@ The ToDo list is in the [wiki](https://bitbucket.org/mcdemarco/market-bucket/wik
 
 2.2.3: Added explicit list defaulting (per browser) and fixed intended default to the last active list set (as opposed to last used in that browser).
 
-#### Aug 2019
+#### August 2019
 
 2.2.2: Fixed annotations not being retrieved on refresh and updated libraries to latest minor versions (or latest version where not semantic-versioned).
 
