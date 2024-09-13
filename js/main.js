@@ -417,8 +417,8 @@ context.channel = (function () {
 		if (annotationValue.hasOwnProperty("list_types")) {
 			channelArray[thisChannel.id].listTypes = annotationValue.list_types;
 			channelArray[thisChannel.id].lists = messageAnnotationValue.lists ?  messageAnnotationValue.lists : {};
-
-			//console.log(thisChannel.id + "'s list types: " + JSON.stringify(annotationValue.list_types) + " and lists type: " + JSON.stringify(channelArray[thisChannel.id].lists).substring(1,20) );
+			
+			//console.log(thisChannel.id + "'s list types: " + JSON.stringify(annotationValue.list_types) + " and lists sample: " + JSON.stringify(channelArray[thisChannel.id].lists).substring(1,30) );
 		}
 		if (channelArray[thisChannel.id].oldEditorIds.length > 0 && thisChannel.owner.id == api.userId) {
 			context.user.fix(thisChannel.id);
@@ -749,6 +749,8 @@ context.channel = (function () {
 
 	function validate(data) {
 		//Validate the sublist tracking list against the list items for a channel.
+		//For manual debugging.
+		//Some simpler correction code is commented out of context.item.moveItem.
 		console.log("Validating...\n passed channel id " + (data[0]).channel_id + " = current channel id " + api.currentChannel + "?");
 		console.log(channelArray[api.currentChannel].listTypes);
 		var lists = channelArray[api.currentChannel].lists;
@@ -756,16 +758,22 @@ context.channel = (function () {
 		console.log("List lengths: " + Object.keys(lists).map(function (obj) { return "\n" + obj + ": " + lists[obj].length; }));
 
 		var dataIds = data.map( datum => datum.id );
-		console.log(dataIds);
+		//console.log(dataIds);
 		for (var ll=0; ll<channelArray[api.currentChannel].listTypes.length; ll++) {
 			if (lists.hasOwnProperty(ll)) {
 				var difference = lists[ll].filter(x => !dataIds.includes(x));
 				console.log(ll + ": " + JSON.stringify(difference));
-			} else {
-				console.log(ll + " is not a legit list.");
 			}
 		}
-		//console.log(JSON.stringify(lists));
+
+		//Make pervasive corrections after deletegate.
+		var updatedLists = JSON.parse(JSON.stringify(channelArray[api.currentChannel].lists));
+		if (updatedLists.hasOwnProperty("2")) {
+			//Testing on the small list.
+			var legits = updatedLists["2"].filter(x => dataIds.includes(x));
+			console.log(legits);
+		}
+
 	}
 
 	function processChannelUsers(thisChannelId) {
@@ -880,19 +888,12 @@ context.item = (function () {
 		//Default (sub)list.
 		var listType = (typeof sublist !== 'undefined' ? sublist : 1);
 		//Check for alternate sublist IF the list has official sublists and it wasn't passed in.
-
-		//console.log("Item " + respd.id + " (" + respd.content.text + ") may have listType 1 unless...");
-
-		//if (respd.id == 294240) console.log(JSON.stringify(respd));
-
 		if (typeof sublist === 'undefined' && channelArray[respd.channel_id].hasOwnProperty("listTypes")) {
 			//listTypes is an array of objects.  do not use for..in.
-
 			for (var typ=0; typ<channelArray[respd.channel_id].listTypes.length; typ++) {
 				if (channelArray[respd.channel_id].lists.hasOwnProperty(typ) &&
 					channelArray[respd.channel_id].lists[typ].indexOf(respd.id) > -1) {
 					listType = typ;
-					//console.log("...it's in the list as listType " + typ);
 				}
 			}
 		}
@@ -1015,6 +1016,12 @@ context.item = (function () {
 				else
 					updatedLists[targetType] = [itemId.toString()];
 			}
+
+			//Make simple corrections to mysteriously corrupt data.
+			//console.log(Object.keys(updatedLists));
+			//if (updatedLists.hasOwnProperty("1'")) delete updatedLists["1'"];
+
+
 			//Send to pnut.
 			updateLists(currentChannel,updatedLists);
 		}
@@ -1140,14 +1147,17 @@ context.item = (function () {
 		var currentChannel = api.currentChannel;
 		//Clean up sublists!  (Needs testing.)
 		var updatedLists = JSON.parse(JSON.stringify(channelArray[currentChannel].lists));
-		for (var i=0; i<updatedLists.length; i++) {
-			var index = updatedLists[i].indexOf(itemId.toString());
+		for (var key in updatedLists) {
+			var index = updatedLists[key].indexOf(itemId.toString());
 			if (index > -1) {
-				updatedLists[i].splice(index, 1);
+				updatedLists[key].splice(index, 1);
+				console.log("Deleted " + itemId);
 				//Assume no duplicates.
 				//Send to pnut.
 				updateLists(currentChannel,updatedLists);
 				break;
+			} else {
+				console.log("Didn't find item " + itemId + " in list " + key);
 			}
 		}
 
