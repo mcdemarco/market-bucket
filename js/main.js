@@ -12,7 +12,7 @@
 
 var marketBucket = {};
 
-(function(context) { 
+(function(context) {
 
 	var api = {
 		client_id: '7JYXDfqd2AlirYoVR5pbgncOolj18fvu',
@@ -28,7 +28,7 @@ var marketBucket = {};
 	var channelArray = {};
 	var messageTextArray = {};
 	var updateArgs = {include_raw: 1};
-	var version = "2.3.1";
+	var version = "2.3.2";
 
 
 context.init = (function () {
@@ -417,7 +417,7 @@ context.channel = (function () {
 		if (annotationValue.hasOwnProperty("list_types")) {
 			channelArray[thisChannel.id].listTypes = annotationValue.list_types;
 			channelArray[thisChannel.id].lists = messageAnnotationValue.lists ?  messageAnnotationValue.lists : {};
-			
+			//The list data is inconsistent.
 			//console.log(thisChannel.id + "'s list types: " + JSON.stringify(annotationValue.list_types) + " and lists sample: " + JSON.stringify(channelArray[thisChannel.id].lists).substring(1,30) );
 		}
 		if (channelArray[thisChannel.id].oldEditorIds.length > 0 && thisChannel.owner.id == api.userId) {
@@ -743,7 +743,7 @@ context.channel = (function () {
 			context.tags.display();
 			context.ui.collapseArchive();
 
-			validate(data);
+			//validate(data);
 		}
 	}
 
@@ -752,13 +752,14 @@ context.channel = (function () {
 		//For manual debugging.
 		//Some simpler correction code is commented out of context.item.moveItem.
 		console.log("Validating...\n passed channel id " + (data[0]).channel_id + " = current channel id " + api.currentChannel + "?");
-		console.log(channelArray[api.currentChannel].listTypes);
+		//console.log(channelArray[api.currentChannel].listTypes);
 		var lists = channelArray[api.currentChannel].lists;
 		console.log("Length " + data.length + " = list length sum " + Object.keys(lists).reduce(function (acc, obj) { return acc + lists[obj].length; }, 0) +"?");
 		console.log("List lengths: " + Object.keys(lists).map(function (obj) { return "\n" + obj + ": " + lists[obj].length; }));
 
 		var dataIds = data.map( datum => datum.id );
 		//console.log(dataIds);
+		console.log(lists);
 		for (var ll=0; ll<channelArray[api.currentChannel].listTypes.length; ll++) {
 			if (lists.hasOwnProperty(ll)) {
 				var difference = lists[ll].filter(x => !dataIds.includes(x));
@@ -767,13 +768,17 @@ context.channel = (function () {
 		}
 
 		//Make pervasive corrections after deletegate.
-		var updatedLists = JSON.parse(JSON.stringify(channelArray[api.currentChannel].lists));
-		if (updatedLists.hasOwnProperty("2")) {
-			//Testing on the small list.
-			var legits = updatedLists["2"].filter(x => dataIds.includes(x));
-			console.log(legits);
+		/*
+		var currentChannel = api.currentChannel;
+		var updatedLists = JSON.parse(JSON.stringify(channelArray[currentChannel].lists));
+		var key = "0";
+		if (updatedLists.hasOwnProperty(key)) {
+			var legits = updatedLists[key].filter(x => dataIds.includes(x));
+			console.log("Updating list " + key + " to only legit items: " + legits);
+			updatedLists[key] = legits;
+			context.item.updateLists(currentChannel,updatedLists);			
 		}
-
+		*/
 	}
 
 	function processChannelUsers(thisChannelId) {
@@ -834,7 +839,8 @@ context.item = (function () {
 		edit: edit,
 		format: format,
 		move: move,
-		settingsToggle: settingsToggle
+		settingsToggle: settingsToggle,
+		updateLists
 	};
 
 	//public
@@ -879,7 +885,6 @@ context.item = (function () {
 	function edit(e) {
 		//Handle the UI call to edit an item.
 		var itemId = $(e.target).closest("div.formattedItem").data("itemid");
-		//console.log(itemId);
 		editItem(itemId);
 	}
 
@@ -924,7 +929,6 @@ context.item = (function () {
 	function move(e) {
 		//Handle the UI call to move an item.
 		var itemId = $(e.target).closest("div.formattedItem").data("itemid");
-		console.log(itemId);
 		var targetType = $(e.target).closest("[data-destination]").data("destination");
 		moveItem(itemId, targetType);
 	}
@@ -1021,7 +1025,6 @@ context.item = (function () {
 			//console.log(Object.keys(updatedLists));
 			//if (updatedLists.hasOwnProperty("1'")) delete updatedLists["1'"];
 
-
 			//Send to pnut.
 			updateLists(currentChannel,updatedLists);
 		}
@@ -1111,7 +1114,6 @@ context.item = (function () {
 	function updateLists(channelId,updatedLists) {
 		//Update the item lists on move.
 		//Vacuous moves should be blocked before this point, so we just update the lists.
-		//console.log(JSON.stringify(updatedLists));
 		var channelUpdates = {
 			raw: [{
 				type: api.message_annotation_type,
@@ -1151,19 +1153,15 @@ context.item = (function () {
 			var index = updatedLists[key].indexOf(itemId.toString());
 			if (index > -1) {
 				updatedLists[key].splice(index, 1);
-				console.log("Deleted " + itemId);
 				//Assume no duplicates.
 				//Send to pnut.
 				updateLists(currentChannel,updatedLists);
 				break;
-			} else {
-				console.log("Didn't find item " + itemId + " in list " + key);
 			}
 		}
 
 		//Use deletion response data to remove the HTML item.
-		$("#item_" + itemId).remove();
-		
+		$("#item_" + itemId).remove();	
 	}
 
 	function updateSublistOnAdd(channelId, messageId, listType) {
