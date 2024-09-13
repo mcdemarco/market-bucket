@@ -322,6 +322,41 @@ context.channel = (function () {
 		useSampleChannel: useSampleChannel
 	};
 
+	function display(thisChannelId) {
+		//Display a channel based on the stored info in channelArray, and retrieve messages or use canned messages.
+		//Users in settings panel.
+		var listTypes = (channelArray[thisChannelId] && channelArray[thisChannelId].hasOwnProperty("listTypes") ? channelArray[thisChannelId].listTypes : {});
+		processChannelUsers(thisChannelId);
+
+		context.ui.nameList(thisChannelId);
+		
+		//Make more list holders for sublists.
+		var len = Object.keys(listTypes).length;
+		if (len > 0) {
+			//Editor for first list name.
+			editCloner(1, listTypes);
+			
+			for (var i = 2; i <= len; i++) {
+				if (listTypes.hasOwnProperty(i.toString())) {
+					listCloner(i, listTypes);
+				}
+			}
+			if (listTypes.hasOwnProperty("0")) {
+				listCloner(0, listTypes);
+			}
+			//Need to retitle the main list.
+			context.ui.nameSublist(1, listTypes);
+			
+			//Layout adjustment for the big screen.
+			$("div#list_1").removeClass("col-sm-offset-4");
+			if (len == 2) 
+				$("div#list_1").addClass("col-sm-offset-2");
+			if (len == 4) 
+				$("div#list_0").addClass("col-sm-offset-4");
+		}
+		displayMessages(thisChannelId);
+	}
+
 	function get() {
 		//Determine channels and hand them off.
 		var args = {
@@ -382,10 +417,13 @@ context.channel = (function () {
 		if (annotationValue.hasOwnProperty("list_types")) {
 			channelArray[thisChannel.id].listTypes = annotationValue.list_types;
 			channelArray[thisChannel.id].lists = messageAnnotationValue.lists ?  messageAnnotationValue.lists : {};
+
+			//console.log(thisChannel.id + "'s list types: " + JSON.stringify(annotationValue.list_types) + " and lists type: " + JSON.stringify(channelArray[thisChannel.id].lists).substring(1,20) );
 		}
 		if (channelArray[thisChannel.id].oldEditorIds.length > 0 && thisChannel.owner.id == api.userId) {
 			context.user.fix(thisChannel.id);
 		}
+
 	}
 
 	function useSampleChannel() {
@@ -396,7 +434,27 @@ context.channel = (function () {
 		//context.tags.display();
 	}
 
+
 	//private
+
+	function displayMessages(thisChannelId) {
+		if (isSampleChannel(thisChannelId)) {
+			//Use sample messages.
+			var theseMessages = getSampleMessages();
+			completeMessages(theseMessages[thisChannelId]);
+			context.tags.display();
+		} else {
+			//Retrieve the messages from ADN.
+			var args = {
+				include_deleted: 0,
+				include_raw: 1,
+				count: api.message_count
+			};
+			var promise = $.pnut.message.getChannel(thisChannelId, args);
+			promise.then(function(response) {completeMessagesCheck(response,[]);}, function (response) {context.ui.failAlert('Failed to retrieve items.');});//.done(context.tags.display,context.ui.collapseArchive);
+		}
+	}
+
 	function getSampleChannelResponse() {
 		//Needed to put the sample channel search canned response in a function instead of a variable.
 		var sampleChannelResponse = {"data": [
@@ -612,59 +670,6 @@ context.channel = (function () {
 			}
 		} 
 	}
-
-	function display(thisChannelId) {
-		//Display a channel based on the stored info in channelArray, and retrieve messages or use canned messages.
-		//Users in settings panel.
-		var listTypes = (channelArray[thisChannelId] && channelArray[thisChannelId].hasOwnProperty("listTypes") ? channelArray[thisChannelId].listTypes : {});
-		processChannelUsers(thisChannelId);
-		
-		context.ui.nameList(thisChannelId);
-		
-		//Make more list holders for sublists.
-		var len = Object.keys(listTypes).length;
-		if (len > 0) {
-			//Editor for first list name.
-			editCloner(1, listTypes);
-			
-			for (var i = 2; i <= len; i++) {
-				if (listTypes.hasOwnProperty(i.toString())) {
-					listCloner(i, listTypes);
-				}
-			}
-			if (listTypes.hasOwnProperty("0")) {
-				listCloner(0, listTypes);
-			}
-			//Need to retitle the main list.
-			context.ui.nameSublist(1, listTypes);
-			
-			//Layout adjustment for the big screen.
-			$("div#list_1").removeClass("col-sm-offset-4");
-			if (len == 2) 
-				$("div#list_1").addClass("col-sm-offset-2");
-			if (len == 4) 
-				$("div#list_0").addClass("col-sm-offset-4");
-		}
-		displayMessages(thisChannelId);
-	}
-		
-	function displayMessages(thisChannelId) {
-		if (isSampleChannel(thisChannelId)) {
-			//Use sample messages.
-			var theseMessages = getSampleMessages();
-			completeMessages(theseMessages[thisChannelId]);
-			context.tags.display();
-		} else {
-			//Retrieve the messages from ADN.
-			var args = {
-				include_deleted: 0,
-				include_raw: 1,
-				count: api.message_count
-			};
-			var promise = $.pnut.message.getChannel(thisChannelId, args);
-			promise.then(function(response) {completeMessagesCheck(response,[]);}, function (response) {context.ui.failAlert('Failed to retrieve items.');});//.done(context.tags.display,context.ui.collapseArchive);
-		}
-	}
 	
 	function listCloner(index, listTypesObj) {
 		//Clone and name new list wrappers.
@@ -710,12 +715,12 @@ context.channel = (function () {
 			//No more, so finish up.
 			completeMessages(data);
 		}
-		
 	}
 
 	function completeMessages(data) {
 		//Populate the UI for an individual retrieved message list.
 		if (data.length > 0) {
+
 			switch (api.sortOrder) {
 				case "az":
 				data.sort(azChannelSorter);
@@ -737,7 +742,30 @@ context.channel = (function () {
 			}
 			context.tags.display();
 			context.ui.collapseArchive();
+
+			validate(data);
 		}
+	}
+
+	function validate(data) {
+		//Validate the sublist tracking list against the list items for a channel.
+		console.log("Validating...\n passed channel id " + (data[0]).channel_id + " = current channel id " + api.currentChannel + "?");
+		console.log(channelArray[api.currentChannel].listTypes);
+		var lists = channelArray[api.currentChannel].lists;
+		console.log("Length " + data.length + " = list length sum " + Object.keys(lists).reduce(function (acc, obj) { return acc + lists[obj].length; }, 0) +"?");
+		console.log("List lengths: " + Object.keys(lists).map(function (obj) { return "\n" + obj + ": " + lists[obj].length; }));
+
+		var dataIds = data.map( datum => datum.id );
+		console.log(dataIds);
+		for (var ll=0; ll<channelArray[api.currentChannel].listTypes.length; ll++) {
+			if (lists.hasOwnProperty(ll)) {
+				var difference = lists[ll].filter(x => !dataIds.includes(x));
+				console.log(ll + ": " + JSON.stringify(difference));
+			} else {
+				console.log(ll + " is not a legit list.");
+			}
+		}
+		//console.log(JSON.stringify(lists));
 	}
 
 	function processChannelUsers(thisChannelId) {
@@ -843,7 +871,7 @@ context.item = (function () {
 	function edit(e) {
 		//Handle the UI call to edit an item.
 		var itemId = $(e.target).closest("div.formattedItem").data("itemid");
-		console.log(itemId);
+		//console.log(itemId);
 		editItem(itemId);
 	}
 
@@ -852,12 +880,19 @@ context.item = (function () {
 		//Default (sub)list.
 		var listType = (typeof sublist !== 'undefined' ? sublist : 1);
 		//Check for alternate sublist IF the list has official sublists and it wasn't passed in.
+
+		//console.log("Item " + respd.id + " (" + respd.content.text + ") may have listType 1 unless...");
+
+		//if (respd.id == 294240) console.log(JSON.stringify(respd));
+
 		if (typeof sublist === 'undefined' && channelArray[respd.channel_id].hasOwnProperty("listTypes")) {
-			for (var key in channelArray[respd.channel_id].listTypes) {
-				if (channelArray[respd.channel_id].listTypes.hasOwnProperty(key) && 
-					channelArray[respd.channel_id].lists.hasOwnProperty(key) &&
-					channelArray[respd.channel_id].lists[key].indexOf(respd.id) > -1) {
-					listType = key;
+			//listTypes is an array of objects.  do not use for..in.
+
+			for (var typ=0; typ<channelArray[respd.channel_id].listTypes.length; typ++) {
+				if (channelArray[respd.channel_id].lists.hasOwnProperty(typ) &&
+					channelArray[respd.channel_id].lists[typ].indexOf(respd.id) > -1) {
+					listType = typ;
+					//console.log("...it's in the list as listType " + typ);
 				}
 			}
 		}
@@ -888,6 +923,7 @@ context.item = (function () {
 	function move(e) {
 		//Handle the UI call to move an item.
 		var itemId = $(e.target).closest("div.formattedItem").data("itemid");
+		console.log(itemId);
 		var targetType = $(e.target).closest("[data-destination]").data("destination");
 		moveItem(itemId, targetType);
 	}
@@ -943,10 +979,11 @@ context.item = (function () {
 		var currentChannel = api.currentChannel;
 		if (!context.channel.isSampleChannel(currentChannel)) {
 			var promise = $.pnut.message.destroy(currentChannel,itemId);
-			promise.then(completeDelete,  function (response) {context.ui.failAlert('Failed to delete item.');});
+			promise.then(completeDelete, function (response) {context.ui.failAlert('Failed to delete item.');});
+		} else {
+			//Remove sample item from UI.
+			$("#item_" + itemId).remove();
 		}
-		//Remove item from UI.
-		$("#item_" + itemId).remove();
 	}
 
 	function editItem(itemId) {
@@ -1067,6 +1104,7 @@ context.item = (function () {
 	function updateLists(channelId,updatedLists) {
 		//Update the item lists on move.
 		//Vacuous moves should be blocked before this point, so we just update the lists.
+		//console.log(JSON.stringify(updatedLists));
 		var channelUpdates = {
 			raw: [{
 				type: api.message_annotation_type,
@@ -1074,7 +1112,7 @@ context.item = (function () {
 			}]
 		};
 		var promise = $.pnut.channel.update(channelId, channelUpdates, updateArgs);
-		promise.then(completeUpdateLists, function (response) {context.ui.failAlert('Failed to move item.');});
+		promise.then(completeUpdateLists, failUpdateLists); 
 	}
 
 	function completeUpdateLists(response) {
@@ -1091,10 +1129,31 @@ context.item = (function () {
 		}
 	}
 
+	function failUpdateLists(response) {
+		context.ui.failAlert('Failed to move item.');
+		//Redraw.
+		context.channel.getCurrent();
+	}
+
 	function completeDelete(response) {
+		var itemId = response.data.id;
+		var currentChannel = api.currentChannel;
+		//Clean up sublists!  (Needs testing.)
+		var updatedLists = JSON.parse(JSON.stringify(channelArray[currentChannel].lists));
+		for (var i=0; i<updatedLists.length; i++) {
+			var index = updatedLists[i].indexOf(itemId.toString());
+			if (index > -1) {
+				updatedLists[i].splice(index, 1);
+				//Assume no duplicates.
+				//Send to pnut.
+				updateLists(currentChannel,updatedLists);
+				break;
+			}
+		}
+
 		//Use deletion response data to remove the HTML item.
-		$("#item_" + response.data.id).remove();
-		//Clean up sublists?
+		$("#item_" + itemId).remove();
+		
 	}
 
 	function updateSublistOnAdd(channelId, messageId, listType) {
