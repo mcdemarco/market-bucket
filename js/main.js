@@ -22,13 +22,13 @@ var marketBucket = {};
 		max_samples: 3,
 		max_sublists: 4,
 		message_count: 200,
-		site: 'http://market-bucket.mcdemarco.net'
+		site: '//market-bucket.mcdemarco.net'
 	};
 
 	var channelArray = {};
 	var messageTextArray = {};
 	var updateArgs = {include_raw: 1};
-	var version = "2.3.2";
+	var version = "2.3.3";
 
 
 context.init = (function () {
