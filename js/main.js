@@ -418,13 +418,12 @@ context.channel = (function () {
 		};
 		if (annotationValue.hasOwnProperty("list_types")) {
 			channelArray[thisChannel.id].listTypes = annotationValue.list_types;
-			console.log(channelArray[thisChannel.id].name); 
+			//console.log(channelArray[thisChannel.id].name); 
 			channelArray[thisChannel.id].lists = messageAnnotationValue.lists ?  context.sublist.parse(messageAnnotationValue.lists) : {};
 		}
 		if (channelArray[thisChannel.id].oldEditorIds.length > 0 && thisChannel.owner.id == api.userId) {
 			context.user.fix(thisChannel.id);
 		}
-
 	}
 
 	function useSampleChannel() {
@@ -811,7 +810,7 @@ context.sublist = (function () {
 		//Whenever sublist data comes in from the server, we may need to parse it into the new format.
 		let parsedObject = {};
 		for (let [key, value] of Object.entries(rawData)) {
-			console.log(key, value);
+			//console.log(key, value);
 			if (typeof value == "object") { //that is, array
 				//the data is not converted yet and we don't need to do anything here, only on send
 				parsedObject[key] = value.slice();
@@ -902,7 +901,7 @@ context.sublist = (function () {
 		//When we send sublist data to the server, we want to compress it (because they got too large).
 		var compressedObject = {};
 		for (let [key, value] of Object.entries(listObject)) {
-			console.log(key, value);
+			//console.log(key, value);
 			compressedObject[key] = value.map(numb => convertBase(numb, 10, 62)).join(",");
 		}
 		return compressedObject;
