@@ -2,13 +2,15 @@
 //
 // init
 // channel
+// sublist
 // item
 // tags
 // search
 // list
 // user
 // ui
-
+//
+/*jshint esversion: 6 */
 
 var marketBucket = {};
 
@@ -28,7 +30,7 @@ var marketBucket = {};
 	var channelArray = {};
 	var messageTextArray = {};
 	var updateArgs = {include_raw: 1};
-	var version = "2.3.3";
+	var version = "2.3.4";
 
 
 context.init = (function () {
@@ -416,9 +418,8 @@ context.channel = (function () {
 		};
 		if (annotationValue.hasOwnProperty("list_types")) {
 			channelArray[thisChannel.id].listTypes = annotationValue.list_types;
-			channelArray[thisChannel.id].lists = messageAnnotationValue.lists ?  messageAnnotationValue.lists : {};
-			//The list data is inconsistent.
-			//console.log(thisChannel.id + "'s list types: " + JSON.stringify(annotationValue.list_types) + " and lists sample: " + JSON.stringify(channelArray[thisChannel.id].lists).substring(1,30) );
+			console.log(channelArray[thisChannel.id].name); 
+			channelArray[thisChannel.id].lists = messageAnnotationValue.lists ?  context.sublist.parse(messageAnnotationValue.lists) : {};
 		}
 		if (channelArray[thisChannel.id].oldEditorIds.length > 0 && thisChannel.owner.id == api.userId) {
 			context.user.fix(thisChannel.id);
@@ -743,42 +744,8 @@ context.channel = (function () {
 			context.tags.display();
 			context.ui.collapseArchive();
 
-			//validate(data);
+			//context.sublist.validate(data, false);
 		}
-	}
-
-	function validate(data) {
-		//Validate the sublist tracking list against the list items for a channel.
-		//For manual debugging.
-		//Some simpler correction code is commented out of context.item.moveItem.
-		console.log("Validating...\n passed channel id " + (data[0]).channel_id + " = current channel id " + api.currentChannel + "?");
-		//console.log(channelArray[api.currentChannel].listTypes);
-		var lists = channelArray[api.currentChannel].lists;
-		console.log("Length " + data.length + " = list length sum " + Object.keys(lists).reduce(function (acc, obj) { return acc + lists[obj].length; }, 0) +"?");
-		console.log("List lengths: " + Object.keys(lists).map(function (obj) { return "\n" + obj + ": " + lists[obj].length; }));
-
-		var dataIds = data.map( datum => datum.id );
-		//console.log(dataIds);
-		console.log(lists);
-		for (var ll=0; ll<channelArray[api.currentChannel].listTypes.length; ll++) {
-			if (lists.hasOwnProperty(ll)) {
-				var difference = lists[ll].filter(x => !dataIds.includes(x));
-				console.log(ll + ": " + JSON.stringify(difference));
-			}
-		}
-
-		//Make pervasive corrections after deletegate.
-		/*
-		var currentChannel = api.currentChannel;
-		var updatedLists = JSON.parse(JSON.stringify(channelArray[currentChannel].lists));
-		var key = "0";
-		if (updatedLists.hasOwnProperty(key)) {
-			var legits = updatedLists[key].filter(x => dataIds.includes(x));
-			console.log("Updating list " + key + " to only legit items: " + legits);
-			updatedLists[key] = legits;
-			context.item.updateLists(currentChannel,updatedLists);			
-		}
-		*/
 	}
 
 	function processChannelUsers(thisChannelId) {
@@ -805,7 +772,7 @@ context.channel = (function () {
 
 	function completeUsers(response) {
 		//Handle the editor query response data.
-		for (u=0; u < response.data.length; u++) {
+		for (var u=0; u < response.data.length; u++) {
 			context.user.display(response.data[u],"editor");
 		}
 	}
@@ -830,6 +797,158 @@ context.channel = (function () {
 
 })();
 
+context.sublist = (function () {
+
+	return {
+		parse: parse,
+		update: update,
+		updateOnAdd: updateOnAdd,
+		validate: validate
+	};
+
+	//public
+	function parse(rawData) {
+		//Whenever sublist data comes in from the server, we may need to parse it into the new format.
+		let parsedObject = {};
+		for (let [key, value] of Object.entries(rawData)) {
+			console.log(key, value);
+			if (typeof value == "object") { //that is, array
+				//the data is not converted yet and we don't need to do anything here, only on send
+				parsedObject[key] = value.slice();
+			} else if (typeof value == "string") {
+				//split the string on commas and parse the split numbers into decimal
+				parsedObject[key] = value.split(",").map(numb => convertBase(numb, 62, 10));
+			} else {
+				console.log("Parsing error for list " + key);
+			}
+		}
+		return parsedObject;
+	}
+
+	function update(channelId,updatedLists) {
+		//Update the item lists on move.
+		const newRawData = compress(updatedLists);
+
+		//Vacuous moves should be blocked before this point, so we just update the lists.
+		var channelUpdates = {
+			raw: [{
+				type: api.message_annotation_type,
+				value: {'lists': newRawData}
+			}]
+		};
+		var promise = $.pnut.channel.update(channelId, channelUpdates, updateArgs);
+		promise.then(completeUpdateLists, failUpdateLists); 
+	}
+
+	function completeUpdateLists(response) {
+		//Handle all channel sublist updates.
+		var thisChannel = response.data;
+		var annotationValue;
+		for (var a = 0; a < thisChannel.raw.length; a++) {
+			if (thisChannel.raw[a].type == api.message_annotation_type) {
+				annotationValue = thisChannel.raw[a].value;
+			}
+		}
+		if (annotationValue) {
+			if (annotationValue.lists)
+				channelArray[thisChannel.id].lists = parse(annotationValue.lists);
+		}
+	}
+
+	function failUpdateLists(response) {
+		context.ui.failAlert('Failed to move item.');
+		//Redraw.
+		context.channel.getCurrent();
+	}
+
+	function updateOnAdd(channelId, messageId, listType) {
+		//Another sublist updater.
+		//Called on creation after formatting, so the html is already located in the right spot. Just update the channel.
+		var updatedLists = channelArray[channelId].lists;
+		if (!updatedLists.hasOwnProperty(listType))
+			updatedLists[listType] = [];
+		updatedLists[listType].push(messageId);
+		update(channelId,updatedLists);
+	}
+
+	function validate(data, fix) {
+		//Validate the sublist tracking list against the list items for a channel.
+		//For manual debugging.
+		console.log("Validating...\n passed channel id " + (data[0]).channel_id + " = current channel id " + api.currentChannel + "?");
+		console.log(channelArray[api.currentChannel].listTypes);
+		var lists = channelArray[api.currentChannel].lists;
+		if (lists && typeof lists == "object") {
+			console.log("Length " + data.length + " = list length sum " + Object.keys(lists).reduce(function (acc, obj) { return acc + lists[obj].length; }, 0) +" plus active items?");
+			console.log("List lengths: " + Object.keys(lists).map(function (obj) { return "\n" + obj + ": " + lists[obj].length; }));
+
+			var dataIds = data.map( datum => datum.id );
+			console.log(lists);
+			var difference;
+			for (var ll=0; ll<channelArray[api.currentChannel].listTypes.length; ll++) {
+				if (lists.hasOwnProperty(ll)) {
+					difference = lists[ll].filter(x => !dataIds.includes(x));
+					console.log(ll + ": " + JSON.stringify(difference));
+				}
+			}
+			
+			if (fix) 
+				repair(dataIds);
+		}
+	}
+
+
+	//private
+	function compress(listObject) {
+		//When we send sublist data to the server, we want to compress it (because they got too large).
+		var compressedObject = {};
+		for (let [key, value] of Object.entries(listObject)) {
+			console.log(key, value);
+			compressedObject[key] = value.map(numb => convertBase(numb, 10, 62)).join(",");
+		}
+		return compressedObject;
+	}
+
+	function convertBase(value, from_base, to_base) {
+		//From baseroo.
+		var range = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/'.split('');
+		var from_range = range.slice(0, from_base);
+		var to_range = range.slice(0, to_base);
+		
+		var dec_value = value.split('').reverse().reduce(function (carry, digit, index) {
+			if (from_range.indexOf(digit) === -1) throw new Error('Invalid digit `'+digit+'` for base '+from_base+'.');
+			return carry += from_range.indexOf(digit) * (Math.pow(from_base, index));
+		}, 0);
+		
+		var new_value = '';
+		while (dec_value > 0) {
+			new_value = to_range[dec_value % to_base] + new_value;
+			dec_value = (dec_value - (dec_value % to_base)) / to_base;
+		}
+		return new_value || '0';
+	}
+
+	function repair(dataIds) {
+		//Make pervasive corrections after deletegate.
+		//Saving for posterity after more crud accrued, 5/2025.
+		var currentChannel = api.currentChannel;
+		var updatedLists = JSON.parse(JSON.stringify(channelArray[currentChannel].lists));
+
+		const keys = Object.keys(updatedLists);
+		for (var k=0; k<keys.length; k++) {
+			var key = keys[k];
+			console.log(key, updatedLists.hasOwnProperty(key));
+			if (updatedLists.hasOwnProperty(key)) {
+				var legits = updatedLists[key].filter(x => dataIds.includes(x));
+				console.log("Updating list " + key + " to only legit items: " + legits);
+				updatedLists[key] = legits;
+			}
+		}
+		console.log("Updating lists.");
+		update(currentChannel,updatedLists);
+	}
+
+})();
+
 context.item = (function () {
 
 	return {
@@ -839,8 +958,7 @@ context.item = (function () {
 		edit: edit,
 		format: format,
 		move: move,
-		settingsToggle: settingsToggle,
-		updateLists
+		settingsToggle: settingsToggle
 	};
 
 	//public
@@ -969,7 +1087,7 @@ context.item = (function () {
 			format(respd,listType);
 			if (listType != 1) {
 				//Update the sublists!
-				updateSublistOnAdd(respd.channel_id,respd.id, listType);
+				context.sublist.updateOnAdd(respd.channel_id,respd.id, listType);
 			}
 		} else {
 			format(respd);
@@ -1021,12 +1139,8 @@ context.item = (function () {
 					updatedLists[targetType] = [itemId.toString()];
 			}
 
-			//Make simple corrections to mysteriously corrupt data.
-			//console.log(Object.keys(updatedLists));
-			//if (updatedLists.hasOwnProperty("1'")) delete updatedLists["1'"];
-
 			//Send to pnut.
-			updateLists(currentChannel,updatedLists);
+			context.sublist.update(currentChannel,updatedLists);
 		}
 		//Move html.
 		$("#item_" + itemId).appendTo("div#list_" + targetType + " div.list-group");
@@ -1111,67 +1225,26 @@ context.item = (function () {
 		return formattedItem;
 	}
 
-	function updateLists(channelId,updatedLists) {
-		//Update the item lists on move.
-		//Vacuous moves should be blocked before this point, so we just update the lists.
-		var channelUpdates = {
-			raw: [{
-				type: api.message_annotation_type,
-				value: {'lists': updatedLists}
-			}]
-		};
-		var promise = $.pnut.channel.update(channelId, channelUpdates, updateArgs);
-		promise.then(completeUpdateLists, failUpdateLists); 
-	}
-
-	function completeUpdateLists(response) {
-		//Handle all channel sublist updates.
-		var thisChannel = response.data;
-		for (var a = 0; a < thisChannel.raw.length; a++) {
-			if (thisChannel.raw[a].type == api.message_annotation_type) {
-				var annotationValue = thisChannel.raw[a].value;
-			}
-		}
-		if (annotationValue) {
-			if (annotationValue.lists)
-				channelArray[thisChannel.id].lists = annotationValue.lists;
-		}
-	}
-
-	function failUpdateLists(response) {
-		context.ui.failAlert('Failed to move item.');
-		//Redraw.
-		context.channel.getCurrent();
-	}
-
 	function completeDelete(response) {
 		var itemId = response.data.id;
 		var currentChannel = api.currentChannel;
-		//Clean up sublists!  (Needs testing.)
-		var updatedLists = JSON.parse(JSON.stringify(channelArray[currentChannel].lists));
-		for (var key in updatedLists) {
-			var index = updatedLists[key].indexOf(itemId.toString());
-			if (index > -1) {
-				updatedLists[key].splice(index, 1);
-				//Assume no duplicates.
-				//Send to pnut.
-				updateLists(currentChannel,updatedLists);
-				break;
+		//Clean up sublists!
+		if (channelArray[currentChannel].hasOwnProperty("lists")) {
+			var updatedLists = JSON.parse(JSON.stringify(channelArray[currentChannel].lists));
+			for (var key in updatedLists) {
+				var index = updatedLists[key].indexOf(itemId.toString());
+				if (index > -1) {
+					updatedLists[key].splice(index, 1);
+					//Assume no duplicates.
+					//Send to pnut.
+					context.sublist.update(currentChannel,updatedLists);
+					break;
+				}
 			}
 		}
 
 		//Use deletion response data to remove the HTML item.
 		$("#item_" + itemId).remove();	
-	}
-
-	function updateSublistOnAdd(channelId, messageId, listType) {
-		//Another sublist updater.
-		//Called on creation after formatting, so the html is already located in the right spot. Just update the channel.
-		var updatedLists = channelArray[channelId].lists;
-		if (!updatedLists.hasOwnProperty(listType))
-			updatedLists[listType] = [];
-		updatedLists[listType].push(messageId);
-		updateLists(channelId,updatedLists);
 	}
 
 })();
