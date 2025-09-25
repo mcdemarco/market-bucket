@@ -10,7 +10,8 @@
 // user
 // ui
 //
-/*jshint esversion: 6 */
+/* jshint esversion: 6, sub:true */
+/* globals localStorage, sessionStorage */
 
 var marketBucket = {};
 
@@ -30,7 +31,7 @@ var marketBucket = {};
 	var channelArray = {};
 	var messageTextArray = {};
 	var updateArgs = {include_raw: 1};
-	var version = "2.3.4";
+	var version = "2.3.5";
 
 
 context.init = (function () {
@@ -65,14 +66,14 @@ context.init = (function () {
 			try {api[key] = sessionStorage[key];}
 			catch (e) {}
 		} else if (key != "currentChannel" && localStorage && localStorage[key]) {
-			try {api[key] = localStorage[key];} 
+			try {api[key] = localStorage[key];}
 			catch (e) {}
 		} else {
 			switch(key) {
 				case "accessToken":
 					api.accessToken = window.location.hash.split("access_token=")[1];
 					if (api.accessToken && localStorage) {
-						try {localStorage["accessToken"] = api.accessToken;} 
+						try {localStorage["accessToken"] = api.accessToken;}
 						catch (e) {}
 					}
 					break;
@@ -315,6 +316,7 @@ context.init = (function () {
 context.channel = (function () {
 
 	return {
+		completeChannel: completeChannel,
 		display: display,
 		get: get,
 		getAnnotations: getAnnotations,
@@ -325,6 +327,14 @@ context.channel = (function () {
 		storeChannel: storeChannel,
 		useSampleChannel: useSampleChannel
 	};
+
+	function completeChannel(response) {
+		//Like completeChannelSearch but for a single channel.
+		if (response.data) {
+			context.init.clearPage();
+			populateChannel(response.data);
+		}
+	}
 
 	function display(thisChannelId) {
 		//Display a channel based on the stored info in channelArray, and retrieve messages or use canned messages.
@@ -432,8 +442,8 @@ context.channel = (function () {
 			var oldLists = channelArray[thisChannel.id].lists;
 			var newLists = messageAnnotationValue.lists ?  context.sublist.parse(messageAnnotationValue.lists) : {};
 			for (var sublistType in channelArray[thisChannel.id].listTypes) {
-				var oldList = oldLists[sublistType];
-				var newList = newLists[sublistType];
+				var oldList = oldLists.hasOwnProperty(sublistType) ? oldLists[sublistType] : []; 
+				var newList = newLists.hasOwnProperty(sublistType) ? newLists[sublistType] : [];
 				if (oldList.length !== newList.length)
 					return false;
 				for (var i = 0; i < oldList.length; i++) {
@@ -656,14 +666,6 @@ context.channel = (function () {
 			]}
 		};
 		return sampleMessages;
-	}
-
-	function completeChannel(response) {
-		//Like completeChannelSearch but for a single channel.
-		if (response.data) {
-			context.init.clearPage();
-			populateChannel(response.data);
-		}
 	}
 
 	function completeChannelSearch(response) {
@@ -970,7 +972,7 @@ context.sublist = (function () {
 		//Handle all channel sublist updates.
 		if (reload) {
 			//Update the UI.
-			context.channel.completeCurrent(response);
+			context.channel.completeChannel(response);
 			return;
 		}
 
@@ -991,7 +993,7 @@ context.sublist = (function () {
 	function failUpdateLists(response) {
 		context.ui.failAlert('Failed to move item.');
 		//Redraw.
-		context.channel.completeCurrent(response);
+		context.channel.completeChannel(response);
 	}
 
 	function updateOnAdd(channelId, messageId, listType, reload) {
