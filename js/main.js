@@ -10,7 +10,8 @@
 // user
 // ui
 //
-/*jshint esversion: 6 */
+/* jshint esversion: 6, sub:true */
+/* globals localStorage, sessionStorage */
 
 var marketBucket = {};
 
@@ -30,7 +31,7 @@ var marketBucket = {};
 	var channelArray = {};
 	var messageTextArray = {};
 	var updateArgs = {include_raw: 1};
-	var version = "2.3.4";
+	var version = "2.3.5";
 
 
 context.init = (function () {
@@ -65,14 +66,14 @@ context.init = (function () {
 			try {api[key] = sessionStorage[key];}
 			catch (e) {}
 		} else if (key != "currentChannel" && localStorage && localStorage[key]) {
-			try {api[key] = localStorage[key];} 
+			try {api[key] = localStorage[key];}
 			catch (e) {}
 		} else {
 			switch(key) {
 				case "accessToken":
 					api.accessToken = window.location.hash.split("access_token=")[1];
 					if (api.accessToken && localStorage) {
-						try {localStorage["accessToken"] = api.accessToken;} 
+						try {localStorage["accessToken"] = api.accessToken;}
 						catch (e) {}
 					}
 					break;
@@ -315,14 +316,25 @@ context.init = (function () {
 context.channel = (function () {
 
 	return {
+		completeChannel: completeChannel,
 		display: display,
 		get: get,
 		getAnnotations: getAnnotations,
 		getCurrent: getCurrent,
 		isSampleChannel: isSampleChannel,
+		passiveUpdateForAdd: passiveUpdateForAdd,
+		passiveUpdateForMove: passiveUpdateForMove,
 		storeChannel: storeChannel,
 		useSampleChannel: useSampleChannel
 	};
+
+	function completeChannel(response) {
+		//Like completeChannelSearch but for a single channel.
+		if (response.data) {
+			context.init.clearPage();
+			populateChannel(response.data);
+		}
+	}
 
 	function display(thisChannelId) {
 		//Display a channel based on the stored info in channelArray, and retrieve messages or use canned messages.
@@ -388,11 +400,8 @@ context.channel = (function () {
 
 	function getCurrent() {
 		//A better process for refreshing the current channel.
-		var args = {
-			include_raw: 1
-		};
-		var promise = $.pnut.channel.get(api.currentChannel,args);
-		promise.then(completeChannel, function (response) {context.ui.failAlert('Failed to retrieve your list(s).');}); //.done(context.channel.display);
+		var promise = $.pnut.channel.get(api.currentChannel,updateArgs);
+		promise.then(completeChannel, function (response) {context.ui.failAlert('Failed to retrieve your list(s).');});
 	}
 
 	function isSampleChannel(channelId) {
@@ -401,7 +410,42 @@ context.channel = (function () {
 			channelId = api.currentChannel;
 		return (parseInt(channelId) <= api.max_samples);
 	}
+	
+	function passiveUpdateForAdd(channelId, messageId, listType) {
+		//Checks the channel data before attempting an add or edit.
+		var promise = $.pnut.channel.get(channelId,updateArgs);
+		promise.then(function (response) {completePassiveUpdateForAdd(response,messageId, listType);}, function (response) {console.log("Failed to update current list in background.");});
+	}
 
+	function passiveUpdateForMove(itemId,sourceType,targetType) {
+		//Checks the channel data before attempting the move.
+		var promise = $.pnut.channel.get(api.currentChannel,updateArgs);
+		promise.then(function (response) {completePassiveUpdateForMove(response,itemId,sourceType,targetType);}, function (response) {console.log("Failed to update current list in background.");});
+	}
+
+	function compareChannel(thisChannel, annotationsObject) {
+		//Check to see if the channel sublists have changed under us before moving items.
+		var annotationValue = annotationsObject[api.annotation_type];
+		var messageAnnotationValue = annotationsObject.hasOwnProperty(api.message_annotation_type) ? annotationsObject[api.message_annotation_type]: {};
+		if (annotationValue.hasOwnProperty("list_types")) {
+			var oldLists = channelArray[thisChannel.id].lists;
+			var newLists = messageAnnotationValue.lists ?  context.sublist.parse(messageAnnotationValue.lists) : {};
+			for (var sublistType in channelArray[thisChannel.id].listTypes) {
+				var oldList = oldLists.hasOwnProperty(sublistType) ? oldLists[sublistType] : []; 
+				var newList = newLists.hasOwnProperty(sublistType) ? newLists[sublistType] : [];
+				if (oldList.length !== newList.length)
+					return false;
+				for (var i = 0; i < oldList.length; i++) {
+					if (oldList[i] !== newList[i])
+						return false;
+				}
+			}
+			return true;
+		} else {
+			return true;
+		}
+	}
+	
 	function storeChannel(thisChannel, annotationsObject) {
 		//Just populating some old arguments instead of refactoring.
 		var annotationValue = annotationsObject[api.annotation_type];
@@ -409,7 +453,7 @@ context.channel = (function () {
 		//Save data for every channel.
 		channelArray[thisChannel.id] = {
 			"id" : thisChannel.id,
-			"name" : annotationValue["name"],
+			"name" : annotationValue.name,
 			"owner" : thisChannel.owner,
 			"editors" : thisChannel.acl,
 			"editorIds" : thisChannel.acl.full.user_ids,
@@ -613,14 +657,6 @@ context.channel = (function () {
 		return sampleMessages;
 	}
 
-	function completeChannel(response) {
-		//Like completeChannelSearch but for a single channel.
-		if (response.data) {
-			context.init.clearPage();
-			populateChannel(response.data);
-		}
-	}
-
 	function completeChannelSearch(response) {
 		//Process the automatic channel search's results.
 		if (response.data.length == 0) {
@@ -628,10 +664,100 @@ context.channel = (function () {
 			response = getSampleChannelResponse();
 		}
 		if (response.data.length > 0) {
+			//Check each channel's raw data for duplicate settings.
+			//console.log(response.data);
 			for (var c = 0; c < response.data.length; c++) {
 				populateChannel(response.data[c]);
 			}
 			populateChannelSelector();
+		}
+	}
+
+	function completePassiveUpdateForAdd(response,messageId,listType) {
+		//Updates the model but not the UI for a single channel,
+		//then does the sublist add editing.
+		if (response.data) {
+			//Possibly update model.
+			var annotations = getAnnotations(response.data);
+			//Eject if no settings annotation.
+			if (!annotations.hasOwnProperty(api.annotation_type)) 
+				return;
+
+			var changed = !(compareChannel(response.data, annotations));
+			//If the channel is unchanged on the server, we can add as usual.
+			if (changed) {
+				//We need to update model first.
+				storeChannel(response.data, annotations);
+			}
+
+			context.sublist.updateOnAdd(response.data.id, messageId, listType, changed);
+		} else {
+			console.log("No response data received during passive update for add.");
+		}
+	}
+
+	function completePassiveUpdateForMove(response,itemId,sourceType,targetType) {
+		//Updates the model but not the UI for a single channel, then moves (which updates the UI).
+		if (response.data) {
+			//Possibly update model.
+			var annotations = getAnnotations(response.data);
+			//Eject if no settings annotation.
+			if (!annotations.hasOwnProperty(api.annotation_type)) 
+				return;
+
+			var changed = !(compareChannel(response.data, annotations));
+			//If the channel is unchanged on the server, we can move as usual.
+			if (changed) {
+				//We need to update model first.
+				storeChannel(response.data, annotations);
+			}
+			
+			//Perform move.
+			var currentChannel = api.currentChannel;
+			var updatedLists = JSON.parse(JSON.stringify(channelArray[currentChannel].lists));
+
+			//Movement paths: from default to non-default, from non-default to non-default, from non-default to default.
+			if (sourceType != 1) {
+				//need to debit the source list.
+				var index = updatedLists[sourceType].indexOf(itemId.toString());
+				if (index > -1)
+					updatedLists[sourceType].splice(index, 1);
+				else {
+					if (changed) {
+						//Abort b/c not found where expected
+						context.ui.failAlert("Failed to move item because it had already been moved.");
+						//reload UI and abort.
+						completeChannel(response);
+						return;
+					} 
+				}
+			} else {
+				if (changed) {
+					//Check and abort if item is found in another list when not expected there.
+					for (var sublistType in channelArray[currentChannel].listTypes) {
+						if (channelArray[currentChannel].lists[sublistType].indexOf(itemId.toString()) > -1) {
+							//Abort b/c not found where expected
+							context.ui.failAlert("Failed to move item because it had already been moved.");
+							//reload UI and abort.
+							completeChannel(response);
+							return;
+						}
+					}
+				}
+			}
+			if (targetType != 1) {
+				//need to credit the target list
+				if (updatedLists[targetType])
+					updatedLists[targetType].push(itemId.toString());
+				else
+					updatedLists[targetType] = [itemId.toString()];
+			}
+
+			//Do the move if we're still here.
+			context.sublist.update(currentChannel,updatedLists,changed);
+			
+		} else {
+			console.log("No response data received during passive update for move.");
 		}
 	}
 
@@ -643,12 +769,6 @@ context.channel = (function () {
 			return;
 		
 		storeChannel(thisChannel, annotations);
-
-		/*Warn if user can't write to channel.
-		if (channelArray[thisChannel.id].owner.id != api.userId 
-				&& channelArray[thisChannel.id].editorIds.indexOf(api.userId) < 0)
-			context.ui.failAlert("You won't be able to move items in the '" + channelArray[thisChannel.id].name + "' list until the owner logs into Market Bucket again.");
-		*/
 
 		if (Object.keys(channelArray).length == 1) {
 			//This channel is first in the activity ordering and will be our default if one wasn't saved.
@@ -710,7 +830,7 @@ context.channel = (function () {
 			};
 			var thisChannelId = data[0].channel_id;
 			var subpromise = $.pnut.message.getChannel(thisChannelId, args);
-			subpromise.then(function(subresponse) {completeMessagesCheck(subresponse, data)}, function (response) {context.ui.failAlert('Failed to retrieve additional items.');}); //.done(context.tags.display,context.ui.collapseArchive);
+			subpromise.then(function(subresponse) {completeMessagesCheck(subresponse, data);}, function (response) {context.ui.failAlert('Failed to retrieve additional items.');}); //.done(context.tags.display,context.ui.collapseArchive);
 		} else {
 			//No more, so finish up.
 			completeMessages(data);
@@ -824,7 +944,7 @@ context.sublist = (function () {
 		return parsedObject;
 	}
 
-	function update(channelId,updatedLists) {
+	function update(channelId,updatedLists,reload) {
 		//Update the item lists on move.
 		const newRawData = compress(updatedLists);
 
@@ -836,11 +956,18 @@ context.sublist = (function () {
 			}]
 		};
 		var promise = $.pnut.channel.update(channelId, channelUpdates, updateArgs);
-		promise.then(completeUpdateLists, failUpdateLists); 
+		promise.then(function(response) {completeUpdateLists(response,reload);}, failUpdateLists); 
 	}
 
-	function completeUpdateLists(response) {
+	function completeUpdateLists(response,reload) {
 		//Handle all channel sublist updates.
+		if (reload) {
+			//Update the UI.
+			context.channel.completeChannel(response);
+			return;
+		}
+
+		//Just update model.
 		var thisChannel = response.data;
 		var annotationValue;
 		for (var a = 0; a < thisChannel.raw.length; a++) {
@@ -857,17 +984,18 @@ context.sublist = (function () {
 	function failUpdateLists(response) {
 		context.ui.failAlert('Failed to move item.');
 		//Redraw.
-		context.channel.getCurrent();
+		context.channel.completeChannel(response);
 	}
 
-	function updateOnAdd(channelId, messageId, listType) {
+	function updateOnAdd(channelId, messageId, listType, reload) {
 		//Another sublist updater.
-		//Called on creation after formatting, so the html is already located in the right spot. Just update the channel.
+		//Called on creation after check and formatting, so the html is already located in the right spot. Just update the channel.
+		
 		var updatedLists = channelArray[channelId].lists;
 		if (!updatedLists.hasOwnProperty(listType))
 			updatedLists[listType] = [];
 		updatedLists[listType].push(messageId);
-		update(channelId,updatedLists);
+		update(channelId,updatedLists,reload);
 	}
 
 	function validate(data, fix) {
@@ -963,7 +1091,6 @@ context.item = (function () {
 	//public
 	function add() {
 		//Adds an item.
-		var channelId = api.currentChannel;
 		var message = $("textarea#item").val();
 		if (message == "") {
 			alert("No item text entered.");
@@ -983,7 +1110,8 @@ context.item = (function () {
 		//Don't want the new buttons starting out of sync.
 		var listType = $("input[name=bucketBucket]:checked").data("list");
 		context.ui.settingsOff();
-		createItem(channelId, message);
+
+		createItem(message);
 	}
 
 	function clearForm() {
@@ -1060,8 +1188,9 @@ context.item = (function () {
 	
 	//private
 
-	function createItem(channel,message) {
+	function createItem(message) {
 		//Creates all new items, including edited ones.
+		var channel = api.currentChannel;
 		if (!channel) {
 			context.ui.failAlert('Failed to create item.');
 			return;
@@ -1070,9 +1199,11 @@ context.item = (function () {
 			context.ui.failAlert('Add and edit are disabled for sample lists.');
 			return;
 		}
+
 		var newMessage = {
 			text: message
 		};
+
 		var promise = $.pnut.message.create(channel, newMessage);
 		promise.then(completeItem, function (response) {context.ui.failAlert('Failed to create item.');});
 	}
@@ -1080,24 +1211,26 @@ context.item = (function () {
 	function completeItem(response) {
 		//Handle item creation response.
 		var respd = response.data;
-		
+
 		if (channelArray[response.data.channel_id].hasOwnProperty("listTypes")) {
 			var listType = $("input[name=bucketBucket]:checked").data("list");
 			format(respd,listType);
 			if (listType != 1) {
 				//Update the sublists!
-				context.sublist.updateOnAdd(respd.channel_id,respd.id, listType);
+				context.channel.passiveUpdateForAdd(respd.channel_id, respd.id, listType);
 			}
 		} else {
 			format(respd);
 		}
 		context.tags.colorize(respd.id);
+
+		//Always clear the form and scroll.
 		clearForm();
 		context.ui.forceScroll("#sectionLists");
 	}
 
 	function deleteItem(itemId) {
-		//On active delete, check for ownership and delete if owned or add to queue if not.
+		//Delete real messages.
 		var currentChannel = api.currentChannel;
 		if (!context.channel.isSampleChannel(currentChannel)) {
 			var promise = $.pnut.message.destroy(currentChannel,itemId);
@@ -1123,24 +1256,9 @@ context.item = (function () {
 		var currentChannel = api.currentChannel;
 		if (!context.channel.isSampleChannel(currentChannel)) { 
 			var sourceType = $("#item_" + itemId).closest("div.bucketListDiv").data("type");
-			var updatedLists = JSON.parse(JSON.stringify(channelArray[currentChannel].lists));
-			//Movement paths: from default to non-default, from non-default to non-default, from non-default to default.
-			if (sourceType != 1) {
-				//need to debit the source list.
-				var index = updatedLists[sourceType].indexOf(itemId.toString());
-				if (index > -1) updatedLists[sourceType].splice(index, 1);
-			}
-			if (targetType != 1) {
-				//need to credit the target list
-				if (updatedLists[targetType])
-					updatedLists[targetType].push(itemId.toString());
-				else
-					updatedLists[targetType] = [itemId.toString()];
-			}
-
-			//Send to pnut.
-			context.sublist.update(currentChannel,updatedLists);
+			context.channel.passiveUpdateForMove(itemId,sourceType,targetType);
 		}
+		
 		//Move html.
 		$("#item_" + itemId).appendTo("div#list_" + targetType + " div.list-group");
 		//Need to update the buttons.
