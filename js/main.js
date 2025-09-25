@@ -400,10 +400,7 @@ context.channel = (function () {
 
 	function getCurrent() {
 		//A better process for refreshing the current channel.
-		var args = {
-			include_raw: 1
-		};
-		var promise = $.pnut.channel.get(api.currentChannel,args);
+		var promise = $.pnut.channel.get(api.currentChannel,updateArgs);
 		promise.then(completeChannel, function (response) {context.ui.failAlert('Failed to retrieve your list(s).');});
 	}
 
@@ -416,21 +413,13 @@ context.channel = (function () {
 	
 	function passiveUpdateForAdd(channelId, messageId, listType) {
 		//Checks the channel data before attempting an add or edit.
-
-		var args = {
-			include_raw: 1
-		};
-		var promise = $.pnut.channel.get(channelId,args);
+		var promise = $.pnut.channel.get(channelId,updateArgs);
 		promise.then(function (response) {completePassiveUpdateForAdd(response,messageId, listType);}, function (response) {console.log("Failed to update current list in background.");});
 	}
 
 	function passiveUpdateForMove(itemId,sourceType,targetType) {
 		//Checks the channel data before attempting the move.
-
-		var args = {
-			include_raw: 1
-		};
-		var promise = $.pnut.channel.get(api.currentChannel,args);
+		var promise = $.pnut.channel.get(api.currentChannel,updateArgs);
 		promise.then(function (response) {completePassiveUpdateForMove(response,itemId,sourceType,targetType);}, function (response) {console.log("Failed to update current list in background.");});
 	}
 
@@ -675,6 +664,8 @@ context.channel = (function () {
 			response = getSampleChannelResponse();
 		}
 		if (response.data.length > 0) {
+			//Check each channel's raw data for duplicate settings.
+			//console.log(response.data);
 			for (var c = 0; c < response.data.length; c++) {
 				populateChannel(response.data[c]);
 			}

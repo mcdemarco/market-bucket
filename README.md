@@ -18,11 +18,19 @@ The old ToDo list is in the [wiki](https://github.com/mcdemarco/market-bucket/wi
 
 #### Latest!
 
-2.3.1: Improved text search. (May 2023)
+2.3.5: Add passive updates. (September 2025)
+
+#### June 2025
+
+2.3.4: Really fix issue with long lists.
+
+#### September 2024
+
+2.3.2: Bug fixes.
 
 #### December 2021
 
-2.3.0: Add text search and modify button operation. (December 2021)
+2.3.0: Add text search and modify button operation.
 
 #### March 2021
 
