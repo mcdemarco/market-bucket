@@ -404,14 +404,14 @@ context.channel = (function () {
 		return (parseInt(channelId) <= api.max_samples);
 	}
 	
-	function passiveUpdateForAdd(newMessage) {
+	function passiveUpdateForAdd(channelId, messageId, listType) {
 		//Checks the channel data before attempting an add or edit.
 
 		var args = {
 			include_raw: 1
 		};
-		var promise = $.pnut.channel.get(api.currentChannel,args);
-		promise.then(function (response) {completePassiveUpdateForAdd(response,newMessage);}, function (response) {console.log("Failed to update current list in background.");});
+		var promise = $.pnut.channel.get(channelId,args);
+		promise.then(function (response) {completePassiveUpdateForAdd(response,messageId, listType);}, function (response) {console.log("Failed to update current list in background.");});
 	}
 
 	function passiveUpdateForMove(itemId,sourceType,targetType) {
@@ -680,8 +680,9 @@ context.channel = (function () {
 		}
 	}
 
-	function completePassiveUpdateForAdd(response,newMessage) {
-		//Updates the model but not the UI for a single channel, then adds.
+	function completePassiveUpdateForAdd(response,messageId,listType) {
+		//Updates the model but not the UI for a single channel,
+		//then does the sublist add editing.
 		if (response.data) {
 			//Possibly update model.
 			var annotations = getAnnotations(response.data);
@@ -696,7 +697,7 @@ context.channel = (function () {
 				storeChannel(response.data, annotations);
 			}
 
-			context.item.createItem(newMessage,changed);
+			context.sublist.updateOnAdd(response.data.id, messageId, listType, changed);
 		} else {
 			console.log("No response data received during passive update for add.");
 		}
@@ -993,14 +994,15 @@ context.sublist = (function () {
 		context.channel.completeCurrent(response);
 	}
 
-	function updateOnAdd(channelId, messageId, listType) {
+	function updateOnAdd(channelId, messageId, listType, reload) {
 		//Another sublist updater.
-		//Called on creation after formatting, so the html is already located in the right spot. Just update the channel.
+		//Called on creation after check and formatting, so the html is already located in the right spot. Just update the channel.
+		
 		var updatedLists = channelArray[channelId].lists;
 		if (!updatedLists.hasOwnProperty(listType))
 			updatedLists[listType] = [];
 		updatedLists[listType].push(messageId);
-		update(channelId,updatedLists);
+		update(channelId,updatedLists,reload);
 	}
 
 	function validate(data, fix) {
@@ -1096,7 +1098,6 @@ context.item = (function () {
 	//public
 	function add() {
 		//Adds an item.
-		var channelId = api.currentChannel;
 		var message = $("textarea#item").val();
 		if (message == "") {
 			alert("No item text entered.");
@@ -1117,8 +1118,7 @@ context.item = (function () {
 		var listType = $("input[name=bucketBucket]:checked").data("list");
 		context.ui.settingsOff();
 
-		//createItem(message);
-		context.channel.passiveUpdateForAdd(message);
+		createItem(message);
 	}
 
 	function clearForm() {
@@ -1195,7 +1195,7 @@ context.item = (function () {
 	
 	//private
 
-	function createItem(message, reload) {
+	function createItem(message) {
 		//Creates all new items, including edited ones.
 		var channel = api.currentChannel;
 		if (!channel) {
@@ -1212,30 +1212,24 @@ context.item = (function () {
 		};
 
 		var promise = $.pnut.message.create(channel, newMessage);
-		promise.then(function(response) {completeItem(response,reload);}, function (response) {context.ui.failAlert('Failed to create item.');});
+		promise.then(completeItem, function (response) {context.ui.failAlert('Failed to create item.');});
 	}
 	
-	function completeItem(response, reload) {
+	function completeItem(response) {
 		//Handle item creation response.
 		var respd = response.data;
 
-		if (reload) {
-			context.channel.getCurrent();
-		} else {
-			//Just update the new item.
-		
-			if (channelArray[response.data.channel_id].hasOwnProperty("listTypes")) {
-				var listType = $("input[name=bucketBucket]:checked").data("list");
-				format(respd,listType);
-				if (listType != 1) {
-					//Update the sublists!
-					context.sublist.updateOnAdd(respd.channel_id, respd.id, listType);
-				}
-			} else {
-				format(respd);
+		if (channelArray[response.data.channel_id].hasOwnProperty("listTypes")) {
+			var listType = $("input[name=bucketBucket]:checked").data("list");
+			format(respd,listType);
+			if (listType != 1) {
+				//Update the sublists!
+				context.channel.passiveUpdateForAdd(respd.channel_id, respd.id, listType);
 			}
-			context.tags.colorize(respd.id);
+		} else {
+			format(respd);
 		}
+		context.tags.colorize(respd.id);
 
 		//Always clear the form and scroll.
 		clearForm();
