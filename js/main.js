@@ -31,7 +31,7 @@ var marketBucket = {};
 	var channelArray = {};
 	var messageTextArray = {};
 	var updateArgs = {include_raw: 1};
-	var version = "2.3.5";
+	var version = "2.3.5h";
 
 
 context.init = (function () {
@@ -715,17 +715,19 @@ context.channel = (function () {
 			//Perform move.
 			var currentChannel = api.currentChannel;
 			var updatedLists = JSON.parse(JSON.stringify(channelArray[currentChannel].lists));
+			var listTypes = channelArray[currentChannel].listTypes;
 
 			//Movement paths: from default to non-default, from non-default to non-default, from non-default to default.
 			if (sourceType != 1) {
 				//need to debit the source list.
-				var index = updatedLists[sourceType].indexOf(itemId.toString());
+				var index = updatedLists.hasOwnProperty(sourceType) ? updatedLists[sourceType].indexOf(itemId.toString()) : -1;
 				if (index > -1)
 					updatedLists[sourceType].splice(index, 1);
 				else {
 					if (changed) {
 						//Abort b/c not found where expected
-						context.ui.failAlert("Failed to move item because it had already been moved.");
+						context.ui.failAlert("Failed to move item from " + listTypes[sourceType].title + " to " + listTypes[targetType].title + " because it had already been moved.");
+						
 						//reload UI and abort.
 						completeChannel(response);
 						return;
@@ -734,10 +736,12 @@ context.channel = (function () {
 			} else {
 				if (changed) {
 					//Check and abort if item is found in another list when not expected there.
+					var channelLists = channelArray[currentChannel].lists;
 					for (var sublistType in channelArray[currentChannel].listTypes) {
-						if (channelArray[currentChannel].lists[sublistType].indexOf(itemId.toString()) > -1) {
+						if (channelLists && channelLists.hasOwnProperty(sublistType) && channelLists[sublistType].indexOf(itemId.toString()) > -1) {
 							//Abort b/c not found where expected
-							context.ui.failAlert("Failed to move item because it had already been moved.");
+							context.ui.failAlert("Failed to move item from " + listTypes[sourceType].title + " to " + listTypes[targetType].title + " because it had already been moved.");
+							
 							//reload UI and abort.
 							completeChannel(response);
 							return;
@@ -747,7 +751,7 @@ context.channel = (function () {
 			}
 			if (targetType != 1) {
 				//need to credit the target list
-				if (updatedLists[targetType])
+				if (updatedLists.hasOwnProperty(targetType))
 					updatedLists[targetType].push(itemId.toString());
 				else
 					updatedLists[targetType] = [itemId.toString()];
