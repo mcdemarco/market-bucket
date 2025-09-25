@@ -732,8 +732,9 @@ context.channel = (function () {
 					if (changed) {
 						//Abort b/c not found where expected
 						context.ui.failAlert("Failed to move item because it had already been moved.");
-						//TODO: reload UI and abort.
-						
+						//reload UI and abort.
+						completeChannel(response);
+						return;
 					} 
 				}
 			} else {
@@ -743,8 +744,9 @@ context.channel = (function () {
 						if (channelArray[currentChannel].lists[sublistType].indexOf(itemId.toString()) > -1) {
 							//Abort b/c not found where expected
 							context.ui.failAlert("Failed to move item because it had already been moved.");
-							//TODO: reload UI and abort.
-							
+							//reload UI and abort.
+							completeChannel(response);
+							return;
 						}
 					}
 				}
@@ -966,10 +968,12 @@ context.sublist = (function () {
 	function completeUpdateLists(response,reload) {
 		//Handle all channel sublist updates.
 		if (reload) {
-			context.channel.getCurrent();
+			//Update the UI.
+			context.channel.completeCurrent(response);
 			return;
 		}
-		
+
+		//Just update model.
 		var thisChannel = response.data;
 		var annotationValue;
 		for (var a = 0; a < thisChannel.raw.length; a++) {
@@ -986,7 +990,7 @@ context.sublist = (function () {
 	function failUpdateLists(response) {
 		context.ui.failAlert('Failed to move item.');
 		//Redraw.
-		context.channel.getCurrent();
+		context.channel.completeCurrent(response);
 	}
 
 	function updateOnAdd(channelId, messageId, listType) {
